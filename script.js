@@ -1,13 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- URL FOR GOOGLE SHEETS ---
     // تأكد من تحديث هذا الرابط بالرابط الذي حصلت عليه بعد نشر Google Apps Script
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
-    
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec'; // تأكد من تحديث هذا الرابط بالرابط الصحيح بعد النشر
+
     // --- START: NEW SIMULATION SETTINGS ---
     const SIMULATION_Q_COUNT = 100; // The number of questions for the simulation
     const SIMULATION_TOTAL_TIME_MINUTES = 120; // The total time in minutes for the simulation
     // --- END: NEW SIMULATION SETTINGS ---
-    
+
     // --- REFACTORED: Centralized Application State ---
     const appState = {
         // Content Data
@@ -17,7 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
         groupedLectures: {},
         mcqBooks: [],
         allAnnouncements: [],
-        
+        userRoles: {}, // ADDED: To store user roles/permissions
+
         // User Data
         currentUser: null,
         userCardData: null, // ADDED: To store user's profile card data
@@ -58,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
             score: 0,
             totalQuestions: 0,
         },
-        
+
         // ADDED: Current Learning Mode State
         currentLearning: {
             questions: [],
@@ -72,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modalConfirmAction: null,
         qbankSearchResults: [], // To store search results
     };
-    
+
     const DEFAULT_TIME_PER_QUESTION = 45;
 
     // --- DOM ELEMENTS ---
@@ -83,6 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const notesBtn = document.getElementById('notes-btn');
     const announcementsBtn = document.getElementById('announcements-btn');
     const userNameDisplay = document.getElementById('user-name-display');
+    const headerUserAvatar = document.getElementById('header-user-avatar'); // ADDED
+    const userProfileHeaderBtn = document.getElementById('user-profile-header-btn'); // ADDED
     const loginContainer = document.getElementById('login-container');
     const mainMenuContainer = document.getElementById('main-menu-container');
     const lecturesContainer = document.getElementById('lectures-container');
@@ -242,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const osceNavigatorCloseBtn = document.getElementById('osce-navigator-close-btn');
     const osceSelfCorrectionArea = document.getElementById('osce-self-correction-area');
     const radioBannerContainer = document.getElementById('radio-banner-container');
-    
+
     const learningModeBtn = document.getElementById('learning-mode-btn');
     const learningModeContainer = document.getElementById('learning-mode-container');
     const learningModeControls = document.getElementById('learning-mode-controls');
@@ -273,14 +276,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectAllChaptersMock = document.getElementById('select-all-chapters-mock');
     const practiceBookmarkedBtn = document.getElementById('practice-bookmarked-btn');
     const bookmarkBtn = document.getElementById('bookmark-btn');
-    
-    // --- START: NEW SIMULATION DOM ELEMENTS ---
+
+    // --- START: ADD SIMULATION EVENT LISTENER ---
     const startSimulationBtn = document.getElementById('start-simulation-btn');
     const simulationError = document.getElementById('simulation-error');
-    // --- END: NEW SIMULATION DOM ELEMENTS ---
+    // --- END: ADD SIMULATION EVENT LISTENER ---
 
     // --- ADDED: User Card DOM Elements ---
-    const userCardBtn = document.getElementById('user-card-btn');
     const userCardModal = document.getElementById('user-card-modal');
     const userCardCloseBtn = document.getElementById('user-card-close-btn');
     const userAvatar = document.getElementById('user-avatar');
@@ -310,17 +312,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- FUNCTIONS ---
-    
+
     function logUserActivity(eventData) {
         if (!API_URL || !appState.currentUser || appState.currentUser.Role === 'Guest') return;
-        
+
         const now = new Date();
         let newLogEntry = null;
-        const payload = { 
+        const payload = {
             ...eventData,
             userId: appState.currentUser.UniqueID,
             userName: appState.currentUser.Name
-        }; 
+        };
 
         if (payload.eventType === 'FinishQuiz') {
             const details = appState.currentQuiz.originalQuestions.map((q, index) => {
@@ -361,18 +363,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (row.IncorrectAnswer1 && String(row.IncorrectAnswer1).trim() !== '') answerOptions.push({ text: String(row.IncorrectAnswer1), isCorrect: false, rationale: row.IncorrectRationale1 || '' });
             if (row.IncorrectAnswer2 && String(row.IncorrectAnswer2).trim() !== '') answerOptions.push({ text: String(row.IncorrectAnswer2), isCorrect: false, rationale: row.IncorrectRationale2 || '' });
             if (row.IncorrectAnswer3 && String(row.IncorrectAnswer3).trim() !== '') answerOptions.push({ text: String(row.IncorrectAnswer3), isCorrect: false, rationale: row.IncorrectRationale3 || '' });
-            return { 
-                UniqueID: row.UniqueID, 
-                chapter: (row.Chapter && String(row.Chapter).trim()) ? row.Chapter : 'Uncategorized', 
-                question: row.Question, 
-                hint: row.Hint || '', 
-                source: row.Source || '', 
-                ImageURL: row.ImageURL || '', 
-                answerOptions: answerOptions 
+            return {
+                UniqueID: row.UniqueID,
+                chapter: (row.Chapter && String(row.Chapter).trim()) ? row.Chapter : 'Uncategorized',
+                question: row.Question,
+                hint: row.Hint || '',
+                source: row.Source || '',
+                ImageURL: row.ImageURL || '',
+                answerOptions: answerOptions
             };
         });
     }
-    
+
     function groupLecturesByChapter(lectureData) {
         if (!lectureData) return {};
         const chapters = {};
@@ -383,19 +385,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 chapters[chapterName] = { topics: [], mock: null, icon: '' };
             }
             if (row.LectureName) {
-                chapters[chapterName].topics.push({ 
+                chapters[chapterName].topics.push({
                     id: row.UniqueID,
-                    name: row.LectureName, 
+                    name: row.LectureName,
                     link: row.LectureURL
                 });
             }
-            if (row['Mock Link'] && !chapters[chapterName].mock) {
-                chapters[chapterName].mock = { 
-                    link: row['Mock Link'], 
+            if (row['Mock Name'] && row['Mock Link'] && !chapters[chapterName].mock) { // Ensure both name and link exist
+                chapters[chapterName].mock = {
+                    link: row['Mock Link'],
                     name: row['Mock Name'] || 'Mock Exam'
                 };
             }
-            if(row.ChapterIcon && !chapters[chapterName].icon) {
+            if (row.ChapterIcon && !chapters[chapterName].icon) {
                 chapters[chapterName].icon = row.ChapterIcon;
             }
         });
@@ -420,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!data) return [];
         return data.filter(row => row.QuestionID && row.CaseID).map(row => {
             const answerOptions = [];
-             if (row.CorrectAnswer && String(row.CorrectAnswer).trim() !== '') answerOptions.push({ text: String(row.CorrectAnswer), isCorrect: true, rationale: row.CorrectRationale || '' });
+            if (row.CorrectAnswer && String(row.CorrectAnswer).trim() !== '') answerOptions.push({ text: String(row.CorrectAnswer), isCorrect: true, rationale: row.CorrectRationale || '' });
             if (row.IncorrectAnswer1 && String(row.IncorrectAnswer1).trim() !== '') answerOptions.push({ text: String(row.IncorrectAnswer1), isCorrect: false, rationale: row.IncorrectRationale1 || '' });
             if (row.IncorrectAnswer2 && String(row.IncorrectAnswer2).trim() !== '') answerOptions.push({ text: String(row.IncorrectAnswer2), isCorrect: false, rationale: row.IncorrectRationale2 || '' });
             if (row.IncorrectAnswer3 && String(row.IncorrectAnswer3).trim() !== '') answerOptions.push({ text: String(row.IncorrectAnswer3), isCorrect: false, rationale: row.IncorrectRationale3 || '' });
@@ -449,7 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) throw new Error(`Network response was not ok. Status: ${response.status}`);
-            
+
             const data = await response.json();
             if (data.error) throw new Error(data.error);
 
@@ -459,13 +461,14 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.allAnnouncements = data.announcements || [];
             appState.allOsceCases = parseOsceCases(data.osceCases);
             appState.allOsceQuestions = parseOsceQuestions(data.osceQuestions);
-            
+            appState.allRoles = data.roles || []; // ADDED: Load roles
+
             populateAllFilterOptions();
             renderLectures();
-            
+
             loginLoader.classList.add('hidden');
             loginLoadingText.classList.add('hidden');
-            
+
         } catch (error) {
             console.error("Error loading content data:", error);
             loginLoadingText.textContent = `Failed to load content. Please ensure the script is deployed correctly and refresh. Error: ${error.message}`;
@@ -477,10 +480,10 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`${API_URL}?request=userData&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
             if (!response.ok) throw new Error('Could not fetch user data.');
-            
+
             const data = await response.json();
             if (data.error) throw new Error(data.error);
-            
+
             appState.fullActivityLog = data.logs || [];
             appState.userQuizNotes = data.quizNotes || [];
             appState.userLectureNotes = data.lectureNotes || [];
@@ -519,20 +522,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const sortedSources = Object.keys(sourceCounts).sort();
         const sortedChapters = Object.keys(chapterCounts).sort();
-        
+
         populateFilterOptions(sourceSelectMock, sortedSources, 'mock-source', sourceCounts);
         populateFilterOptions(chapterSelectMock, sortedChapters, 'mock-chapter', chapterCounts);
-        
+
         const osceChapters = [...new Set(appState.allOsceCases.map(c => c.Chapter).filter(c => c))].sort();
         const osceSources = [...new Set(appState.allOsceCases.map(c => c.Source).filter(s => s))].sort();
         // We don't have counts for OSCE yet, so we pass an empty object
         populateFilterOptions(chapterSelectOsce, osceChapters, 'osce-chapter', {});
         populateFilterOptions(sourceSelectOsce, osceSources, 'osce-source', {});
     }
-    
+
     function updateChapterFilter() {
         const selectedSources = [...sourceSelectMock.querySelectorAll('input:checked')].map(el => el.value);
-        
+
         let relevantQuestions;
         if (selectedSources.length === 0) {
             relevantQuestions = appState.allQuestions;
@@ -567,16 +570,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 mode: 'cors',
                 body: JSON.stringify(payload),
-                redirect: 'follow' 
+                redirect: 'follow'
             });
 
             const result = await response.json();
 
             if (result.success) {
                 appState.currentUser = result.user;
+                // Set user roles based on the fetched role data
+                const userRoleData = appState.allRoles.find(role => role.Role === appState.currentUser.Role);
+                appState.userRoles = userRoleData || {}; // Store the role permissions
+
                 updateWatermark(appState.currentUser);
                 loadUserProgress();
                 await loadUserData();
+                await showUserCardModal(true); // Load user card data immediately after login
+                updateUserProfileHeader(); // Update header with nickname/avatar
                 showMainMenuScreen();
             } else {
                 loginError.textContent = result.message || "Invalid username or password.";
@@ -591,36 +600,43 @@ document.addEventListener('DOMContentLoaded', () => {
             loginSubmitBtn.textContent = 'Log In';
         }
     }
-    
+
     function showScreen(screenToShow, isGuest = false) {
-        [loginContainer, mainMenuContainer, lecturesContainer, qbankContainer, listContainer, quizContainer, activityLogContainer, notesContainer, libraryContainer, leaderboardContainer, osceContainer, osceQuizContainer, learningModeContainer, messengerModal].forEach(screen => { // ADDED messengerModal
-            if(screen) screen.classList.add('hidden');
+        // Close all modals first to prevent overlap
+        [confirmationModal, questionNavigatorModal, imageViewerModal, noteModal, clearLogModal, announcementsModal, userCardModal, messengerModal, osceNavigatorModal].forEach(modal => {
+            if (modal) modal.classList.add('hidden');
         });
-        if(screenToShow) screenToShow.classList.remove('hidden');
+        modalBackdrop.classList.add('hidden'); // Hide backdrop for all modals
+
+        // Hide all main content containers
+        [loginContainer, mainMenuContainer, lecturesContainer, qbankContainer, listContainer, quizContainer, activityLogContainer, notesContainer, libraryContainer, leaderboardContainer, osceContainer, osceQuizContainer, learningModeContainer].forEach(screen => {
+            if (screen) screen.classList.add('hidden');
+        });
+
+        // Show the requested screen
+        if (screenToShow) screenToShow.classList.remove('hidden');
 
         const watermarkOverlay = document.getElementById('watermark-overlay');
         if (screenToShow !== loginContainer && !isGuest) {
             globalHeader.classList.remove('hidden');
             watermarkOverlay.classList.remove('hidden');
-            if (isGuest) {
-                userNameDisplay.classList.add('hidden');
-                logoutBtn.classList.add('hidden');
-                activityLogBtn.classList.add('hidden');
-                notesBtn.classList.add('hidden');
-                userCardBtn.classList.add('hidden'); // ADDED: Hide user card button for guests
-                messengerBtn.classList.add('hidden'); // ADDED: Hide messenger button for guests
-            } else {
-                userNameDisplay.textContent = appState.currentUser.Name;
-                userNameDisplay.classList.remove('hidden');
-                logoutBtn.classList.remove('hidden');
-                activityLogBtn.classList.remove('hidden');
-                notesBtn.classList.remove('hidden');
-                userCardBtn.classList.remove('hidden'); // ADDED: Show user card button for logged-in users
-                messengerBtn.classList.remove('hidden'); // ADDED: Show messenger button for logged-in users
-            }
+            userNameDisplay.classList.remove('hidden');
+            logoutBtn.classList.remove('hidden');
+            activityLogBtn.classList.remove('hidden');
+            notesBtn.classList.remove('hidden');
+            userProfileHeaderBtn.classList.remove('hidden'); // Show user profile button
+            messengerBtn.classList.remove('hidden'); // Show messenger button
+            updateUserProfileHeader(); // Ensure header is updated
+            applyRolePermissions(); // Apply role permissions
         } else {
             globalHeader.classList.add('hidden');
             watermarkOverlay.classList.add('hidden');
+            userNameDisplay.classList.add('hidden');
+            logoutBtn.classList.add('hidden');
+            activityLogBtn.classList.add('hidden');
+            notesBtn.classList.add('hidden');
+            userProfileHeaderBtn.classList.add('hidden'); // Hide user profile button for guests
+            messengerBtn.classList.add('hidden'); // Hide messenger button for guests
         }
     }
 
@@ -630,25 +646,29 @@ document.addEventListener('DOMContentLoaded', () => {
         displayAnnouncement();
         await fetchAndShowLastActivity();
     }
-    
+
     function showLecturesScreen() {
+        if (!checkPermission('Lectures')) return;
         showScreen(lecturesContainer);
         appState.navigationHistory.push(showLecturesScreen);
         renderLectures();
     }
 
     function showQbankScreen() {
+        if (!checkPermission('MCQBank')) return;
         showScreen(qbankContainer);
         appState.navigationHistory.push(showQbankScreen);
     }
 
     function showLibraryScreen() {
+        if (!checkPermission('Library')) return;
         showScreen(libraryContainer);
         appState.navigationHistory.push(showLibraryScreen);
         renderBooks();
     }
 
     async function showLeaderboardScreen() {
+        if (!checkPermission('LeadersBoard')) return;
         showScreen(leaderboardContainer);
         appState.navigationHistory.push(showLeaderboardScreen);
         leaderboardList.innerHTML = '';
@@ -712,7 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const userElement = document.createElement('div');
             userElement.className = `flex items-center p-4 rounded-lg border-2 ${rankColor}`;
-            
+
             userElement.innerHTML = `
                 <div class="w-10 h-10 flex items-center justify-center text-xl font-bold ${rank > 3 ? 'text-slate-600' : ''}">
                     ${rankIcon ? `<i class="${rankIcon}"></i>` : rank}
@@ -772,7 +792,7 @@ document.addEventListener('DOMContentLoaded', () => {
             libraryList.appendChild(bookElement);
         });
     }
-    
+
     function renderLectures(filterText = '') {
         lecturesList.innerHTML = '';
         const lowerCaseFilter = filterText.toLowerCase();
@@ -796,7 +816,7 @@ document.addEventListener('DOMContentLoaded', () => {
             details.open = !!filterText;
             const summary = document.createElement('summary');
             summary.className = 'p-4 cursor-pointer hover:bg-slate-50';
-            
+
             const totalTopics = chapterData.topics.length;
             const viewedTopics = chapterData.topics.filter(topic => appState.viewedLectures.has(topic.link)).length;
             const progressPercentage = totalTopics > 0 ? (viewedTopics / totalTopics) * 100 : 0;
@@ -818,7 +838,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="text-xs font-semibold text-slate-500">${viewedTopics}/${totalTopics}</span>
                 </div>
             `;
-            
+
             const contentDiv = document.createElement('div');
             contentDiv.className = 'p-4 bg-slate-50 border-t border-slate-200';
             const topicList = document.createElement('ul');
@@ -827,7 +847,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const listItem = document.createElement('li');
                 listItem.className = 'flex items-center justify-between p-3 rounded-md hover:bg-blue-100 transition-colors group';
                 const isViewed = appState.viewedLectures.has(topic.link);
-                
+
                 if (isViewed) {
                     listItem.classList.add('lecture-viewed');
                 }
@@ -847,14 +867,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const hasNote = appState.userLectureNotes.some(note => note.LectureID === topic.id);
                 noteIcon.className = `fas fa-sticky-note text-slate-400 hover:text-amber-500 note-icon ${hasNote ? 'has-note' : ''}`;
                 noteIcon.addEventListener('click', (e) => {
-                     e.preventDefault();
-                     e.stopPropagation();
-                     openNoteModal('lecture', topic.id, topic.name);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openNoteModal('lecture', topic.id, topic.name);
                 });
-                
+
                 controls.appendChild(icon);
                 controls.appendChild(noteIcon);
-                
+
                 const content = document.createElement('div');
                 content.className = "flex-grow";
 
@@ -871,10 +891,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     nameSpan.textContent = topic.name;
                     content.appendChild(nameSpan);
                 }
-                
+
                 listItem.appendChild(controls);
                 listItem.appendChild(content);
-                
+
                 topicList.appendChild(listItem);
             });
             contentDiv.appendChild(topicList);
@@ -896,7 +916,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 mockButton.innerHTML = `<i class="fas fa-vial"></i> ${chapterData.mock.name}`;
                 actionsDiv.appendChild(mockButton);
             }
-            if(actionsDiv.hasChildNodes()){
+            if (actionsDiv.hasChildNodes()) {
                 contentDiv.appendChild(actionsDiv);
             }
             details.appendChild(summary);
@@ -904,7 +924,7 @@ document.addEventListener('DOMContentLoaded', () => {
             lecturesList.appendChild(details);
         });
         if (chaptersFound === 0) {
-             lecturesList.innerHTML = `<p class="text-center text-slate-500">No lectures found matching your search.</p>`;
+            lecturesList.innerHTML = `<p class="text-center text-slate-500">No lectures found matching your search.</p>`;
         }
     }
 
@@ -915,7 +935,7 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.viewedLectures.add(lectureLink);
             logUserActivity({
                 eventType: 'ViewLecture',
-                lectureName: lectureName 
+                lectureName: lectureName
             });
         }
         saveUserProgress();
@@ -944,7 +964,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!appState.currentUser || appState.currentUser.Role === 'Guest') return;
         lastLectureRibbon.classList.add('hidden');
         lastQuizRibbon.classList.add('hidden');
-        
+
         if (appState.fullActivityLog.length === 0) return;
 
         const lastLecture = appState.fullActivityLog.find(log => log.eventType === 'ViewLecture');
@@ -983,7 +1003,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (filter === 'lectures') return log.eventType === 'ViewLecture';
             return false;
         });
-        
+
         renderActivityChart(logsToDisplay);
 
         const quizLogs = appState.fullActivityLog.filter(log => log.eventType === 'FinishQuiz');
@@ -1016,7 +1036,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const viewedLogs = appState.fullActivityLog.filter(log => log.eventType === 'ViewLecture');
             const uniqueViewedLectures = new Set(viewedLogs.map(l => l.title));
             lecturesViewedCount.textContent = uniqueViewedLectures.size;
-            
+
             const uniqueChapters = new Set();
             viewedLogs.forEach(log => {
                 for (const chapterName in appState.groupedLectures) {
@@ -1039,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const logItem = document.createElement('div');
             logItem.className = 'p-3 border rounded-lg flex flex-col sm:flex-row justify-between items-center bg-white gap-3';
             const date = new Date(log.timestamp);
-            const formattedDate = date.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' });
+            const formattedDate = date.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
             let mainContent = '';
             if (log.eventType === 'FinishQuiz') {
@@ -1063,7 +1083,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     logItem.appendChild(reviewButton);
                 }
             } else if (log.eventType === 'ViewLecture') {
-                   mainContent = `
+                mainContent = `
                     <div class="flex-grow text-center sm:text-left">
                         <p class="font-bold text-slate-800">${log.title}</p>
                         <p class="text-sm text-slate-500">${formattedDate}</p>
@@ -1093,7 +1113,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const d = new Date();
             d.setDate(d.getDate() - i);
             const key = d.toISOString().split('T')[0]; // YYYY-MM-DD
-            labels.push(d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric'}));
+            labels.push(d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }));
             activityByDay[key] = { lectures: 0, quizzes: 0 };
         }
 
@@ -1148,9 +1168,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showSourceList(isLearningMode = false) {
         showScreen(listContainer);
-        
+
         if (appState.navigationHistory[appState.navigationHistory.length - 1] !== showSourceList) {
-           appState.navigationHistory.push(() => showSourceList(isLearningMode));
+            appState.navigationHistory.push(() => showSourceList(isLearningMode));
         }
 
         listTitle.textContent = isLearningMode ? "Study by Source" : "Browse by Source";
@@ -1177,20 +1197,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showChapterList(sourceFilter = 'All', isLearningMode = false) {
         showScreen(listContainer);
-        
+
         const prevNav = appState.navigationHistory[appState.navigationHistory.length - 1];
         if (!prevNav || prevNav.toString() !== (() => showChapterList(sourceFilter, isLearningMode)).toString()) {
             appState.navigationHistory.push(() => showChapterList(sourceFilter, isLearningMode));
         }
 
-        listTitle.textContent = sourceFilter === 'All' 
-            ? (isLearningMode ? "Select Chapters to Study" : "All Chapters") 
-            : (isLearningMode ? `Select Chapters from ${sourceFilter}`: `Chapters in ${sourceFilter}`);
-        
+        listTitle.textContent = sourceFilter === 'All'
+            ? (isLearningMode ? "Select Chapters to Study" : "All Chapters")
+            : (isLearningMode ? `Select Chapters from ${sourceFilter}` : `Chapters in ${sourceFilter}`);
+
         listItems.innerHTML = '';
-        
+
         if (isLearningMode) {
-            listItems.className = 'p-4 md:p-6 space-y-3'; 
+            listItems.className = 'p-4 md:p-6 space-y-3';
         } else {
             listItems.className = 'p-4 md:p-6 grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4';
         }
@@ -1233,7 +1253,7 @@ document.addEventListener('DOMContentLoaded', () => {
             startButton.className = 'action-btn w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg';
             startButton.textContent = 'Start Learning Session';
             listItems.appendChild(startButton);
-            
+
             const errorP = document.createElement('p');
             errorP.id = 'learning-selection-error';
             errorP.className = 'text-red-500 text-xs italic mt-2 text-center hidden';
@@ -1247,13 +1267,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             startButton.addEventListener('click', () => {
                 const selectedChapters = [...listItems.querySelectorAll('input[name="learning-chapter"]:checked')].map(el => el.value);
-                
+
                 if (selectedChapters.length === 0) {
                     errorP.textContent = 'Please select at least one chapter to study.';
                     errorP.classList.remove('hidden');
                     return;
                 }
-                
+
                 errorP.classList.add('hidden');
 
                 let questionsToLearn = [];
@@ -1308,7 +1328,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const shuffled = [...filteredQuestions].sort(() => Math.random() - 0.5);
         const mockQuestions = shuffled.slice(0, requestedCount);
-        
+
         const config = {
             timePerQuestion: (customTime && customTime > 0) ? customTime : DEFAULT_TIME_PER_QUESTION
         };
@@ -1326,7 +1346,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const shuffled = [...appState.allQuestions].sort(() => Math.random() - 0.5);
         const simulationQuestions = shuffled.slice(0, SIMULATION_Q_COUNT);
         const totalTimeSeconds = SIMULATION_TOTAL_TIME_MINUTES * 60;
-        
+
         const config = {
             isSimulation: true,
             totalTimeSeconds: totalTimeSeconds
@@ -1367,7 +1387,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appState.currentQuiz.currentQuestionIndex = 0;
         appState.currentQuiz.score = 0;
         appState.currentQuiz.questions = questions;
-        
+
         if (!appState.currentQuiz.isReviewMode) {
             appState.currentQuiz.originalQuestions = [...questions];
             appState.currentQuiz.userAnswers = new Array(questions.length).fill(null);
@@ -1409,7 +1429,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showQuestion() {
         resetQuizState();
         const currentQuestion = appState.currentQuiz.questions[appState.currentQuiz.currentQuestionIndex];
-        
+
         hintBtn.style.display = appState.currentQuiz.isSimulationMode ? 'none' : 'block';
 
         if (currentQuestion.ImageURL) {
@@ -1426,21 +1446,21 @@ document.addEventListener('DOMContentLoaded', () => {
         sourceText.textContent = `Source: ${currentQuestion.source || 'N/A'} | Chapter: ${currentQuestion.chapter || 'N/A'}`;
         previousBtn.disabled = appState.currentQuiz.currentQuestionIndex === 0;
         previousBtn.classList.toggle('opacity-50', appState.currentQuiz.currentQuestionIndex === 0);
-        
+
         const isLastQuestion = appState.currentQuiz.currentQuestionIndex === appState.currentQuiz.questions.length - 1;
 
         if (appState.currentQuiz.isReviewMode && isLastQuestion) {
             nextSkipBtn.textContent = 'Finish Review';
         } else if (appState.currentQuiz.isSimulationMode && isLastQuestion) {
-             nextSkipBtn.textContent = 'Finish';
+            nextSkipBtn.textContent = 'Finish';
         } else {
             nextSkipBtn.textContent = 'Next';
         }
-        
+
         flagBtn.classList.toggle('flagged', appState.currentQuiz.flaggedIndices.has(appState.currentQuiz.currentQuestionIndex));
-        
+
         const shuffledAnswers = (appState.currentQuiz.isReviewMode || appState.currentQuiz.isSimulationMode) ? [...currentQuestion.answerOptions] : [...currentQuestion.answerOptions].sort(() => Math.random() - 0.5);
-        
+
         shuffledAnswers.forEach(answer => {
             const buttonContainer = document.createElement('div');
             const button = document.createElement('button');
@@ -1469,13 +1489,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 showAnswerResult();
             }
         }
-        
+
         if (!appState.currentQuiz.isReviewMode && !appState.currentQuiz.isSimulationMode) {
             startTimer();
         } else if (appState.currentQuiz.isReviewMode) {
             timerDisplay.textContent = 'Review';
         }
-        
+
         const hasNote = appState.userQuizNotes.some(note => note.QuizID === currentQuestion.UniqueID);
         quizNoteBtn.classList.toggle('has-note', hasNote);
     }
@@ -1550,7 +1570,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-    
+
     function showAnswerResult() {
         const userAnswer = appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex];
         Array.from(answerButtons.children).forEach(buttonContainer => {
@@ -1565,7 +1585,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (userAnswer && button.dataset.text === userAnswer.answer) {
                     button.classList.add('incorrect', 'user-choice');
                 } else {
-                     button.classList.add('incorrect');
+                    button.classList.add('incorrect');
                 }
                 rationale.classList.add('bg-red-100', 'visible');
             }
@@ -1585,7 +1605,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsTitle.textContent = resultTitle;
 
         resultsScoreText.innerHTML = `Your score is <span id="score-text" class="font-bold">${appState.currentQuiz.score}</span> out of <span id="total-questions" class="font-bold">${appState.currentQuiz.originalQuestions.length}</span>.`;
-        
+
         const incorrectCount = appState.currentQuiz.originalUserAnswers.filter(a => a && !a.isCorrect).length;
         if (incorrectCount > 0) {
             reviewIncorrectBtn.classList.remove('hidden');
@@ -1626,7 +1646,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showResults();
         }
     }
-    
+
     function handlePreviousQuestion() {
         if (appState.currentQuiz.currentQuestionIndex > 0) {
             appState.currentQuiz.currentQuestionIndex--;
@@ -1641,23 +1661,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showImageModal(src) {
-        modalImage.src = src;
-        confirmationModal.classList.add('hidden');
-        questionNavigatorModal.classList.add('hidden');
-        userCardModal.classList.add('hidden'); // ADDED: Hide user card modal
-        messengerModal.classList.add('hidden'); // ADDED: Hide messenger modal
+        // Close all other modals before opening image viewer
+        [confirmationModal, questionNavigatorModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
+            if (modal) modal.classList.add('hidden');
+        });
         imageViewerModal.classList.remove('hidden');
         modalBackdrop.classList.remove('hidden');
     }
 
     function showConfirmationModal(title, text, onConfirm) {
+        // Close all other modals before opening confirmation
+        [questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
+            if (modal) modal.classList.add('hidden');
+        });
         appState.modalConfirmAction = onConfirm;
         confirmationModal.querySelector('#modal-title').textContent = title;
         confirmationModal.querySelector('#modal-text').textContent = text;
-        questionNavigatorModal.classList.add('hidden');
-        imageViewerModal.classList.add('hidden');
-        userCardModal.classList.add('hidden'); // ADDED: Hide user card modal
-        messengerModal.classList.add('hidden'); // ADDED: Hide messenger modal
         confirmationModal.classList.remove('hidden');
         modalBackdrop.classList.remove('hidden');
     }
@@ -1684,10 +1703,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             navigatorGrid.appendChild(button);
         });
-        confirmationModal.classList.add('hidden');
-        imageViewerModal.classList.add('hidden');
-        userCardModal.classList.add('hidden'); // ADDED: Hide user card modal
-        messengerModal.classList.add('hidden'); // ADDED: Hide messenger modal
+        // Close all other modals before opening navigator
+        [confirmationModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
+            if (modal) modal.classList.add('hidden');
+        });
         questionNavigatorModal.classList.remove('hidden');
         modalBackdrop.classList.remove('hidden');
     }
@@ -1702,13 +1721,13 @@ document.addEventListener('DOMContentLoaded', () => {
             modalBackdrop.classList.add('hidden');
         });
     }
-    
+
     function triggerEndQuiz(isForced = false) {
         if (appState.currentQuiz.isReviewMode) {
             showMainMenuScreen();
             return;
         }
-         if (isForced) {
+        if (isForced) {
             showResults();
             return;
         }
@@ -1757,7 +1776,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`${API_URL}?request=reviewQuiz&logId=${encodeURIComponent(logId)}&userId=${appState.currentUser.UniqueID}`);
             if (!response.ok) throw new Error('Failed to fetch review data.');
-            
+
             const data = await response.json();
             if (data.error) throw new Error(data.error);
 
@@ -1770,7 +1789,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     isCorrect: item.userAnswer === correctOption.text
                 };
             });
-            
+
             const config = { isReview: true, pastAnswers: pastAnswers };
             launchQuiz(reviewQuestions, title, config);
 
@@ -1779,7 +1798,7 @@ document.addEventListener('DOMContentLoaded', () => {
             progressText.textContent = `Error: ${error.message}`;
         }
     }
-    
+
     // --- NOTES FUNCTIONS ---
     function showNotesScreen() {
         showScreen(notesContainer);
@@ -1802,7 +1821,7 @@ document.addEventListener('DOMContentLoaded', () => {
         notesToDisplay.forEach(note => {
             const noteItem = document.createElement('div');
             noteItem.className = 'p-4 bg-white rounded-lg border border-slate-200 shadow-sm';
-            
+
             let title = 'Note';
             let itemId = null;
             let noteType = '';
@@ -1854,13 +1873,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         noteTextarea.value = existingNote ? existingNote.NoteText : '';
+        // Close all other modals before opening note modal
+        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
+            if (modal) modal.classList.add('hidden');
+        });
         modalBackdrop.classList.remove('hidden');
         noteModal.classList.remove('hidden');
-        imageViewerModal.classList.add('hidden');
-        questionNavigatorModal.classList.add('hidden');
-        confirmationModal.classList.add('hidden');
-        userCardModal.classList.add('hidden'); // ADDED: Hide user card modal
-        messengerModal.classList.add('hidden'); // ADDED: Hide messenger modal
     }
 
     function handleSaveNote() {
@@ -1926,7 +1944,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 appState.userLectureNotes = appState.userLectureNotes.filter(n => n.UniqueID !== uniqueId);
             }
-            
+
             // Re-render the currently visible screen if it's affected
             if (notesContainer.style.display !== 'none') {
                 renderNotes(notesFilterQuizzes.classList.contains('active') ? 'quizzes' : 'lectures');
@@ -2000,7 +2018,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`${API_URL}?request=getIncorrectQuestions&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
             if (!response.ok) throw new Error('Failed to fetch your mistakes.');
-            
+
             const data = await response.json();
             if (data.error) throw new Error(data.error);
 
@@ -2008,7 +2026,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showConfirmationModal('All Clear!', 'You have no incorrect questions to practice. Well done!', () => modalBackdrop.classList.add('hidden'));
                 return;
             }
-            
+
             const mistakeQuestions = parseQuestions(data.questions);
             const shuffled = [...mistakeQuestions].sort(() => Math.random() - 0.5);
             launchQuiz(shuffled, "Practice Mistakes", { isMistakePractice: true });
@@ -2022,14 +2040,14 @@ document.addEventListener('DOMContentLoaded', () => {
             loadingText.classList.add('hidden');
         }
     }
-    
+
     async function startBookmarkedQuestionsQuiz() {
         const bookmarkedIds = Array.from(appState.bookmarkedQuestions);
         if (bookmarkedIds.length === 0) {
             showConfirmationModal('No Bookmarks', 'You have not bookmarked any questions yet.', () => modalBackdrop.classList.add('hidden'));
             return;
         }
-        
+
         const bookmarkedQuestions = appState.allQuestions.filter(q => bookmarkedIds.includes(q.UniqueID));
         const shuffled = [...bookmarkedQuestions].sort(() => Math.random() - 0.5);
         launchQuiz(shuffled, "Bookmarked Questions");
@@ -2065,7 +2083,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const latestAnnouncement = appState.allAnnouncements[0];
         const seenAnnouncementId = localStorage.getItem('seenAnnouncementId');
-        
+
         if (seenAnnouncementId === latestAnnouncement.UniqueID) {
             banner.classList.add('hidden');
             return;
@@ -2090,7 +2108,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('seenAnnouncementId', latestAnnouncement.UniqueID);
         });
     }
-    
+
     function showAnnouncementsModal() {
         announcementsList.innerHTML = '';
         if (appState.allAnnouncements.length === 0) {
@@ -2107,12 +2125,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 announcementsList.appendChild(annItem);
             });
         }
+        // Close all other modals before opening announcements modal
+        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, osceNavigatorModal].forEach(modal => {
+            if (modal) modal.classList.add('hidden');
+        });
         modalBackdrop.classList.remove('hidden');
         announcementsModal.classList.remove('hidden');
     }
 
     // --- OSCE Functions ---
     function showOsceScreen() {
+        if (!checkPermission('OSCEBank')) return;
         showScreen(osceContainer);
         appState.navigationHistory.push(showOsceScreen);
     }
@@ -2126,11 +2149,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const shuffled = [...casesWithQuestions].sort(() => Math.random() - 0.5);
-        
+
         const totalQuestions = shuffled.reduce((acc, currentCase) => {
             return acc + appState.allOsceQuestions.filter(q => q.CaseID === currentCase.CaseID).length;
         }, 0);
-        
+
         const totalDuration = totalQuestions * 60; // 1 minute per question
         startOsceQuiz(shuffled, "OSCE Slayer", totalDuration);
     }
@@ -2149,7 +2172,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const selectedChapters = [...chapterSelectOsce.querySelectorAll('input:checked')].map(el => el.value);
         const selectedSources = [...sourceSelectOsce.querySelectorAll('input:checked')].map(el => el.value);
-        
+
         let filteredCases = appState.allOsceCases;
         if (selectedChapters.length > 0) filteredCases = filteredCases.filter(c => selectedChapters.includes(c.Chapter));
         if (selectedSources.length > 0) filteredCases = filteredCases.filter(c => selectedSources.includes(c.Source));
@@ -2177,7 +2200,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalDuration = totalQuestions * timePerQSeconds;
         startOsceQuiz(mockCases, "Custom OSCE", totalDuration);
     }
-    
+
     function startOsceQuiz(cases, title, totalDuration) {
         appState.currentOsce.cases = cases;
         appState.currentOsce.caseIndex = 0;
@@ -2238,7 +2261,7 @@ document.addEventListener('DOMContentLoaded', () => {
         osceModelAnswerArea.classList.add('hidden');
         osceSelfCorrectionArea.innerHTML = '';
         osceSelfCorrectionArea.classList.add('hidden');
-        
+
         const answerKey = `${currentCase.CaseID}_${currentQuestion.QuestionID}`;
         const userAnswer = appState.currentOsce.userAnswers[answerKey];
 
@@ -2406,17 +2429,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showOsceResults() {
         showScreen(quizContainer);
-        
+
         questionContainer.classList.add('hidden');
         controlsContainer.classList.add('hidden');
-        
+
         resultsContainer.classList.remove('hidden');
-        
+
         resultsTitle.textContent = "OSCE Complete!";
         resultsScoreText.innerHTML = `Your score is <span id="score-text" class="font-bold">${appState.currentOsce.score}</span> out of <span id="total-questions" class="font-bold">${appState.currentOsce.totalQuestions}</span>.`;
-        
-        restartBtn.classList.add('hidden'); 
-        reviewIncorrectBtn.classList.add('hidden'); 
+
+        restartBtn.classList.add('hidden');
+        reviewIncorrectBtn.classList.add('hidden');
     }
 
     function showOsceNavigator() {
@@ -2431,7 +2454,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const questionsGrid = document.createElement('div');
             questionsGrid.className = 'grid grid-cols-5 sm:grid-cols-8 gap-2 mt-2';
-            
+
             const caseQuestions = appState.allOsceQuestions.filter(q => q.CaseID === caseItem.CaseID);
             caseQuestions.forEach((q, qIdx) => {
                 const button = document.createElement('button');
@@ -2460,12 +2483,17 @@ document.addEventListener('DOMContentLoaded', () => {
             osceNavigatorContent.appendChild(caseDiv);
         });
 
+        // Close all other modals before opening OSCE navigator
+        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal].forEach(modal => {
+            if (modal) modal.classList.add('hidden');
+        });
         modalBackdrop.classList.remove('hidden');
         osceNavigatorModal.classList.remove('hidden');
     }
 
     // --- ADDED: Learning Mode Functions ---
     function showLearningModeBrowseScreen() {
+        if (!checkPermission('LerningMode')) return;
         showScreen(learningModeContainer);
         learningModeControls.classList.remove('hidden');
         learningModeViewer.classList.add('hidden');
@@ -2473,12 +2501,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function launchLearningMode(title, questions) {
-        showScreen(learningModeContainer); 
+        showScreen(learningModeContainer);
 
         appState.currentLearning.questions = questions;
         appState.currentLearning.currentIndex = 0;
         appState.currentLearning.title = title;
-        
+
         learningModeControls.classList.add('hidden');
         learningModeViewer.classList.remove('hidden');
         learningTitle.textContent = `Studying: ${title}`;
@@ -2503,7 +2531,7 @@ document.addEventListener('DOMContentLoaded', () => {
         learningQuestionText.textContent = currentQuestion.question;
         learningProgressText.textContent = `Question ${currentIndex + 1} of ${questions.length}`;
         learningSourceText.textContent = `Source: ${currentQuestion.source || 'N/A'} | Chapter: ${currentQuestion.chapter || 'N/A'}`;
-        
+
         learningAnswerButtons.innerHTML = '';
         currentQuestion.answerOptions.forEach(answer => {
             const answerDiv = document.createElement('div');
@@ -2522,7 +2550,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 answerDiv.appendChild(button);
             }
-            
+
             learningAnswerButtons.appendChild(answerDiv);
         });
 
@@ -2546,7 +2574,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showLearningQuestion();
         }
     }
-    
+
     function handleLearningSearch() {
         const searchTerm = learningSearchInput.value.trim().toLowerCase();
         if (searchTerm.length < 3) {
@@ -2556,8 +2584,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         learningSearchError.classList.add('hidden');
 
-        const filteredQuestions = appState.allQuestions.filter(q => 
-            q.question.toLowerCase().includes(searchTerm) || 
+        const filteredQuestions = appState.allQuestions.filter(q =>
+            q.question.toLowerCase().includes(searchTerm) ||
             q.answerOptions.some(opt => opt.text.toLowerCase().includes(searchTerm))
         );
 
@@ -2568,7 +2596,7 @@ document.addEventListener('DOMContentLoaded', () => {
             launchLearningMode(`Search Results for "${learningSearchInput.value}"`, filteredQuestions);
         }
     }
-    
+
     function handleQBankSearch() {
         const searchTerm = qbankSearchInput.value.trim().toLowerCase();
         const errorEl = qbankSearchError;
@@ -2581,8 +2609,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const filteredQuestions = appState.allQuestions.filter(q => 
-            q.question.toLowerCase().includes(searchTerm) || 
+        const filteredQuestions = appState.allQuestions.filter(q =>
+            q.question.toLowerCase().includes(searchTerm) ||
             q.answerOptions.some(opt => opt.text.toLowerCase().includes(searchTerm))
         );
 
@@ -2629,12 +2657,18 @@ document.addEventListener('DOMContentLoaded', () => {
         "Success", "Champion", "Winner", "Learner"
     ]; // Example seeds for avatars
 
-    async function showUserCardModal() {
+    async function showUserCardModal(isLoginFlow = false) {
         if (!appState.currentUser || appState.currentUser.Role === 'Guest') {
             showConfirmationModal('Guest Mode', 'Please log in to access your profile card.', () => modalBackdrop.classList.add('hidden'));
             return;
         }
 
+        // Close all other modals before opening user card modal
+        if (!isLoginFlow) { // Only close others if not part of the login flow
+            [confirmationModal, questionNavigatorModal, imageViewerModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
+                if (modal) modal.classList.add('hidden');
+            });
+        }
         modalBackdrop.classList.remove('hidden');
         userCardModal.classList.remove('hidden');
         profileEditView.classList.add('hidden');
@@ -2663,9 +2697,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderUserCard(cardData) {
         if (!cardData) return;
 
-        cardUserNickname.textContent = cardData.Nickname || 'No nickname set';
+        // Display nickname if available, otherwise display full name
+        const displayName = cardData.Nickname && cardData.Nickname.trim() !== '' ? cardData.Nickname : appState.currentUser.Name;
+        cardUserName.textContent = displayName;
+        cardUserNickname.textContent = cardData.Nickname && cardData.Nickname.trim() !== '' ? `(${appState.currentUser.Name})` : ''; // Show real name in parentheses if nickname is used
+
         cardQuizScore.textContent = cardData.QuizScore !== undefined ? cardData.QuizScore : '0';
         userAvatar.src = cardData.User_Img || (AVATAR_BASE_URL + appState.currentUser.Name);
+        headerUserAvatar.src = userAvatar.src; // Update header avatar
 
         if (cardData.ExamDate) {
             const examDate = new Date(cardData.ExamDate);
@@ -2749,21 +2788,18 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const response = await fetch(API_URL, {
+            await fetch(API_URL, {
                 method: 'POST',
                 mode: 'no-cors', // Use no-cors for simple requests to Google Apps Script
                 body: JSON.stringify(payload)
             });
 
-            // For no-cors, response.ok will always be true, and response.json() will fail.
-            // We assume success if no network error.
-            // A more robust solution would involve CORS setup on GAS or a different API response.
-            
             // Update local state immediately
             appState.userCardData.Nickname = newNickname;
             appState.userCardData.ExamDate = newExamDate;
             appState.userCardData.User_Img = newAvatarUrl;
-            renderUserCard(appState.userCardData);
+            renderUserCard(appState.userCardData); // Re-render user card to reflect changes
+            updateUserProfileHeader(); // Update header with new nickname/avatar
             toggleProfileEditMode(false); // Switch back to view mode
             showConfirmationModal('Profile Updated', 'Your profile has been successfully updated!', () => modalBackdrop.classList.add('hidden'));
 
@@ -2771,6 +2807,19 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Error saving profile:", error);
             profileEditError.textContent = `Failed to save profile: ${error.message}. Please try again.`;
             profileEditError.classList.remove('hidden');
+        }
+    }
+
+    function updateUserProfileHeader() {
+        if (appState.currentUser && appState.userCardData) {
+            const displayName = appState.userCardData.Nickname && appState.userCardData.Nickname.trim() !== ''
+                ? appState.userCardData.Nickname
+                : appState.currentUser.Name;
+            userNameDisplay.textContent = displayName;
+            headerUserAvatar.src = appState.userCardData.User_Img || (AVATAR_BASE_URL + appState.currentUser.Name);
+        } else if (appState.currentUser) {
+            userNameDisplay.textContent = appState.currentUser.Name;
+            headerUserAvatar.src = AVATAR_BASE_URL + appState.currentUser.Name;
         }
     }
     // --- END: NEW USER CARD FUNCTIONS ---
@@ -2782,12 +2831,20 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Close all other modals before opening messenger modal
+        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
+            if (modal) modal.classList.add('hidden');
+        });
         modalBackdrop.classList.remove('hidden');
         messengerModal.classList.remove('hidden');
         messagesList.innerHTML = '<p class="text-center text-slate-500">Loading messages...</p>';
         messengerError.classList.add('hidden');
         messageInput.value = '';
 
+        await fetchAndRenderMessages(); // Fetch and render messages immediately
+    }
+
+    async function fetchAndRenderMessages() {
         try {
             const response = await fetch(`${API_URL}?request=getMessages&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
             if (!response.ok) throw new Error('Failed to fetch messages.');
@@ -2812,9 +2869,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         appState.userMessages.forEach(msg => {
             const messageDiv = document.createElement('div');
-            const timestamp = new Date(msg.Timestamp).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' });
+            const timestamp = new Date(msg.Timestamp).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-            if (msg.UserMessage && msg.UserMessage.trim() !== '') {
+            // User's message
+            if (msg.UserMessage && String(msg.UserMessage).trim() !== '') {
                 messageDiv.innerHTML += `
                     <div class="flex justify-end mb-2">
                         <div class="bg-blue-500 text-white p-3 rounded-lg max-w-[80%]">
@@ -2824,7 +2882,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             }
-            if (msg.AdminReply && msg.AdminReply.trim() !== '') {
+            // Admin's reply
+            if (msg.AdminReply && String(msg.AdminReply).trim() !== '') {
                 messageDiv.innerHTML += `
                     <div class="flex justify-start mb-2">
                         <div class="bg-gray-200 text-slate-800 p-3 rounded-lg max-w-[80%]">
@@ -2872,18 +2931,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(payload)
             });
 
-            // Optimistically add message to UI
-            const now = new Date();
-            appState.userMessages.push({
-                Timestamp: now.toISOString(),
-                UserID: appState.currentUser.UniqueID,
-                UserName: appState.currentUser.Name,
-                UserMessage: messageText,
-                AdminReply: ""
-            });
-            renderMessages();
+            // After sending, re-fetch messages to get potential admin replies
+            await fetchAndRenderMessages();
             messageInput.value = ''; // Clear input
-            
+
         } catch (error) {
             console.error("Error sending message:", error);
             messengerError.textContent = `Failed to send message: ${error.message}. Please try again.`;
@@ -2894,6 +2945,54 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     // --- END: NEW MESSENGER FUNCTIONS ---
+
+    // --- START: ROLE PERMISSIONS FUNCTIONS ---
+    function checkPermission(feature) {
+        if (!appState.currentUser || appState.currentUser.Role === 'Guest') {
+            showConfirmationModal('Access Denied', 'Please log in to access this feature.', () => modalBackdrop.classList.add('hidden'));
+            return false;
+        }
+        // If userRoles is not loaded or the specific feature is not defined, assume access is denied.
+        // Or, if the feature is explicitly set to FALSE.
+        if (!appState.userRoles || appState.userRoles[feature] === undefined || String(appState.userRoles[feature]).toLowerCase() !== 'true') {
+            showConfirmationModal('Access Denied', `Your current role does not have access to the "${feature}" feature.`, () => modalBackdrop.classList.add('hidden'));
+            return false;
+        }
+        return true;
+    }
+
+    function applyRolePermissions() {
+        const role = appState.userRoles;
+        if (!role) return; // No role data loaded yet
+
+        // Map feature names to their corresponding buttons/elements
+        const featureElements = {
+            'Lectures': lecturesBtn,
+            'MCQBank': qbankBtn,
+            'LerningMode': learningModeBtn,
+            'OSCEBank': osceBtn,
+            'LeadersBoard': leaderboardBtn,
+            'Radio': radioBtn,
+            'Library': libraryBtn,
+            // Add other features as needed
+        };
+
+        for (const feature in featureElements) {
+            const element = featureElements[feature];
+            if (element) {
+                const hasAccess = String(role[feature]).toLowerCase() === 'true';
+                element.disabled = !hasAccess;
+                element.classList.toggle('disabled-feature', !hasAccess); // Add a class for styling disabled features
+                // Optionally, change text or add tooltip for disabled features
+                if (!hasAccess) {
+                    element.title = `Access to ${feature} is not granted for your role.`;
+                } else {
+                    element.title = ''; // Clear title if access is granted
+                }
+            }
+        }
+    }
+    // --- END: ROLE PERMISSIONS FUNCTIONS ---
 
 
     // --- EVENT LISTENERS ---
@@ -2908,7 +3007,7 @@ document.addEventListener('DOMContentLoaded', () => {
     osceBtn.addEventListener('click', showOsceScreen);
     learningModeBtn.addEventListener('click', showLearningModeBrowseScreen);
     messengerBtn.addEventListener('click', showMessengerModal); // ADDED: Messenger button listener
-    
+
     const backButtons = [lecturesBackBtn, qbankBackBtn, listBackBtn, activityBackBtn, libraryBackBtn, notesBackBtn, leaderboardBackBtn, osceBackBtn, learningModeBackBtn];
     backButtons.forEach(btn => btn.addEventListener('click', handleBackNavigation));
 
@@ -2996,7 +3095,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modalBackdrop.classList.add('hidden');
         announcementsModal.classList.add('hidden');
     });
-    
+
     clearLogBtn.addEventListener('click', () => {
         modalBackdrop.classList.remove('hidden');
         clearLogModal.classList.remove('hidden');
@@ -3008,14 +3107,14 @@ document.addEventListener('DOMContentLoaded', () => {
     clearQuizLogsBtn.addEventListener('click', () => handleClearLogs('quiz'));
     clearLectureLogsBtn.addEventListener('click', () => handleClearLogs('lecture'));
     clearAllLogsBtn.addEventListener('click', () => handleClearLogs('all'));
-    
+
     radioBtn.addEventListener('click', () => {
         radioBannerContainer.classList.toggle('open');
     });
     radioCloseBtn.addEventListener('click', () => {
         radioBannerContainer.classList.remove('open');
     });
-    
+
     sourceSelectMock.addEventListener('change', updateChapterFilter);
     selectAllSourcesMock.addEventListener('change', (e) => {
         sourceSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
@@ -3031,7 +3130,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ADDED: User Card Event Listeners
-    userCardBtn.addEventListener('click', showUserCardModal);
+    userProfileHeaderBtn.addEventListener('click', () => showUserCardModal(false)); // Open user card from header
+    userAvatar.addEventListener('click', () => showUserCardModal(false)); // Open user card from modal itself
     userCardCloseBtn.addEventListener('click', () => modalBackdrop.classList.add('hidden'));
     editProfileBtn.addEventListener('click', () => toggleProfileEditMode(true));
     cancelEditProfileBtn.addEventListener('click', () => toggleProfileEditMode(false));
