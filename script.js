@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- URL FOR GOOGLE SHEETS ---
-    const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlWVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec';
+    // تأكد من تحديث هذا الرابط بالرابط الذي حصلت عليه بعد نشر Google Apps Script
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
     
     // --- START: NEW SIMULATION SETTINGS ---
     const SIMULATION_Q_COUNT = 100; // The number of questions for the simulation
@@ -25,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fullActivityLog: [],
         userQuizNotes: [],
         userLectureNotes: [],
+        userMessages: [], // ADDED: To store user's messages
 
         // Navigation
         navigationHistory: [],
@@ -296,6 +298,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const profileEditError = document.getElementById('profile-edit-error');
     const cancelEditProfileBtn = document.getElementById('cancel-edit-profile-btn');
     const saveProfileBtn = document.getElementById('save-profile-btn');
+
+    // --- ADDED: Messenger DOM Elements ---
+    const messengerBtn = document.getElementById('messenger-btn');
+    const messengerModal = document.getElementById('messenger-modal');
+    const messengerCloseBtn = document.getElementById('messenger-close-btn');
+    const messagesList = document.getElementById('messages-list');
+    const messageInput = document.getElementById('message-input');
+    const sendMessageBtn = document.getElementById('send-message-btn');
+    const messengerError = document.getElementById('messenger-error');
 
 
     // --- FUNCTIONS ---
@@ -582,7 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function showScreen(screenToShow, isGuest = false) {
-        [loginContainer, mainMenuContainer, lecturesContainer, qbankContainer, listContainer, quizContainer, activityLogContainer, notesContainer, libraryContainer, leaderboardContainer, osceContainer, osceQuizContainer, learningModeContainer].forEach(screen => {
+        [loginContainer, mainMenuContainer, lecturesContainer, qbankContainer, listContainer, quizContainer, activityLogContainer, notesContainer, libraryContainer, leaderboardContainer, osceContainer, osceQuizContainer, learningModeContainer, messengerModal].forEach(screen => { // ADDED messengerModal
             if(screen) screen.classList.add('hidden');
         });
         if(screenToShow) screenToShow.classList.remove('hidden');
@@ -597,6 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 activityLogBtn.classList.add('hidden');
                 notesBtn.classList.add('hidden');
                 userCardBtn.classList.add('hidden'); // ADDED: Hide user card button for guests
+                messengerBtn.classList.add('hidden'); // ADDED: Hide messenger button for guests
             } else {
                 userNameDisplay.textContent = appState.currentUser.Name;
                 userNameDisplay.classList.remove('hidden');
@@ -604,6 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 activityLogBtn.classList.remove('hidden');
                 notesBtn.classList.remove('hidden');
                 userCardBtn.classList.remove('hidden'); // ADDED: Show user card button for logged-in users
+                messengerBtn.classList.remove('hidden'); // ADDED: Show messenger button for logged-in users
             }
         } else {
             globalHeader.classList.add('hidden');
@@ -1632,6 +1645,7 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmationModal.classList.add('hidden');
         questionNavigatorModal.classList.add('hidden');
         userCardModal.classList.add('hidden'); // ADDED: Hide user card modal
+        messengerModal.classList.add('hidden'); // ADDED: Hide messenger modal
         imageViewerModal.classList.remove('hidden');
         modalBackdrop.classList.remove('hidden');
     }
@@ -1643,6 +1657,7 @@ document.addEventListener('DOMContentLoaded', () => {
         questionNavigatorModal.classList.add('hidden');
         imageViewerModal.classList.add('hidden');
         userCardModal.classList.add('hidden'); // ADDED: Hide user card modal
+        messengerModal.classList.add('hidden'); // ADDED: Hide messenger modal
         confirmationModal.classList.remove('hidden');
         modalBackdrop.classList.remove('hidden');
     }
@@ -1672,6 +1687,7 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmationModal.classList.add('hidden');
         imageViewerModal.classList.add('hidden');
         userCardModal.classList.add('hidden'); // ADDED: Hide user card modal
+        messengerModal.classList.add('hidden'); // ADDED: Hide messenger modal
         questionNavigatorModal.classList.remove('hidden');
         modalBackdrop.classList.remove('hidden');
     }
@@ -1844,6 +1860,7 @@ document.addEventListener('DOMContentLoaded', () => {
         questionNavigatorModal.classList.add('hidden');
         confirmationModal.classList.add('hidden');
         userCardModal.classList.add('hidden'); // ADDED: Hide user card modal
+        messengerModal.classList.add('hidden'); // ADDED: Hide messenger modal
     }
 
     function handleSaveNote() {
@@ -2758,6 +2775,126 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // --- END: NEW USER CARD FUNCTIONS ---
 
+    // --- START: NEW MESSENGER FUNCTIONS ---
+    async function showMessengerModal() {
+        if (!appState.currentUser || appState.currentUser.Role === 'Guest') {
+            showConfirmationModal('Guest Mode', 'Please log in to use the messenger.', () => modalBackdrop.classList.add('hidden'));
+            return;
+        }
+
+        modalBackdrop.classList.remove('hidden');
+        messengerModal.classList.remove('hidden');
+        messagesList.innerHTML = '<p class="text-center text-slate-500">Loading messages...</p>';
+        messengerError.classList.add('hidden');
+        messageInput.value = '';
+
+        try {
+            const response = await fetch(`${API_URL}?request=getMessages&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
+            if (!response.ok) throw new Error('Failed to fetch messages.');
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+
+            appState.userMessages = data.messages || [];
+            renderMessages();
+        } catch (error) {
+            console.error("Error loading messages:", error);
+            messengerError.textContent = `Error loading messages: ${error.message}`;
+            messengerError.classList.remove('hidden');
+        }
+    }
+
+    function renderMessages() {
+        messagesList.innerHTML = '';
+        if (appState.userMessages.length === 0) {
+            messagesList.innerHTML = `<p class="text-center text-slate-500">No messages yet. Send your first message!</p>`;
+            return;
+        }
+
+        appState.userMessages.forEach(msg => {
+            const messageDiv = document.createElement('div');
+            const timestamp = new Date(msg.Timestamp).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' });
+
+            if (msg.UserMessage && msg.UserMessage.trim() !== '') {
+                messageDiv.innerHTML += `
+                    <div class="flex justify-end mb-2">
+                        <div class="bg-blue-500 text-white p-3 rounded-lg max-w-[80%]">
+                            <p class="text-sm">${msg.UserMessage}</p>
+                            <p class="text-xs text-right opacity-80 mt-1">${timestamp} (You)</p>
+                        </div>
+                    </div>
+                `;
+            }
+            if (msg.AdminReply && msg.AdminReply.trim() !== '') {
+                messageDiv.innerHTML += `
+                    <div class="flex justify-start mb-2">
+                        <div class="bg-gray-200 text-slate-800 p-3 rounded-lg max-w-[80%]">
+                            <p class="text-sm">${msg.AdminReply}</p>
+                            <p class="text-xs text-left opacity-80 mt-1">${timestamp} (Admin)</p>
+                        </div>
+                    </div>
+                `;
+            }
+            messagesList.appendChild(messageDiv);
+        });
+        messagesList.scrollTop = messagesList.scrollHeight; // Scroll to bottom
+    }
+
+    async function handleSendMessageBtn() {
+        messengerError.classList.add('hidden');
+        const messageText = messageInput.value.trim();
+
+        if (!messageText) {
+            messengerError.textContent = 'Message cannot be empty.';
+            messengerError.classList.remove('hidden');
+            return;
+        }
+
+        if (!appState.currentUser || appState.currentUser.Role === 'Guest') {
+            messengerError.textContent = 'Please log in to send messages.';
+            messengerError.classList.remove('hidden');
+            return;
+        }
+
+        sendMessageBtn.disabled = true;
+        sendMessageBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Sending...';
+
+        const payload = {
+            eventType: 'sendMessage',
+            userId: appState.currentUser.UniqueID,
+            userName: appState.currentUser.Name,
+            message: messageText
+        };
+
+        try {
+            await fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Keep no-cors for now, but be aware of limitations
+                body: JSON.stringify(payload)
+            });
+
+            // Optimistically add message to UI
+            const now = new Date();
+            appState.userMessages.push({
+                Timestamp: now.toISOString(),
+                UserID: appState.currentUser.UniqueID,
+                UserName: appState.currentUser.Name,
+                UserMessage: messageText,
+                AdminReply: ""
+            });
+            renderMessages();
+            messageInput.value = ''; // Clear input
+            
+        } catch (error) {
+            console.error("Error sending message:", error);
+            messengerError.textContent = `Failed to send message: ${error.message}. Please try again.`;
+            messengerError.classList.remove('hidden');
+        } finally {
+            sendMessageBtn.disabled = false;
+            sendMessageBtn.textContent = 'Send';
+        }
+    }
+    // --- END: NEW MESSENGER FUNCTIONS ---
+
 
     // --- EVENT LISTENERS ---
     loginForm.addEventListener('submit', handleLogin);
@@ -2770,6 +2907,7 @@ document.addEventListener('DOMContentLoaded', () => {
     announcementsBtn.addEventListener('click', showAnnouncementsModal);
     osceBtn.addEventListener('click', showOsceScreen);
     learningModeBtn.addEventListener('click', showLearningModeBrowseScreen);
+    messengerBtn.addEventListener('click', showMessengerModal); // ADDED: Messenger button listener
     
     const backButtons = [lecturesBackBtn, qbankBackBtn, listBackBtn, activityBackBtn, libraryBackBtn, notesBackBtn, leaderboardBackBtn, osceBackBtn, learningModeBackBtn];
     backButtons.forEach(btn => btn.addEventListener('click', handleBackNavigation));
@@ -2898,6 +3036,15 @@ document.addEventListener('DOMContentLoaded', () => {
     editProfileBtn.addEventListener('click', () => toggleProfileEditMode(true));
     cancelEditProfileBtn.addEventListener('click', () => toggleProfileEditMode(false));
     saveProfileBtn.addEventListener('click', handleSaveProfile);
+
+    // ADDED: Messenger Event Listeners
+    messengerCloseBtn.addEventListener('click', () => modalBackdrop.classList.add('hidden'));
+    sendMessageBtn.addEventListener('click', handleSendMessageBtn);
+    messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleSendMessageBtn();
+        }
+    });
 
 
     // --- INITIAL LOAD ---
