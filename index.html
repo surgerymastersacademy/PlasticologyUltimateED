@@ -24,11 +24,11 @@
  src="https://raw.githubusercontent.com/doctorbishoy/Plasticology-/main/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-10">
             </a>
             <div class="flex items-center gap-4">
-                <!-- ADDED: User Card Button -->
-                <button id="user-card-btn" class="text-white hover:text-slate-300 transition-colors text-2xl" title="My Profile" aria-label="My Profile">
-                    <i class="fas fa-user-circle"></i>
+                <!-- MODIFIED: User Card Button and User Name Display -->
+                <button id="user-profile-header-btn" class="flex items-center gap-2 text-white hover:text-slate-300 transition-colors" title="My Profile" aria-label="My Profile">
+                    <img id="header-user-avatar" src="https://api.dicebear.com/7.x/initials/svg?seed=User" alt="User Avatar" class="w-8 h-8 rounded-full border-2 border-white">
+                    <span id="user-name-display" class="text-base font-medium text-slate-200 hidden sm:block"></span>
                 </button>
-                <span id="user-name-display" class="text-base font-medium text-slate-200 hidden sm:block"></span>
                 <button id="radio-btn" class="text-white hover:text-slate-300 transition-colors" title="Plasticology Radio" aria-label="Plasticology Radio">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 
  24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7">
@@ -834,6 +834,7 @@
         <button id="send-message-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg ml-2">Send</button>
     </div>
     <p id="messenger-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
+    <!-- ADDED: Close button for Messenger Modal -->
     <button id="messenger-close-btn" class="absolute top-2 right-2 text-2xl text-gray-600 hover:text-black">&times;</button>
 </div>
 
