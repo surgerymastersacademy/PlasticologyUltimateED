@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- URL FOR GOOGLE SHEETS ---
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlWVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec';
     
     // --- START: NEW SIMULATION SETTINGS ---
     const SIMULATION_Q_COUNT = 100; // The number of questions for the simulation
