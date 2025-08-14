@@ -47,6 +47,10 @@
                     <i class="fas fa-history"></i>
    
                  </button>
+                 <!-- ADDED: Messenger Button -->
+                 <button id="messenger-btn" class="text-white hover:text-slate-300 transition-colors text-2xl" title="Messenger" aria-label="Messenger">
+                    <i class="fas fa-comments"></i>
+                 </button>
                  <a href="https://t.me/DrBishoyAcademy" target="_blank" class="text-white hover:text-slate-300 transition-colors text-2xl" title="Contact Support"><i class="fas fa-headset"></i></a>
                 <button id="global-home-btn" class="text-white hover:text-slate-300 transition-colors text-2xl" title="Back to Home" aria-label="Back to Home">
                     <i class="fas fa-home"></i>
@@ -504,7 +508,7 @@
             
              <button id="log-filter-all" class="filter-btn flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-colors">All</button>
                         <button id="log-filter-quizzes" class="filter-btn flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-colors">Quizzes</button>
-                        <button id="log-filter-lectures" class="filter-btn flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-colors">Lectures</button>
+                        <button id="log-filter-lectures" class="filter-1 py-2 px-4 rounded-md text-sm font-semibold transition-colors">Lectures</button>
              
         </div>
                     
@@ -815,12 +819,81 @@
             </div>
 
             <div class="flex justify-end mt-6">
-                <button id="user-card-close-btn" class="action-btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Close</button>
-            </div>
-        </div>
-        </div>
+    <button id="user-card-close-btn" class="action-btn bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">Close</button>
+</div>
+</div>
 
-    <script src="script.js"></script>
+<!-- ADDED: Messenger Modal -->
+<div id="messenger-modal" class="bg-white rounded-lg p-6 shadow-xl max-w-md w-full hidden">
+    <h3 class="text-xl font-bold mb-4 text-center">Messenger</h3>
+    <div id="messages-list" class="max-h-60 overflow-y-auto mb-4">
+        <p class="text-center text-slate-500">Loading messages...</p>
+    </div>
+    <div class="flex">
+        <input type="text" id="message-input" class="flex-grow border border-gray-300 rounded-lg p-2" placeholder="Type your message...">
+        <button id="send-message-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg ml-2">Send</button>
+    </div>
+    <p id="messenger-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
+    <button id="messenger-close-btn" class="absolute top-2 right-2 text-2xl text-gray-600 hover:text-black">&times;</button>
+</div>
 
+<!-- Other modals and elements -->
+<div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+    <div id="confirmation-modal" class="bg-white rounded-lg p-8 shadow-xl max-w-sm w-full hidden">
+        <h3 id="modal-title" class="text-xl font-bold mb-4">Are you sure?</h3>
+        <p id="modal-text" class="text-slate-600 mb-6"></p>
+        <div class="flex justify-end gap-4">
+            <button id="modal-cancel-btn" class="action-btn bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">Cancel</button>
+            <button id="modal-confirm-btn" class="action-btn bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Confirm</button>
+        </div>
+    </div>
+    <div id="question-navigator-modal" class="bg-white rounded-lg p-6 shadow-xl max-w-lg w-full hidden">
+        <h3 class="text-xl font-bold mb-4">Question Navigator</h3>
+        <div id="navigator-grid" class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2 max-h-64 overflow-y-auto"></div>
+        <div class="flex justify-end mt-6">
+            <button id="navigator-close-btn" class="action-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Close</button>
+        </div>
+    </div>
+    <div id="osce-navigator-modal" class="bg-white rounded-lg p-6 shadow-xl max-w-lg w-full hidden">
+        <h3 class="text-xl font-bold mb-4">Case & Question Navigator</h3>
+        <div id="osce-navigator-content" class="space-y-2 max-h-80 overflow-y-auto"></div>
+        <div class="flex justify-end mt-6">
+            <button id="osce-navigator-close-btn" class="action-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Close</button>
+        </div>
+    </div>
+    <div id="image-viewer-modal" class="bg-white rounded-lg p-4 shadow-xl max-w-4xl w-full hidden relative">
+        <button id="image-viewer-close-btn" class="absolute top-2 right-2 text-2xl text-gray-600 hover:text-black">&times;</button>
+        <img id="modal-image" src="" alt="Full size image" class="max-w-full max-h-[80vh] mx-auto">
+    </div>
+    <div id="note-modal" class="bg-white rounded-lg p-6 shadow-xl max-w-lg w-full hidden">
+        <h3 id="note-modal-title" class="text-xl font-bold mb-4">My Note</h3>
+        <textarea id="note-textarea" class="w-full h-40 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Write your personal note here..."></textarea>
+        <div class="flex justify-end gap-4 mt-4">
+            <button id="note-cancel-btn" class="action-btn bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">Cancel</button>
+            <button id="note-save-btn" class="action-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Save</button>
+        </div>
+    </div>
+    <div id="clear-log-modal" class="bg-white rounded-lg p-8 shadow-xl max-w-md w-full hidden">
+        <h3 class="text-xl font-bold mb-4">Clear Activity Log</h3>
+        <p class="text-slate-600 mb-6">Which logs would you like to permanently delete?</p>
+        <div class="flex flex-col gap-4">
+            <button id="clear-quiz-logs-btn" class="action-btn w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg">Clear Quiz Logs Only</button>
+            <button id="clear-lecture-logs-btn" class="action-btn w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg">Clear Lecture Logs Only</button>
+            <button id="clear-all-logs-btn" class="action-btn w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Clear All Logs</button>
+        </div>
+        <div class="flex justify-end mt-6">
+            <button id="clear-log-cancel-btn" class="action-btn bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">Cancel</button>
+        </div>
+    </div>
+    <div id="announcements-modal" class="bg-white rounded-lg p-6 shadow-xl max-w-lg w-full hidden">
+        <h3 class="text-xl font-bold mb-4">Latest Updates & Announcements</h3>
+        <div id="announcements-list" class="space-y-4 max-h-80 overflow-y-auto"></div>
+        <div class="flex justify-end mt-6">
+            <button id="announcements-close-btn" class="action-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Close</button>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
