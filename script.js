@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mcqBooks: [],
         allAnnouncements: [],
         userRoles: {}, // ADDED: To store user roles/permissions
+        allChaptersNames: [], // ADDED: To store all chapter names for study planner
 
         // User Data
         currentUser: null,
@@ -28,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         userQuizNotes: [],
         userLectureNotes: [],
         userMessages: [], // ADDED: To store user's messages
+        studyPlannerData: null, // ADDED: To store user's study plan
 
         // Navigation
         navigationHistory: [],
@@ -310,6 +312,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendMessageBtn = document.getElementById('send-message-btn');
     const messengerError = document.getElementById('messenger-error');
 
+    // --- ADDED: Study Planner DOM Elements ---
+    const studyPlannerBtn = document.getElementById('study-planner-btn');
+    const studyPlannerContainer = document.getElementById('study-planner-container');
+    const studyPlannerBackBtn = document.getElementById('study-planner-back-btn');
+    const studyPlannerLoader = document.getElementById('study-planner-loader');
+    const studyPlannerContent = document.getElementById('study-planner-content');
+    const studyPlannerInitialSetup = document.getElementById('study-planner-initial-setup');
+    const studyPlannerExamDateInput = document.getElementById('study-planner-exam-date-input');
+    const studyPlannerGenerateBtn = document.getElementById('study-planner-generate-btn');
+    const studyPlannerError = document.getElementById('study-planner-error');
+    const studyPlanDaysContainer = document.getElementById('study-plan-days-container');
+    const studyPlanAddCustomTaskBtn = document.getElementById('study-plan-add-custom-task-btn');
+    const studyPlanCustomTaskInput = document.getElementById('study-plan-custom-task-input');
+    const studyPlanCustomTaskDateInput = document.getElementById('study-plan-custom-task-date-input');
+    const studyPlanWeaknessesContainer = document.getElementById('study-plan-weaknesses-container');
+
 
     // --- FUNCTIONS ---
 
@@ -342,6 +360,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 total: payload.totalQuestions,
                 isReviewable: true
             };
+            // Update study plan progress for quiz completion
+            updateStudyPlanProgress('quiz', payload.quizTitle);
+
+        } else if (payload.eventType === 'ViewLecture') {
+            newLogEntry = {
+                timestamp: now,
+                eventType: 'ViewLecture',
+                title: payload.lectureName
+            };
+            // Update study plan progress for lecture completion
+            updateStudyPlanProgress('lecture', payload.lectureName);
         }
 
         fetch(API_URL, {
@@ -462,6 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.allOsceCases = parseOsceCases(data.osceCases);
             appState.allOsceQuestions = parseOsceQuestions(data.osceQuestions);
             appState.allRoles = data.roles || []; // ADDED: Load roles
+            appState.allChaptersNames = data.chaptersNames ? data.chaptersNames.map(c => c.QuizTopics) : []; // ADDED: Load chapter names
 
             populateAllFilterOptions();
             renderLectures();
@@ -487,6 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.fullActivityLog = data.logs || [];
             appState.userQuizNotes = data.quizNotes || [];
             appState.userLectureNotes = data.lectureNotes || [];
+            appState.studyPlannerData = data.studyPlan ? JSON.parse(data.studyPlan.Study_Plan) : null; // ADDED: Load study plan
         } catch (error) {
             console.error('Error loading user data:', error);
         }
@@ -609,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modalBackdrop.classList.add('hidden'); // Hide backdrop for all modals
 
         // Hide all main content containers
-        [loginContainer, mainMenuContainer, lecturesContainer, qbankContainer, listContainer, quizContainer, activityLogContainer, notesContainer, libraryContainer, leaderboardContainer, osceContainer, osceQuizContainer, learningModeContainer].forEach(screen => {
+        [loginContainer, mainMenuContainer, lecturesContainer, qbankContainer, listContainer, quizContainer, activityLogContainer, notesContainer, libraryContainer, leaderboardContainer, osceContainer, osceQuizContainer, learningModeContainer, studyPlannerContainer].forEach(screen => { // ADDED studyPlannerContainer
             if (screen) screen.classList.add('hidden');
         });
 
@@ -1662,7 +1693,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showImageModal(src) {
         // Close all other modals before opening image viewer
-        [confirmationModal, questionNavigatorModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
+        [confirmationModal, questionNavigatorModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal, studyPlannerInitialSetup].forEach(modal => { // ADDED studyPlannerInitialSetup
             if (modal) modal.classList.add('hidden');
         });
         imageViewerModal.classList.remove('hidden');
@@ -1671,7 +1702,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showConfirmationModal(title, text, onConfirm) {
         // Close all other modals before opening confirmation
-        [questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
+        [questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal, studyPlannerInitialSetup].forEach(modal => { // ADDED studyPlannerInitialSetup
             if (modal) modal.classList.add('hidden');
         });
         appState.modalConfirmAction = onConfirm;
@@ -1704,7 +1735,7 @@ document.addEventListener('DOMContentLoaded', () => {
             navigatorGrid.appendChild(button);
         });
         // Close all other modals before opening navigator
-        [confirmationModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
+        [confirmationModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal, studyPlannerInitialSetup].forEach(modal => { // ADDED studyPlannerInitialSetup
             if (modal) modal.classList.add('hidden');
         });
         questionNavigatorModal.classList.remove('hidden');
@@ -1874,7 +1905,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         noteTextarea.value = existingNote ? existingNote.NoteText : '';
         // Close all other modals before opening note modal
-        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
+        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, clearLogModal, announcementsModal, osceNavigatorModal, studyPlannerInitialSetup].forEach(modal => { // ADDED studyPlannerInitialSetup
             if (modal) modal.classList.add('hidden');
         });
         modalBackdrop.classList.remove('hidden');
@@ -2126,7 +2157,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         // Close all other modals before opening announcements modal
-        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, osceNavigatorModal].forEach(modal => {
+        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, osceNavigatorModal, studyPlannerInitialSetup].forEach(modal => { // ADDED studyPlannerInitialSetup
             if (modal) modal.classList.add('hidden');
         });
         modalBackdrop.classList.remove('hidden');
@@ -2484,7 +2515,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Close all other modals before opening OSCE navigator
-        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal].forEach(modal => {
+        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, studyPlannerInitialSetup].forEach(modal => { // ADDED studyPlannerInitialSetup
             if (modal) modal.classList.add('hidden');
         });
         modalBackdrop.classList.remove('hidden');
@@ -2665,7 +2696,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Close all other modals before opening user card modal
         if (!isLoginFlow) { // Only close others if not part of the login flow
-            [confirmationModal, questionNavigatorModal, imageViewerModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
+            [confirmationModal, questionNavigatorModal, imageViewerModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal, studyPlannerInitialSetup].forEach(modal => { // ADDED studyPlannerInitialSetup
                 if (modal) modal.classList.add('hidden');
             });
         }
@@ -2832,7 +2863,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Close all other modals before opening messenger modal
-        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
+        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal, studyPlannerInitialSetup].forEach(modal => { // ADDED studyPlannerInitialSetup
             if (modal) modal.classList.add('hidden');
         });
         modalBackdrop.classList.remove('hidden');
@@ -2974,7 +3005,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'LeadersBoard': leaderboardBtn,
             'Radio': radioBtn,
             'Library': libraryBtn,
-            // Add other features as needed
+            'StudyPlanner': studyPlannerBtn, // ADDED: Study Planner button
         };
 
         for (const feature in featureElements) {
@@ -2994,6 +3025,432 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // --- END: ROLE PERMISSIONS FUNCTIONS ---
 
+    // --- START: STUDY PLANNER FUNCTIONS ---
+    async function showStudyPlannerScreen() {
+        if (!checkPermission('StudyPlanner')) return;
+        showScreen(studyPlannerContainer);
+        appState.navigationHistory.push(showStudyPlannerScreen);
+        studyPlannerLoader.classList.remove('hidden');
+        studyPlannerContent.classList.add('hidden');
+        studyPlannerInitialSetup.classList.add('hidden');
+        studyPlannerError.classList.add('hidden');
+
+        await loadUserData(); // Ensure latest study plan and user card data are loaded
+
+        if (!appState.userCardData || !appState.userCardData.ExamDate) {
+            promptForExamDate();
+        } else if (!appState.studyPlannerData) {
+            generateInitialStudyPlanPrompt();
+        } else {
+            renderStudyPlan();
+        }
+        studyPlannerLoader.classList.add('hidden');
+    }
+
+    function promptForExamDate() {
+        studyPlannerInitialSetup.classList.remove('hidden');
+        studyPlannerContent.classList.add('hidden');
+        studyPlannerExamDateInput.value = appState.userCardData && appState.userCardData.ExamDate ? new Date(appState.userCardData.ExamDate).toISOString().split('T')[0] : '';
+        studyPlannerGenerateBtn.textContent = 'Set Exam Date & Generate Plan';
+        studyPlannerGenerateBtn.onclick = async () => {
+            const examDate = studyPlannerExamDateInput.value;
+            if (!examDate) {
+                studyPlannerError.textContent = 'Please select your exam date.';
+                studyPlannerError.classList.remove('hidden');
+                return;
+            }
+            studyPlannerError.classList.add('hidden');
+
+            // Save exam date to user card
+            const payload = {
+                eventType: 'updateUserCardData',
+                userId: appState.currentUser.UniqueID,
+                examDate: examDate
+            };
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(payload)
+                });
+                appState.userCardData.ExamDate = examDate; // Update local state
+                generateInitialStudyPlanPrompt(); // Proceed to generate plan
+            } catch (error) {
+                console.error("Error saving exam date:", error);
+                studyPlannerError.textContent = `Failed to save exam date: ${error.message}`;
+                studyPlannerError.classList.remove('hidden');
+            }
+        };
+    }
+
+    function generateInitialStudyPlanPrompt() {
+        studyPlannerInitialSetup.classList.remove('hidden');
+        studyPlannerContent.classList.add('hidden');
+        studyPlannerExamDateInput.value = appState.userCardData.ExamDate ? new Date(appState.userCardData.ExamDate).toISOString().split('T')[0] : '';
+        studyPlannerExamDateInput.disabled = true; // Disable date input after it's set
+        studyPlannerGenerateBtn.textContent = 'Generate Initial Plan';
+        studyPlannerGenerateBtn.onclick = generateInitialStudyPlan;
+    }
+
+    async function generateInitialStudyPlan() {
+        studyPlannerError.classList.add('hidden');
+        const examDateStr = appState.userCardData.ExamDate;
+        if (!examDateStr) {
+            studyPlannerError.textContent = 'Exam date is not set. Please set it first.';
+            studyPlannerError.classList.remove('hidden');
+            return;
+        }
+
+        const examDate = new Date(examDateStr);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        examDate.setHours(0, 0, 0, 0);
+
+        const daysRemaining = calculateDaysLeft(examDate);
+
+        if (daysRemaining <= 0) {
+            studyPlannerError.textContent = 'Exam date is in the past or today. Please select a future date.';
+            studyPlannerError.classList.remove('hidden');
+            return;
+        }
+
+        const allChapters = Object.keys(appState.groupedLectures);
+        const totalLectures = Object.values(appState.groupedLectures).reduce((sum, chapter) => sum + chapter.topics.length, 0);
+        const totalQuestions = appState.allQuestions.length;
+
+        const plan = [];
+        let currentLectureIndex = 0;
+        let currentQuestionIndex = 0;
+
+        const lecturesPerDay = Math.ceil(totalLectures / daysRemaining);
+        const questionsPerDay = Math.ceil(totalQuestions / daysRemaining);
+
+        for (let i = 0; i < daysRemaining; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + i);
+            const dayPlan = {
+                date: date.toISOString().split('T')[0],
+                tasks: []
+            };
+
+            // Add lectures
+            let lecturesAdded = 0;
+            while (lecturesAdded < lecturesPerDay && currentLectureIndex < allChapters.length) {
+                const chapterName = allChapters[currentLectureIndex];
+                const chapterLectures = appState.groupedLectures[chapterName].topics;
+                if (chapterLectures.length > 0) {
+                    dayPlan.tasks.push({
+                        type: 'lecture',
+                        name: `Study Lectures from ${chapterName}`,
+                        chapter: chapterName,
+                        count: chapterLectures.length,
+                        completed: false
+                    });
+                    lecturesAdded += chapterLectures.length;
+                }
+                currentLectureIndex++;
+            }
+
+            // Add questions
+            let questionsAdded = 0;
+            const availableQuestions = appState.allQuestions.slice(currentQuestionIndex);
+            if (availableQuestions.length > 0) {
+                dayPlan.tasks.push({
+                    type: 'quiz',
+                    name: `Practice Questions`,
+                    count: Math.min(questionsPerDay, availableQuestions.length),
+                    completed: false
+                });
+                currentQuestionIndex += Math.min(questionsPerDay, availableQuestions.length);
+                questionsAdded += Math.min(questionsPerDay, availableQuestions.length);
+            }
+
+            plan.push(dayPlan);
+        }
+
+        appState.studyPlannerData = plan;
+        await saveStudyPlanToBackend(plan);
+        renderStudyPlan();
+    }
+
+    async function saveStudyPlanToBackend(plan) {
+        const payload = {
+            eventType: 'saveStudyPlan',
+            userId: appState.currentUser.UniqueID,
+            studyPlan: JSON.stringify(plan)
+        };
+        try {
+            await fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify(payload)
+            });
+            console.log("Study plan saved successfully.");
+        } catch (error) {
+            console.error("Error saving study plan:", error);
+        }
+    }
+
+    function renderStudyPlan() {
+        studyPlannerInitialSetup.classList.add('hidden');
+        studyPlannerContent.classList.remove('hidden');
+        studyPlanDaysContainer.innerHTML = '';
+        studyPlanWeaknessesContainer.innerHTML = '';
+
+        if (!appState.studyPlannerData || appState.studyPlannerData.length === 0) {
+            studyPlannerContent.innerHTML = `<p class="text-center text-slate-500">No study plan found. Generate one above!</p>`;
+            return;
+        }
+
+        // Render weaknesses and suggestions
+        const weakChapters = identifyWeakChapters();
+        if (weakChapters.length > 0) {
+            studyPlanWeaknessesContainer.innerHTML = `
+                <h4 class="text-lg font-bold text-red-700 mb-2 flex items-center"><i class="fas fa-exclamation-triangle mr-2"></i> Your Weaknesses</h4>
+                <p class="text-sm text-slate-600 mb-3">Consider adding review tasks for these chapters:</p>
+                <ul class="list-disc list-inside space-y-1">
+                    ${weakChapters.map(chapter => `<li>${chapter}</li>`).join('')}
+                </ul>
+                <hr class="my-4">
+            `;
+        } else {
+            studyPlanWeaknessesContainer.innerHTML = `<p class="text-center text-green-600 font-semibold mb-4">No major weaknesses detected. Keep up the great work!</p><hr class="my-4">`;
+        }
+
+
+        appState.studyPlannerData.forEach((day, dayIndex) => {
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'bg-white rounded-lg shadow-md p-4 mb-4';
+            dayDiv.dataset.dayIndex = dayIndex;
+
+            const date = new Date(day.date);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const isToday = date.toDateString() === today.toDateString();
+            const isPast = date < today;
+
+            let dateDisplay = date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+            if (isToday) dateDisplay += ' (Today)';
+            if (isPast) dateDisplay += ' (Past)';
+
+            dayDiv.innerHTML = `
+                <h4 class="font-bold text-lg mb-3 ${isToday ? 'text-blue-600' : (isPast ? 'text-slate-500' : 'text-slate-800')}">
+                    ${dateDisplay}
+                </h4>
+                <ul class="space-y-2 study-plan-tasks" data-day-index="${dayIndex}">
+                    ${day.tasks.map((task, taskIndex) => `
+                        <li class="flex items-center justify-between p-2 border rounded-md bg-slate-50 ${task.completed ? 'bg-green-100 border-green-300' : ''}" draggable="true" data-task-index="${taskIndex}">
+                            <div class="flex items-center flex-grow">
+                                <i class="fas fa-grip-vertical text-slate-400 mr-2 cursor-grab"></i>
+                                <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-3 task-checkbox" ${task.completed ? 'checked disabled' : ''} data-day-index="${dayIndex}" data-task-index="${taskIndex}">
+                                <span class="text-slate-700 ${task.completed ? 'line-through text-slate-500' : ''}">${task.name} ${task.count ? `(${task.count})` : ''}</span>
+                                ${task.type === 'quiz' && !task.completed ? `<button class="start-quiz-task-btn ml-auto text-blue-600 hover:text-blue-800 text-sm" data-day-index="${dayIndex}" data-task-index="${taskIndex}"><i class="fas fa-play-circle mr-1"></i> Start Quiz</button>` : ''}
+                            </div>
+                            <button class="delete-task-btn text-red-500 hover:text-red-700 ml-2" data-day-index="${dayIndex}" data-task-index="${taskIndex}"><i class="fas fa-trash"></i></button>
+                        </li>
+                    `).join('')}
+                </ul>
+                <div class="mt-4 flex gap-2">
+                    <input type="text" class="add-task-input w-full p-2 border rounded-md text-sm" placeholder="Add custom task...">
+                    <button class="add-task-btn bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 text-sm">Add</button>
+                </div>
+            `;
+            studyPlanDaysContainer.appendChild(dayDiv);
+        });
+
+        addDragAndDropListeners();
+        addStudyPlanEventListeners();
+    }
+
+    function addDragAndDropListeners() {
+        const taskLists = document.querySelectorAll('.study-plan-tasks');
+        let draggedItem = null;
+
+        taskLists.forEach(list => {
+            list.addEventListener('dragstart', (e) => {
+                draggedItem = e.target;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', draggedItem.dataset.taskIndex);
+                setTimeout(() => draggedItem.classList.add('opacity-50'), 0);
+            });
+
+            list.addEventListener('dragend', () => {
+                draggedItem.classList.remove('opacity-50');
+                draggedItem = null;
+            });
+
+            list.addEventListener('dragover', (e) => {
+                e.preventDefault(); // Necessary to allow dropping
+                const target = e.target.closest('li');
+                if (target && target !== draggedItem && target.parentNode === list) {
+                    const boundingBox = target.getBoundingClientRect();
+                    const offset = e.clientY - boundingBox.top;
+                    if (offset > boundingBox.height / 2) {
+                        list.insertBefore(draggedItem, target.nextSibling);
+                    } else {
+                        list.insertBefore(draggedItem, target);
+                    }
+                }
+            });
+
+            list.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (draggedItem) {
+                    const fromDayIndex = parseInt(draggedItem.parentNode.dataset.dayIndex);
+                    const fromTaskIndex = parseInt(draggedItem.dataset.taskIndex);
+                    const toDayIndex = parseInt(list.dataset.dayIndex);
+                    const toTaskIndex = Array.from(list.children).indexOf(draggedItem);
+
+                    // Update appState.studyPlannerData
+                    const task = appState.studyPlannerData[fromDayIndex].tasks.splice(fromTaskIndex, 1)[0];
+                    appState.studyPlannerData[toDayIndex].tasks.splice(toTaskIndex, 0, task);
+
+                    saveStudyPlanToBackend(appState.studyPlannerData);
+                    renderStudyPlan(); // Re-render to ensure data consistency and correct indices
+                }
+            });
+        });
+    }
+
+    function addStudyPlanEventListeners() {
+        document.querySelectorAll('.task-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const dayIndex = parseInt(e.target.dataset.dayIndex);
+                const taskIndex = parseInt(e.target.dataset.taskIndex);
+                const task = appState.studyPlannerData[dayIndex].tasks[taskIndex];
+                task.completed = e.target.checked;
+                e.target.disabled = e.target.checked; // Disable checkbox if completed
+                saveStudyPlanToBackend(appState.studyPlannerData);
+                renderStudyPlan(); // Re-render to update styling
+            });
+        });
+
+        document.querySelectorAll('.delete-task-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const dayIndex = parseInt(e.target.dataset.dayIndex);
+                const taskIndex = parseInt(e.target.dataset.taskIndex);
+                showConfirmationModal('Delete Task?', 'Are you sure you want to delete this task?', () => {
+                    appState.studyPlannerData[dayIndex].tasks.splice(taskIndex, 1);
+                    saveStudyPlanToBackend(appState.studyPlannerData);
+                    renderStudyPlan();
+                    modalBackdrop.classList.add('hidden');
+                });
+            });
+        });
+
+        document.querySelectorAll('.add-task-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const dayDiv = e.target.closest('.bg-white');
+                const dayIndex = parseInt(dayDiv.dataset.dayIndex);
+                const input = dayDiv.querySelector('.add-task-input');
+                const taskName = input.value.trim();
+                if (taskName) {
+                    appState.studyPlannerData[dayIndex].tasks.push({
+                        type: 'custom',
+                        name: taskName,
+                        completed: false
+                    });
+                    saveStudyPlanToBackend(appState.studyPlannerData);
+                    renderStudyPlan();
+                    input.value = '';
+                }
+            });
+        });
+
+        document.querySelectorAll('.start-quiz-task-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const dayIndex = parseInt(e.target.dataset.dayIndex);
+                const taskIndex = parseInt(e.target.dataset.taskIndex);
+                const task = appState.studyPlannerData[dayIndex].tasks[taskIndex];
+
+                if (task.type === 'quiz' && task.chapter) {
+                    const questions = appState.allQuestions.filter(q => q.chapter === task.chapter);
+                    if (questions.length > 0) {
+                        const shuffled = [...questions].sort(() => Math.random() - 0.5).slice(0, task.count);
+                        launchQuiz(shuffled, `Study Plan Quiz: ${task.chapter}`);
+                        // Mark task as completed after quiz starts (or after completion, depending on desired flow)
+                        task.completed = true;
+                        saveStudyPlanToBackend(appState.studyPlannerData);
+                        renderStudyPlan();
+                    } else {
+                        alert('No questions found for this chapter.');
+                    }
+                } else if (task.type === 'quiz' && !task.chapter) { // Generic quiz task
+                    const shuffled = [...appState.allQuestions].sort(() => Math.random() - 0.5).slice(0, task.count);
+                    launchQuiz(shuffled, `Study Plan Quiz`);
+                    task.completed = true;
+                    saveStudyPlanToBackend(appState.studyPlannerData);
+                    renderStudyPlan();
+                }
+            });
+        });
+    }
+
+    function updateStudyPlanProgress(eventType, itemName) {
+        if (!appState.studyPlannerData) return;
+
+        appState.studyPlannerData.forEach(day => {
+            day.tasks.forEach(task => {
+                if (!task.completed) {
+                    if (eventType === 'lecture' && task.type === 'lecture' && itemName.includes(task.chapter)) {
+                        // This is a simplified check. A more robust solution would track individual lectures.
+                        // For now, if a lecture from a chapter is viewed, the chapter's lecture task is marked.
+                        task.completed = true;
+                    } else if (eventType === 'quiz' && task.type === 'quiz' && itemName.includes('Study Plan Quiz')) {
+                        // This is a generic quiz task. If a quiz is completed, mark it.
+                        task.completed = true;
+                    }
+                }
+            });
+        });
+        saveStudyPlanToBackend(appState.studyPlannerData);
+        renderStudyPlan(); // Re-render to show updated progress
+    }
+
+    function identifyWeakChapters() {
+        const chapterScores = {}; // { chapterName: { correct: X, total: Y } }
+
+        // Initialize all chapters from appState.allChaptersNames
+        appState.allChaptersNames.forEach(chapter => {
+            chapterScores[chapter] = { correct: 0, total: 0 };
+        });
+
+        // Aggregate quiz results by chapter
+        appState.fullActivityLog.filter(log => log.eventType === 'FinishQuiz' && log.details).forEach(log => {
+            try {
+                const quizDetails = JSON.parse(log.details);
+                quizDetails.forEach(detail => {
+                    const question = appState.allQuestions.find(q => q.UniqueID === detail.qID);
+                    if (question && question.chapter) {
+                        const chapter = question.chapter;
+                        const isCorrect = question.answerOptions.find(opt => opt.isCorrect).text === detail.ans;
+
+                        if (!chapterScores[chapter]) {
+                            chapterScores[chapter] = { correct: 0, total: 0 };
+                        }
+                        chapterScores[chapter].total++;
+                        if (isCorrect) {
+                            chapterScores[chapter].correct++;
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("Error parsing quiz details for weakness identification:", e);
+            }
+        });
+
+        const weakChapters = [];
+        for (const chapter in chapterScores) {
+            const { correct, total } = chapterScores[chapter];
+            if (total > 5 && (correct / total < 0.6)) { // Example: more than 5 questions, less than 60% accuracy
+                weakChapters.push(chapter);
+            }
+        }
+        return weakChapters.sort();
+    }
+
+    // --- END: STUDY PLANNER FUNCTIONS ---
+
 
     // --- EVENT LISTENERS ---
     loginForm.addEventListener('submit', handleLogin);
@@ -3007,8 +3464,9 @@ document.addEventListener('DOMContentLoaded', () => {
     osceBtn.addEventListener('click', showOsceScreen);
     learningModeBtn.addEventListener('click', showLearningModeBrowseScreen);
     messengerBtn.addEventListener('click', showMessengerModal); // ADDED: Messenger button listener
+    studyPlannerBtn.addEventListener('click', showStudyPlannerScreen); // ADDED: Study Planner button listener
 
-    const backButtons = [lecturesBackBtn, qbankBackBtn, listBackBtn, activityBackBtn, libraryBackBtn, notesBackBtn, leaderboardBackBtn, osceBackBtn, learningModeBackBtn];
+    const backButtons = [lecturesBackBtn, qbankBackBtn, listBackBtn, activityBackBtn, libraryBackBtn, notesBackBtn, leaderboardBackBtn, osceBackBtn, learningModeBackBtn, studyPlannerBackBtn]; // ADDED studyPlannerBackBtn
     backButtons.forEach(btn => btn.addEventListener('click', handleBackNavigation));
 
     globalHomeBtn.addEventListener('click', () => {
@@ -3150,3 +3608,4 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- INITIAL LOAD ---
     loadContentData();
 });
+
