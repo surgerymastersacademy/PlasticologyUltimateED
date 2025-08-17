@@ -195,7 +195,7 @@ function showResults() {
     }
 }
 
-function handleNextQuestion() {
+export function handleNextQuestion() {
     if (appState.currentQuiz.currentQuestionIndex < appState.currentQuiz.questions.length - 1) {
         appState.currentQuiz.currentQuestionIndex++;
         showQuestion();
@@ -340,4 +340,5 @@ export function triggerEndQuiz() {
         dom.modalBackdrop.classList.add('hidden');
         showResults();
     });
+
 }
