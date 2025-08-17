@@ -1,14 +1,12 @@
-// js/features/userProfile.js
-
-// This module handles all user-related functionalities including login,
-// profile card, messenger, permissions, and logout.
+// js/features/userProfile.js (FINAL CORRECTED VERSION - SYNCS LECTURE LOGS)
 
 import { API_URL, appState, AVATAR_BASE_URL, AVATAR_OPTIONS } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
 import { fetchUserData } from '../api.js';
 import { calculateDaysLeft } from '../utils.js';
-import { showMainMenuScreen } from '../main.js'; // We'll import this from main later
+import { showMainMenuScreen } from '../main.js';
+import { saveUserProgress } from './lectures.js'; // Import saveUserProgress
 
 /**
  * Handles the user login form submission.
@@ -42,9 +40,34 @@ export async function handleLogin(event) {
             appState.userRoles = userRoleData || {};
 
             ui.updateWatermark();
-            loadUserProgress(); // From lectures.js - maybe move this to a more central place later
             await fetchUserData();
-            await showUserCardModal(true); // Load user card data immediately
+
+            // --- MODIFICATION START: Sync server logs with local state ---
+            // 1. Load progress from localStorage first (for speed on the same device)
+            loadUserProgress(); 
+            
+            // 2. Sync lecture views from server logs
+            if (appState.fullActivityLog.length > 0) {
+                const lectureLogs = appState.fullActivityLog.filter(log => log.eventType === 'ViewLecture');
+                const lectureLinksMap = new Map();
+                Object.values(appState.groupedLectures).forEach(chapter => {
+                    chapter.topics.forEach(topic => {
+                        lectureLinksMap.set(topic.name, topic.link);
+                    });
+                });
+
+                lectureLogs.forEach(log => {
+                    if (lectureLinksMap.has(log.title)) {
+                        appState.viewedLectures.add(lectureLinksMap.get(log.title));
+                    }
+                });
+                
+                // 3. Save the combined progress back to localStorage
+                saveUserProgress();
+            }
+            // --- MODIFICATION END ---
+
+            await showUserCardModal(true);
             updateUserProfileHeader();
             showMainMenuScreen();
         } else {
@@ -371,5 +394,4 @@ export function loadUserProgress() {
     if (savedBookmarks) {
         appState.bookmarkedQuestions = new Set(JSON.parse(savedBookmarks));
     }
-
 }
