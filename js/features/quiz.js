@@ -1,4 +1,4 @@
-// js/features/quiz.js (CORRECTED AND FINAL VERSION)
+// js/features/quiz.js (FINAL AND COMPLETE VERSION)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES } from '../state.js';
 import * as dom from '../dom.js';
@@ -6,10 +6,8 @@ import * as ui from '../ui.js';
 import { logUserActivity, logIncorrectAnswer, logCorrectedMistake } from '../api.js';
 import { formatTime } from '../utils.js';
 import { showMainMenuScreen, openNoteModal } from '../main.js';
+import { populateFilterOptions } from '../ui.js';
 
-/**
- * Launches a quiz session.
- */
 export function launchQuiz(questions, title, config = {}) {
     const {
         timePerQuestion = DEFAULT_TIME_PER_QUESTION,
@@ -368,4 +366,22 @@ export function startSearchedQuiz() {
         const shuffled = [...questionsToUse].sort(() => Math.random() - 0.5);
         launchQuiz(shuffled, `Quiz for "${dom.qbankSearchInput.value}"`);
     }
+}
+
+// THIS IS THE MISSING FUNCTION, NOW ADDED AND EXPORTED
+export function updateChapterFilter() {
+    const selectedSources = [...dom.sourceSelectMock.querySelectorAll('input:checked')].map(el => el.value);
+    
+    let relevantQuestions = selectedSources.length === 0 
+        ? appState.allQuestions
+        : appState.allQuestions.filter(q => selectedSources.includes(q.source || 'Uncategorized'));
+
+    const chapterCounts = {};
+    relevantQuestions.forEach(q => {
+        const chapter = q.chapter || 'Uncategorized';
+        chapterCounts[chapter] = (chapterCounts[chapter] || 0) + 1;
+    });
+
+    // This function needs to exist in ui.js to populate the checkboxes
+    populateFilterOptions(dom.chapterSelectMock, Object.keys(chapterCounts).sort(), 'mock-chapter', chapterCounts);
 }
