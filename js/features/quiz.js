@@ -1,4 +1,4 @@
-// js/features/quiz.js (CORRECTED AND COMPLETE VERSION)
+// js/features/quiz.js (CORRECTED AND FINAL VERSION)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES } from '../state.js';
 import * as dom from '../dom.js';
@@ -32,7 +32,7 @@ export function launchQuiz(questions, title, config = {}) {
         appState.currentQuiz.userAnswers = new Array(questions.length).fill(null);
         appState.currentQuiz.originalUserAnswers = appState.currentQuiz.userAnswers;
     } else {
-        appState.currentQuiz.originalQuestions = [...questions]; // Keep original questions for review context
+        appState.currentQuiz.originalQuestions = [...questions]; 
         appState.currentQuiz.userAnswers = pastAnswers;
         appState.currentQuiz.originalUserAnswers = pastAnswers;
     }
@@ -328,7 +328,6 @@ export function triggerEndQuiz() {
     });
 }
 
-// Functions moved from learningMode.js
 export function handleQBankSearch() {
     const searchTerm = dom.qbankSearchInput.value.trim().toLowerCase();
     dom.qbankSearchError.classList.add('hidden');
