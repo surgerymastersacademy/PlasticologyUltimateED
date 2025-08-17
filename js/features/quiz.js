@@ -1,7 +1,4 @@
-// js/features/quiz.js
-
-// This module encapsulates all logic related to the MCQ quiz functionality,
-// including quiz creation, state management, user interaction, and results.
+// js/features/quiz.js (CORRECTED AND COMPLETE VERSION)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES } from '../state.js';
 import * as dom from '../dom.js';
@@ -9,16 +6,9 @@ import * as ui from '../ui.js';
 import { logUserActivity, logIncorrectAnswer, logCorrectedMistake } from '../api.js';
 import { formatTime } from '../utils.js';
 import { showMainMenuScreen, openNoteModal } from '../main.js';
-import { parseQuestions } from '../utils.js';
-
-let API_URL; // Will be set from main.js or state.js
-import('../state.js').then(state => { API_URL = state.API_URL; });
 
 /**
  * Launches a quiz session.
- * @param {Array} questions - The array of question objects for the quiz.
- * @param {string} title - The title of the quiz.
- * @param {object} config - Configuration options for the quiz.
  */
 export function launchQuiz(questions, title, config = {}) {
     const {
@@ -42,6 +32,7 @@ export function launchQuiz(questions, title, config = {}) {
         appState.currentQuiz.userAnswers = new Array(questions.length).fill(null);
         appState.currentQuiz.originalUserAnswers = appState.currentQuiz.userAnswers;
     } else {
+        appState.currentQuiz.originalQuestions = [...questions]; // Keep original questions for review context
         appState.currentQuiz.userAnswers = pastAnswers;
         appState.currentQuiz.originalUserAnswers = pastAnswers;
     }
@@ -86,10 +77,8 @@ function showQuestion() {
     dom.nextSkipBtn.textContent = isLastQuestion ? 'Finish' : 'Next';
 
     dom.flagBtn.classList.toggle('flagged', appState.currentQuiz.flaggedIndices.has(appState.currentQuiz.currentQuestionIndex));
-    
     const hasBookmark = appState.bookmarkedQuestions.has(currentQuestion.UniqueID);
     dom.bookmarkBtn.classList.toggle('bookmarked', hasBookmark);
-
 
     const shuffledAnswers = (appState.currentQuiz.isReviewMode || appState.currentQuiz.isSimulationMode) ? [...currentQuestion.answerOptions] : [...currentQuestion.answerOptions].sort(() => Math.random() - 0.5);
 
@@ -100,11 +89,9 @@ function showQuestion() {
         button.dataset.correct = answer.isCorrect;
         button.dataset.text = answer.text;
         button.addEventListener('click', (e) => selectAnswer(e, answer));
-        
         const rationale = document.createElement('p');
         rationale.className = 'rationale text-sm mt-2 p-2 rounded-md';
         rationale.textContent = answer.rationale;
-
         const container = document.createElement('div');
         container.appendChild(button);
         container.appendChild(rationale);
@@ -137,7 +124,6 @@ function selectAnswer(e, selectedAnswer) {
 
     clearInterval(appState.currentQuiz.timerInterval);
     const currentQuestion = appState.currentQuiz.questions[appState.currentQuiz.currentQuestionIndex];
-
     const isCorrect = selectedAnswer.isCorrect;
     appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect };
 
@@ -178,7 +164,7 @@ function showResults() {
     const incorrectCount = appState.currentQuiz.originalUserAnswers.filter(a => a && !a.isCorrect).length;
     dom.reviewIncorrectBtn.classList.toggle('hidden', incorrectCount === 0);
     if (incorrectCount > 0) dom.reviewIncorrectBtn.textContent = `Review ${incorrectCount} Incorrect`;
-    
+
     if (!appState.currentQuiz.isReviewMode && !appState.currentQuiz.isPracticingMistakes) {
         logUserActivity({
             eventType: 'FinishQuiz',
@@ -204,7 +190,7 @@ export function handleNextQuestion() {
     }
 }
 
-function handlePreviousQuestion() {
+export function handlePreviousQuestion() {
     if (appState.currentQuiz.currentQuestionIndex > 0) {
         appState.currentQuiz.currentQuestionIndex--;
         showQuestion();
@@ -297,7 +283,7 @@ export function handleMockExamStart() {
     const customTime = parseInt(dom.customTimerInput.value, 10);
     const selectedChapters = [...dom.chapterSelectMock.querySelectorAll('input:checked')].map(el => el.value);
     const selectedSources = [...dom.sourceSelectMock.querySelectorAll('input:checked')].map(el => el.value);
-    
+
     let filteredQuestions = appState.allQuestions;
     if (selectedChapters.length > 0) filteredQuestions = filteredQuestions.filter(q => selectedChapters.includes(q.chapter));
     if (selectedSources.length > 0) filteredQuestions = filteredQuestions.filter(q => selectedSources.includes(q.source));
@@ -340,5 +326,47 @@ export function triggerEndQuiz() {
         dom.modalBackdrop.classList.add('hidden');
         showResults();
     });
+}
 
+// Functions moved from learningMode.js
+export function handleQBankSearch() {
+    const searchTerm = dom.qbankSearchInput.value.trim().toLowerCase();
+    dom.qbankSearchError.classList.add('hidden');
+    dom.qbankSearchResultsContainer.classList.add('hidden');
+
+    if (searchTerm.length < 3) {
+        dom.qbankSearchError.textContent = 'Please enter at least 3 characters.';
+        dom.qbankSearchError.classList.remove('hidden');
+        return;
+    }
+
+    const results = appState.allQuestions.filter(q => q.question.toLowerCase().includes(searchTerm) || q.answerOptions.some(opt => opt.text.toLowerCase().includes(searchTerm)));
+    appState.qbankSearchResults = results;
+
+    if (results.length === 0) {
+        dom.qbankSearchError.textContent = `No questions found for "${dom.qbankSearchInput.value}".`;
+        dom.qbankSearchError.classList.remove('hidden');
+    } else {
+        dom.qbankSearchResultsInfo.textContent = `Found ${results.length} questions.`;
+        dom.qbankSearchResultsContainer.classList.remove('hidden');
+    }
+}
+
+export function startSearchedQuiz() {
+    const requestedCount = parseInt(dom.qbankSearchQCount.value, 10);
+    const questionsToUse = appState.qbankSearchResults;
+    dom.qbankSearchError.classList.add('hidden');
+
+    if (!isNaN(requestedCount) && requestedCount > 0) {
+        if (requestedCount > questionsToUse.length) {
+            dom.qbankSearchError.textContent = `Only ${questionsToUse.length} questions found.`;
+            dom.qbankSearchError.classList.remove('hidden');
+            return;
+        }
+        const quizQuestions = [...questionsToUse].sort(() => Math.random() - 0.5).slice(0, requestedCount);
+        launchQuiz(quizQuestions, `Quiz for "${dom.qbankSearchInput.value}"`);
+    } else {
+        const shuffled = [...questionsToUse].sort(() => Math.random() - 0.5);
+        launchQuiz(shuffled, `Quiz for "${dom.qbankSearchInput.value}"`);
+    }
 }
