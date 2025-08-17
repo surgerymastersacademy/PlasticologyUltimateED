@@ -185,7 +185,7 @@ function renderUserCard(cardData) {
     }
 }
 
-function toggleProfileEditMode(isEditing) {
+export function toggleProfileEditMode(isEditing) {
     if (isEditing) {
         dom.profileDetailsView.classList.add('hidden');
         dom.profileEditView.classList.remove('hidden');
@@ -371,4 +371,5 @@ export function loadUserProgress() {
     if (savedBookmarks) {
         appState.bookmarkedQuestions = new Set(JSON.parse(savedBookmarks));
     }
+
 }
