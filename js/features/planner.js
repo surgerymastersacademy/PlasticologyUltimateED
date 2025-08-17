@@ -1,4 +1,4 @@
-// js/features/planner.js
+// js/features/planner.js (CORRECTED AND COMPLETE VERSION)
 
 import { appState, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -14,10 +14,11 @@ export function showStudyPlannerScreen() {
     dom.studyPlannerContent.classList.add('hidden');
     dom.studyPlannerInitialSetup.classList.add('hidden');
 
+    // This logic is now correct
     if (!appState.userCardData || !appState.userCardData.ExamDate) {
         promptForExamDate();
     } else if (!appState.studyPlannerData) {
-        generateInitialStudyPlanPrompt();
+        generateInitialStudyPlanPrompt(); // This function now exists
     } else {
         renderStudyPlan();
     }
@@ -26,9 +27,21 @@ export function showStudyPlannerScreen() {
 
 function promptForExamDate() {
     dom.studyPlannerInitialSetup.classList.remove('hidden');
+    dom.studyPlannerContent.classList.add('hidden');
     dom.studyPlannerExamDateInput.value = appState.userCardData?.ExamDate ? new Date(appState.userCardData.ExamDate).toISOString().split('T')[0] : '';
+    dom.studyPlannerExamDateInput.disabled = false;
     dom.studyPlannerGenerateBtn.textContent = 'Set Exam Date & Generate Plan';
 }
+
+// THIS IS THE MISSING FUNCTION THAT HAS BEEN ADDED
+function generateInitialStudyPlanPrompt() {
+    dom.studyPlannerInitialSetup.classList.remove('hidden');
+    dom.studyPlannerContent.classList.add('hidden');
+    dom.studyPlannerExamDateInput.value = new Date(appState.userCardData.ExamDate).toISOString().split('T')[0];
+    dom.studyPlannerExamDateInput.disabled = true; // Date is already set
+    dom.studyPlannerGenerateBtn.textContent = 'Generate Initial Plan';
+}
+
 
 export async function handleGeneratePlan() {
     const examDate = dom.studyPlannerExamDateInput.value;
@@ -39,19 +52,23 @@ export async function handleGeneratePlan() {
     }
     dom.studyPlannerError.classList.add('hidden');
 
-    const payload = { eventType: 'updateUserCardData', userId: appState.currentUser.UniqueID, examDate };
-    try {
-        await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-        if(appState.userCardData) appState.userCardData.ExamDate = examDate;
-        generateInitialStudyPlan();
-    } catch (error) {
-        dom.studyPlannerError.textContent = `Failed to save exam date.`;
-        dom.studyPlannerError.classList.remove('hidden');
+    // Save exam date to user card if it's not already set/disabled
+    if (!dom.studyPlannerExamDateInput.disabled) {
+        const payload = { eventType: 'updateUserCardData', userId: appState.currentUser.UniqueID, examDate };
+        try {
+            await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+            if (appState.userCardData) appState.userCardData.ExamDate = examDate;
+        } catch (error) {
+            dom.studyPlannerError.textContent = `Failed to save exam date.`;
+            dom.studyPlannerError.classList.remove('hidden');
+            return;
+        }
     }
+    
+    generateInitialStudyPlan();
 }
 
 function generateInitialStudyPlan() {
-    // Logic to generate the plan based on chapters and questions
     const daysRemaining = calculateDaysLeft(new Date(appState.userCardData.ExamDate));
     if (daysRemaining <= 0) {
         dom.studyPlannerError.textContent = 'Exam date must be in the future.';
@@ -71,7 +88,9 @@ function generateInitialStudyPlan() {
         if (assignedChapters.length > 0) {
             dayPlan.tasks.push({ type: 'lecture', name: `Study: ${assignedChapters.join(', ')}`, completed: false });
         }
-        plan.push(dayPlan);
+        if (dayPlan.tasks.length > 0) {
+             plan.push(dayPlan);
+        }
     }
 
     appState.studyPlannerData = plan;
@@ -84,7 +103,6 @@ function renderStudyPlan() {
     dom.studyPlannerContent.classList.remove('hidden');
     dom.studyPlanDaysContainer.innerHTML = '';
     
-    // Summary
     const daysRemaining = calculateDaysLeft(new Date(appState.userCardData.ExamDate));
     dom.planDaysRemaining.textContent = daysRemaining >= 0 ? daysRemaining : 'N/A';
     
@@ -99,13 +117,17 @@ function renderStudyPlan() {
     dom.planProgressBar.style.width = `${progress}%`;
     dom.planProgressBar.textContent = `${progress}%`;
 
-    // Render daily cards
     appState.studyPlannerData.forEach((day, dayIndex) => {
         const dayDiv = document.createElement('div');
         dayDiv.className = 'bg-white rounded-lg shadow-md p-4';
         
         const date = new Date(day.date);
-        const isToday = date.toDateString() === new Date().toDateString();
+        // Set time to 0 to compare dates only
+        date.setHours(0,0,0,0);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        const isToday = date.getTime() === today.getTime();
         let dateDisplay = date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
         if(isToday) dateDisplay += ' (Today)';
 
@@ -137,11 +159,10 @@ function addStudyPlanEventListeners() {
 
 export function updateStudyPlanProgress(eventType, itemName) {
     if (!appState.studyPlannerData) return;
-    // Basic implementation: check if item name part of a task
     let planUpdated = false;
     appState.studyPlannerData.forEach(day => {
         day.tasks.forEach(task => {
-            if (!task.completed && task.name.includes(itemName)) {
+            if (!task.completed && itemName.includes(task.chapter)) { // Assumes task name contains chapter
                 task.completed = true;
                 planUpdated = true;
             }
@@ -154,11 +175,13 @@ export function handleAddCustomTask() {
     const taskName = dom.studyPlanCustomTaskInput.value.trim();
     const taskDate = dom.studyPlanCustomTaskDateInput.value;
     if (!taskName || !taskDate) {
-        dom.customTaskError.textContent = 'Please provide both task name and date.';
-        dom.customTaskError.classList.remove('hidden');
+        // You are missing a dom element for this error message in your dom.js file
+        // Let's use the generic planner error for now.
+        dom.studyPlannerError.textContent = 'Please provide both task name and date.';
+        dom.studyPlannerError.classList.remove('hidden');
         return;
     }
-    dom.customTaskError.classList.add('hidden');
+    // dom.customTaskError.classList.add('hidden');
 
     const dayData = appState.studyPlannerData.find(d => d.date === taskDate);
     if (dayData) {
