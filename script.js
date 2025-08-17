@@ -1,14 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- URL FOR GOOGLE SHEETS ---
     // تأكد من تحديث هذا الرابط بالرابط الذي حصلت عليه بعد نشر Google Apps Script
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec'; // تأكد من تحديث هذا الرابط بالرابط الصحيح بعد النشر
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlWVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec'; // تأكد من تحديث هذا الرابط بالرابط الصحيح بعد النشر
 
-    // --- START: NEW SIMULATION SETTINGS ---
+    // --- SIMULATION SETTINGS ---
     const SIMULATION_Q_COUNT = 100; // The number of questions for the simulation
     const SIMULATION_TOTAL_TIME_MINUTES = 120; // The total time in minutes for the simulation
-    // --- END: NEW SIMULATION SETTINGS ---
 
-    // --- REFACTORED: Centralized Application State ---
+    // --- Centralized Application State ---
     const appState = {
         // Content Data
         allQuestions: [],
@@ -17,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
         groupedLectures: {},
         mcqBooks: [],
         allAnnouncements: [],
-        userRoles: {}, // ADDED: To store user roles/permissions
+        allRoles: [], // ADDED: To store roles/permissions
         allChaptersNames: [], // ADDED: To store all chapter names for study planner
 
         // User Data
@@ -31,8 +30,13 @@ document.addEventListener('DOMContentLoaded', () => {
         userMessages: [], // ADDED: To store user's messages
         studyPlannerData: null, // ADDED: To store user's study plan
 
-        // Navigation
+        // Navigation & UI State
         navigationHistory: [],
+        activityChartInstance: null,
+        currentNote: { type: null, itemId: null, itemTitle: null },
+        modalConfirmAction: null,
+        qbankSearchResults: [], // To store search results
+        messengerPollInterval: null, // ADDED: For messenger real-time updates
 
         // Current Quiz State
         currentQuiz: {
@@ -62,18 +66,12 @@ document.addEventListener('DOMContentLoaded', () => {
             totalQuestions: 0,
         },
 
-        // ADDED: Current Learning Mode State
+        // Current Learning Mode State
         currentLearning: {
             questions: [],
             currentIndex: 0,
             title: ''
         },
-
-        // UI State
-        activityChartInstance: null,
-        currentNote: { type: null, itemId: null, itemTitle: null },
-        modalConfirmAction: null,
-        qbankSearchResults: [], // To store search results
     };
 
     const DEFAULT_TIME_PER_QUESTION = 45;
@@ -86,8 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const notesBtn = document.getElementById('notes-btn');
     const announcementsBtn = document.getElementById('announcements-btn');
     const userNameDisplay = document.getElementById('user-name-display');
-    const headerUserAvatar = document.getElementById('header-user-avatar'); // ADDED
-    const userProfileHeaderBtn = document.getElementById('user-profile-header-btn'); // ADDED
+    const headerUserAvatar = document.getElementById('header-user-avatar');
+    const userProfileHeaderBtn = document.getElementById('user-profile-header-btn');
     const loginContainer = document.getElementById('login-container');
     const mainMenuContainer = document.getElementById('main-menu-container');
     const lecturesContainer = document.getElementById('lectures-container');
@@ -279,10 +277,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const practiceBookmarkedBtn = document.getElementById('practice-bookmarked-btn');
     const bookmarkBtn = document.getElementById('bookmark-btn');
 
-    // --- START: ADD SIMULATION EVENT LISTENER ---
     const startSimulationBtn = document.getElementById('start-simulation-btn');
     const simulationError = document.getElementById('simulation-error');
-    // --- END: ADD SIMULATION EVENT LISTENER ---
 
     // --- ADDED: User Card DOM Elements ---
     const userCardModal = document.getElementById('user-card-modal');
@@ -327,6 +323,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const studyPlanCustomTaskInput = document.getElementById('study-plan-custom-task-input');
     const studyPlanCustomTaskDateInput = document.getElementById('study-plan-custom-task-date-input');
     const studyPlanWeaknessesContainer = document.getElementById('study-plan-weaknesses-container');
+    const planDaysRemaining = document.getElementById('plan-days-remaining');
+    const planTasksToday = document.getElementById('plan-tasks-today');
+    const planProgressBar = document.getElementById('plan-progress-bar');
 
 
     // --- FUNCTIONS ---
@@ -491,7 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.allOsceCases = parseOsceCases(data.osceCases);
             appState.allOsceQuestions = parseOsceQuestions(data.osceQuestions);
             appState.allRoles = data.roles || []; // ADDED: Load roles
-            appState.allChaptersNames = data.chaptersNames ? data.chaptersNames.map(c => c.QuizTopics) : []; // ADDED: Load chapter names
+            appState.allChaptersNames = Object.keys(appState.groupedLectures); // Populate allChaptersNames from groupedLectures
 
             populateAllFilterOptions();
             renderLectures();
@@ -517,7 +516,13 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.fullActivityLog = data.logs || [];
             appState.userQuizNotes = data.quizNotes || [];
             appState.userLectureNotes = data.lectureNotes || [];
-            appState.studyPlannerData = data.studyPlan ? JSON.parse(data.studyPlan.Study_Plan) : null; // ADDED: Load study plan
+            // Fetch study plan separately as it's a new endpoint
+            const studyPlanResponse = await fetch(`${API_URL}?request=getStudyPlan&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
+            if (!studyPlanResponse.ok) throw new Error('Could not fetch study plan.');
+            const studyPlanData = await studyPlanResponse.json();
+            if (studyPlanData.error) throw new Error(studyPlanData.error);
+            appState.studyPlannerData = studyPlanData.plan;
+
         } catch (error) {
             console.error('Error loading user data:', error);
         }
@@ -535,7 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
             div.className = 'flex items-center';
             const safeId = `${inputNamePrefix}-${item.replace(/[^a-zA-Z0-9]/g, '-')}`;
             const count = counts[item] || 0;
-            div.innerHTML = `<input id="${safeId}" name="${inputNamePrefix}" value="${item}" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"><label for="${safeId}" class="ml-3 text-sm text-gray-600">${item} (${count} Qs)</label>`;
+            div.innerHTML = `<input id="${safeId}" name="${inputNamePrefix}" value="${item}" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"><label for="${safeId}" class="ml-3 text-sm text-gray-600">${item} ${count > 0 ? `(${count} Qs)` : ''}</label>`;
             containerElement.appendChild(div);
         });
     }
@@ -640,7 +645,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modalBackdrop.classList.add('hidden'); // Hide backdrop for all modals
 
         // Hide all main content containers
-        [loginContainer, mainMenuContainer, lecturesContainer, qbankContainer, listContainer, quizContainer, activityLogContainer, notesContainer, libraryContainer, leaderboardContainer, osceContainer, osceQuizContainer, learningModeContainer, studyPlannerContainer].forEach(screen => { // ADDED studyPlannerContainer
+        [loginContainer, mainMenuContainer, lecturesContainer, qbankContainer, listContainer, quizContainer, activityLogContainer, notesContainer, libraryContainer, leaderboardContainer, osceContainer, osceQuizContainer, learningModeContainer, studyPlannerContainer].forEach(screen => {
             if (screen) screen.classList.add('hidden');
         });
 
@@ -677,6 +682,54 @@ document.addEventListener('DOMContentLoaded', () => {
         displayAnnouncement();
         await fetchAndShowLastActivity();
     }
+
+    // --- START: ROLE PERMISSIONS FUNCTIONS ---
+    function checkPermission(feature) {
+        if (!appState.currentUser || appState.currentUser.Role === 'Guest') {
+            showConfirmationModal('Access Denied', 'Please log in to access this feature.', () => modalBackdrop.classList.add('hidden'));
+            return false;
+        }
+        // If userRoles is not loaded or the specific feature is not defined, assume access is denied.
+        // Or, if the feature is explicitly set to FALSE.
+        if (!appState.userRoles || appState.userRoles[feature] === undefined || String(appState.userRoles[feature]).toLowerCase() !== 'true') {
+            showConfirmationModal('Access Denied', `Your current role does not have access to the "${feature}" feature.`, () => modalBackdrop.classList.add('hidden'));
+            return false;
+        }
+        return true;
+    }
+
+    function applyRolePermissions() {
+        const role = appState.userRoles;
+        if (!role) return; // No role data loaded yet
+
+        // Map feature names to their corresponding buttons/elements
+        const featureElements = {
+            'Lectures': lecturesBtn,
+            'MCQBank': qbankBtn,
+            'LerningMode': learningModeBtn,
+            'OSCEBank': osceBtn,
+            'LeadersBoard': leaderboardBtn,
+            'Radio': radioBtn,
+            'Library': libraryBtn,
+            'StudyPlanner': studyPlannerBtn, // ADDED: Study Planner button
+        };
+
+        for (const feature in featureElements) {
+            const element = featureElements[feature];
+            if (element) {
+                const hasAccess = String(role[feature]).toLowerCase() === 'true';
+                element.disabled = !hasAccess;
+                element.classList.toggle('disabled-feature', !hasAccess); // Add a class for styling disabled features
+                // Optionally, change text or add tooltip for disabled features
+                if (!hasAccess) {
+                    element.title = `Access to ${feature} is not granted for your role.`;
+                } else {
+                    element.title = ''; // Clear title if access is granted
+                }
+            }
+        }
+    }
+    // --- END: ROLE PERMISSIONS FUNCTIONS ---
 
     function showLecturesScreen() {
         if (!checkPermission('Lectures')) return;
@@ -1313,7 +1366,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 const title = selectedChapters.length > 1 ? 'Multiple Chapters' : selectedChapters[0];
-                launchLearningMode(title, questionsToLearn);
+                launchLearningMode(title, questionsToLearn); // Use questionsToLearn here
             });
 
         } else {
@@ -1693,16 +1746,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showImageModal(src) {
         // Close all other modals before opening image viewer
-        [confirmationModal, questionNavigatorModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal, studyPlannerInitialSetup].forEach(modal => { // ADDED studyPlannerInitialSetup
+        [confirmationModal, questionNavigatorModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
             if (modal) modal.classList.add('hidden');
         });
         imageViewerModal.classList.remove('hidden');
         modalBackdrop.classList.remove('hidden');
+        modalImage.src = src;
     }
 
     function showConfirmationModal(title, text, onConfirm) {
         // Close all other modals before opening confirmation
-        [questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal, studyPlannerInitialSetup].forEach(modal => { // ADDED studyPlannerInitialSetup
+        [questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
             if (modal) modal.classList.add('hidden');
         });
         appState.modalConfirmAction = onConfirm;
@@ -1735,7 +1789,7 @@ document.addEventListener('DOMContentLoaded', () => {
             navigatorGrid.appendChild(button);
         });
         // Close all other modals before opening navigator
-        [confirmationModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal, studyPlannerInitialSetup].forEach(modal => { // ADDED studyPlannerInitialSetup
+        [confirmationModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
             if (modal) modal.classList.add('hidden');
         });
         questionNavigatorModal.classList.remove('hidden');
@@ -1905,7 +1959,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         noteTextarea.value = existingNote ? existingNote.NoteText : '';
         // Close all other modals before opening note modal
-        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, clearLogModal, announcementsModal, osceNavigatorModal, studyPlannerInitialSetup].forEach(modal => { // ADDED studyPlannerInitialSetup
+        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
             if (modal) modal.classList.add('hidden');
         });
         modalBackdrop.classList.remove('hidden');
@@ -2157,7 +2211,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         // Close all other modals before opening announcements modal
-        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, osceNavigatorModal, studyPlannerInitialSetup].forEach(modal => { // ADDED studyPlannerInitialSetup
+        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, osceNavigatorModal].forEach(modal => {
             if (modal) modal.classList.add('hidden');
         });
         modalBackdrop.classList.remove('hidden');
@@ -2515,7 +2569,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Close all other modals before opening OSCE navigator
-        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal, studyPlannerInitialSetup].forEach(modal => { // ADDED studyPlannerInitialSetup
+        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, messengerModal, noteModal, clearLogModal, announcementsModal].forEach(modal => {
             if (modal) modal.classList.add('hidden');
         });
         modalBackdrop.classList.remove('hidden');
@@ -2690,13 +2744,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function showUserCardModal(isLoginFlow = false) {
         if (!appState.currentUser || appState.currentUser.Role === 'Guest') {
-            showConfirmationModal('Guest Mode', 'Please log in to access your profile card.', () => modalBackdrop.classList.add('hidden'));
+            showConfirmationModal('Access Denied', 'Please log in to access your profile card.', () => modalBackdrop.classList.add('hidden'));
             return;
         }
 
         // Close all other modals before opening user card modal
         if (!isLoginFlow) { // Only close others if not part of the login flow
-            [confirmationModal, questionNavigatorModal, imageViewerModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal, studyPlannerInitialSetup].forEach(modal => { // ADDED studyPlannerInitialSetup
+            [confirmationModal, questionNavigatorModal, imageViewerModal, messengerModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
                 if (modal) modal.classList.add('hidden');
             });
         }
@@ -2863,7 +2917,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Close all other modals before opening messenger modal
-        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal, studyPlannerInitialSetup].forEach(modal => { // ADDED studyPlannerInitialSetup
+        [confirmationModal, questionNavigatorModal, imageViewerModal, userCardModal, noteModal, clearLogModal, announcementsModal, osceNavigatorModal].forEach(modal => {
             if (modal) modal.classList.add('hidden');
         });
         modalBackdrop.classList.remove('hidden');
@@ -2873,6 +2927,9 @@ document.addEventListener('DOMContentLoaded', () => {
         messageInput.value = '';
 
         await fetchAndRenderMessages(); // Fetch and render messages immediately
+        // Start polling for new messages
+        if (appState.messengerPollInterval) clearInterval(appState.messengerPollInterval);
+        appState.messengerPollInterval = setInterval(fetchAndRenderMessages, 10000); // Poll every 10 seconds
     }
 
     async function fetchAndRenderMessages() {
@@ -2882,8 +2939,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             if (data.error) throw new Error(data.error);
 
-            appState.userMessages = data.messages || [];
-            renderMessages();
+            // Only update if messages have changed to avoid unnecessary re-renders
+            if (JSON.stringify(appState.userMessages) !== JSON.stringify(data.messages)) {
+                appState.userMessages = data.messages || [];
+                renderMessages();
+            }
         } catch (error) {
             console.error("Error loading messages:", error);
             messengerError.textContent = `Error loading messages: ${error.message}`;
@@ -2977,54 +3037,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // --- END: NEW MESSENGER FUNCTIONS ---
 
-    // --- START: ROLE PERMISSIONS FUNCTIONS ---
-    function checkPermission(feature) {
-        if (!appState.currentUser || appState.currentUser.Role === 'Guest') {
-            showConfirmationModal('Access Denied', 'Please log in to access this feature.', () => modalBackdrop.classList.add('hidden'));
-            return false;
-        }
-        // If userRoles is not loaded or the specific feature is not defined, assume access is denied.
-        // Or, if the feature is explicitly set to FALSE.
-        if (!appState.userRoles || appState.userRoles[feature] === undefined || String(appState.userRoles[feature]).toLowerCase() !== 'true') {
-            showConfirmationModal('Access Denied', `Your current role does not have access to the "${feature}" feature.`, () => modalBackdrop.classList.add('hidden'));
-            return false;
-        }
-        return true;
-    }
-
-    function applyRolePermissions() {
-        const role = appState.userRoles;
-        if (!role) return; // No role data loaded yet
-
-        // Map feature names to their corresponding buttons/elements
-        const featureElements = {
-            'Lectures': lecturesBtn,
-            'MCQBank': qbankBtn,
-            'LerningMode': learningModeBtn,
-            'OSCEBank': osceBtn,
-            'LeadersBoard': leaderboardBtn,
-            'Radio': radioBtn,
-            'Library': libraryBtn,
-            'StudyPlanner': studyPlannerBtn, // ADDED: Study Planner button
-        };
-
-        for (const feature in featureElements) {
-            const element = featureElements[feature];
-            if (element) {
-                const hasAccess = String(role[feature]).toLowerCase() === 'true';
-                element.disabled = !hasAccess;
-                element.classList.toggle('disabled-feature', !hasAccess); // Add a class for styling disabled features
-                // Optionally, change text or add tooltip for disabled features
-                if (!hasAccess) {
-                    element.title = `Access to ${feature} is not granted for your role.`;
-                } else {
-                    element.title = ''; // Clear title if access is granted
-                }
-            }
-        }
-    }
-    // --- END: ROLE PERMISSIONS FUNCTIONS ---
-
     // --- START: STUDY PLANNER FUNCTIONS ---
     async function showStudyPlannerScreen() {
         if (!checkPermission('StudyPlanner')) return;
@@ -3114,16 +3126,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const allChapters = Object.keys(appState.groupedLectures);
+        const allChapters = appState.allChaptersNames; // Use the pre-populated list of all chapter names
         const totalLectures = Object.values(appState.groupedLectures).reduce((sum, chapter) => sum + chapter.topics.length, 0);
         const totalQuestions = appState.allQuestions.length;
 
         const plan = [];
-        let currentLectureIndex = 0;
-        let currentQuestionIndex = 0;
+        let currentLectureChapterIndex = 0;
+        let currentQuestionPoolIndex = 0; // To track questions distributed
 
-        const lecturesPerDay = Math.ceil(totalLectures / daysRemaining);
-        const questionsPerDay = Math.ceil(totalQuestions / daysRemaining);
+        const lecturesPerDayTarget = Math.ceil(totalLectures / daysRemaining);
+        const questionsPerDayTarget = Math.ceil(totalQuestions / daysRemaining);
 
         for (let i = 0; i < daysRemaining; i++) {
             const date = new Date(today);
@@ -3133,39 +3145,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 tasks: []
             };
 
-            // Add lectures
-            let lecturesAdded = 0;
-            while (lecturesAdded < lecturesPerDay && currentLectureIndex < allChapters.length) {
-                const chapterName = allChapters[currentLectureIndex];
-                const chapterLectures = appState.groupedLectures[chapterName].topics;
-                if (chapterLectures.length > 0) {
+            // Add lectures (distribute chapters)
+            let lecturesAddedToday = 0;
+            while (lecturesAddedToday < lecturesPerDayTarget && currentLectureChapterIndex < allChapters.length) {
+                const chapterName = allChapters[currentLectureChapterIndex];
+                const chapterData = appState.groupedLectures[chapterName];
+                if (chapterData && chapterData.topics.length > 0) {
                     dayPlan.tasks.push({
                         type: 'lecture',
-                        name: `Study Lectures from ${chapterName}`,
+                        name: `Study Lectures: ${chapterName}`,
                         chapter: chapterName,
-                        count: chapterLectures.length,
+                        count: chapterData.topics.length,
                         completed: false
                     });
-                    lecturesAdded += chapterLectures.length;
+                    lecturesAddedToday += chapterData.topics.length;
                 }
-                currentLectureIndex++;
+                currentLectureChapterIndex++;
             }
 
-            // Add questions
-            let questionsAdded = 0;
-            const availableQuestions = appState.allQuestions.slice(currentQuestionIndex);
-            if (availableQuestions.length > 0) {
-                dayPlan.tasks.push({
-                    type: 'quiz',
-                    name: `Practice Questions`,
-                    count: Math.min(questionsPerDay, availableQuestions.length),
-                    completed: false
-                });
-                currentQuestionIndex += Math.min(questionsPerDay, availableQuestions.length);
-                questionsAdded += Math.min(questionsPerDay, availableQuestions.length);
+            // Add questions (distribute from the overall pool)
+            let questionsAddedToday = 0;
+            if (currentQuestionPoolIndex < appState.allQuestions.length) {
+                const remainingQuestions = appState.allQuestions.length - currentQuestionPoolIndex;
+                const numQuestionsForToday = Math.min(questionsPerDayTarget, remainingQuestions);
+
+                if (numQuestionsForToday > 0) {
+                    dayPlan.tasks.push({
+                        type: 'quiz',
+                        name: `Practice Questions`,
+                        count: numQuestionsForToday,
+                        completed: false
+                    });
+                    currentQuestionPoolIndex += numQuestionsForToday;
+                    questionsAddedToday += numQuestionsForToday;
+                }
             }
 
-            plan.push(dayPlan);
+            // If a day has no tasks, add a placeholder or skip
+            if (dayPlan.tasks.length > 0) {
+                plan.push(dayPlan);
+            }
         }
 
         appState.studyPlannerData = plan;
@@ -3177,7 +3196,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const payload = {
             eventType: 'saveStudyPlan',
             userId: appState.currentUser.UniqueID,
-            studyPlan: JSON.stringify(plan)
+            planData: plan // Changed from studyPlan to planData to match GS Script
         };
         try {
             await fetch(API_URL, {
@@ -3201,6 +3220,32 @@ document.addEventListener('DOMContentLoaded', () => {
             studyPlannerContent.innerHTML = `<p class="text-center text-slate-500">No study plan found. Generate one above!</p>`;
             return;
         }
+
+        // Update overall progress summary
+        const examDate = appState.userCardData && appState.userCardData.ExamDate ? new Date(appState.userCardData.ExamDate) : null;
+        const daysRemaining = examDate ? calculateDaysLeft(examDate) : 'N/A';
+        planDaysRemaining.textContent = daysRemaining;
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const todayPlan = appState.studyPlannerData.find(day => new Date(day.date).toDateString() === today.toDateString());
+        const tasksTodayCount = todayPlan ? todayPlan.tasks.filter(task => !task.completed).length : 0;
+        planTasksToday.textContent = tasksTodayCount;
+
+        let totalTasks = 0;
+        let completedTasks = 0;
+        appState.studyPlannerData.forEach(day => {
+            day.tasks.forEach(task => {
+                totalTasks++;
+                if (task.completed) {
+                    completedTasks++;
+                }
+            });
+        });
+        const overallProgress = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : 0;
+        planProgressBar.style.width = `${overallProgress}%`;
+        planProgressBar.textContent = `${overallProgress}%`;
+
 
         // Render weaknesses and suggestions
         const weakChapters = identifyWeakChapters();
@@ -3384,6 +3429,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
+
+        studyPlanAddCustomTaskBtn.addEventListener('click', async () => {
+            const taskName = studyPlanCustomTaskInput.value.trim();
+            const taskDate = studyPlanCustomTaskDateInput.value;
+            if (!taskName || !taskDate) {
+                document.getElementById('custom-task-error').textContent = 'Please enter both task name and date.';
+                document.getElementById('custom-task-error').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('custom-task-error').classList.add('hidden');
+
+            const targetDate = new Date(taskDate);
+            targetDate.setHours(0,0,0,0);
+
+            let dayFound = false;
+            for (const day of appState.studyPlannerData) {
+                const dayDate = new Date(day.date);
+                dayDate.setHours(0,0,0,0);
+                if (dayDate.getTime() === targetDate.getTime()) {
+                    day.tasks.push({
+                        type: 'custom',
+                        name: taskName,
+                        completed: false
+                    });
+                    dayFound = true;
+                    break;
+                }
+            }
+
+            if (!dayFound) {
+                // If the date doesn't exist in the plan, create a new day entry
+                appState.studyPlannerData.push({
+                    date: targetDate.toISOString().split('T')[0],
+                    tasks: [{ type: 'custom', name: taskName, completed: false }]
+                });
+                // Sort the plan by date to maintain order
+                appState.studyPlannerData.sort((a, b) => new Date(a.date) - new Date(b.date));
+            }
+
+            await saveStudyPlanToBackend(appState.studyPlannerData);
+            renderStudyPlan();
+            studyPlanCustomTaskInput.value = '';
+            studyPlanCustomTaskDateInput.value = '';
+        });
     }
 
     function updateStudyPlanProgress(eventType, itemName) {
@@ -3423,7 +3512,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const question = appState.allQuestions.find(q => q.UniqueID === detail.qID);
                     if (question && question.chapter) {
                         const chapter = question.chapter;
-                        const isCorrect = question.answerOptions.find(opt => opt.isCorrect).text === detail.ans;
+                        // Find the correct answer text for the question
+                        const correctAnswerText = question.answerOptions.find(opt => opt.isCorrect)?.text;
+                        const isCorrect = correctAnswerText === detail.ans;
 
                         if (!chapterScores[chapter]) {
                             chapterScores[chapter] = { correct: 0, total: 0 };
@@ -3596,7 +3687,13 @@ document.addEventListener('DOMContentLoaded', () => {
     saveProfileBtn.addEventListener('click', handleSaveProfile);
 
     // ADDED: Messenger Event Listeners
-    messengerCloseBtn.addEventListener('click', () => modalBackdrop.classList.add('hidden'));
+    messengerCloseBtn.addEventListener('click', () => {
+        modalBackdrop.classList.add('hidden');
+        if (appState.messengerPollInterval) {
+            clearInterval(appState.messengerPollInterval); // Stop polling when modal is closed
+            appState.messengerPollInterval = null;
+        }
+    });
     sendMessageBtn.addEventListener('click', handleSendMessageBtn);
     messageInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
@@ -3608,4 +3705,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- INITIAL LOAD ---
     loadContentData();
 });
-
