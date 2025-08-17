@@ -1,9 +1,8 @@
-// js/features/learningMode.js
+// js/features/learningMode.js (CORRECTED VERSION)
 
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
-import { launchQuiz } from './quiz.js';
 
 export function showLearningModeBrowseScreen() {
     ui.showScreen(dom.learningModeContainer);
@@ -88,46 +87,5 @@ export function handleLearningSearch() {
         dom.learningSearchError.classList.remove('hidden');
     } else {
         launchLearningMode(`Search: "${dom.learningSearchInput.value}"`, filteredQuestions);
-    }
-}
-
-export function handleQBankSearch() {
-    const searchTerm = dom.qbankSearchInput.value.trim().toLowerCase();
-    dom.qbankSearchError.classList.add('hidden');
-    dom.qbankSearchResultsContainer.classList.add('hidden');
-
-    if (searchTerm.length < 3) {
-        dom.qbankSearchError.textContent = 'Please enter at least 3 characters.';
-        dom.qbankSearchError.classList.remove('hidden');
-        return;
-    }
-
-    const results = appState.allQuestions.filter(q => q.question.toLowerCase().includes(searchTerm));
-    appState.qbankSearchResults = results;
-
-    if (results.length === 0) {
-        dom.qbankSearchError.textContent = `No questions found for "${dom.qbankSearchInput.value}".`;
-        dom.qbankSearchError.classList.remove('hidden');
-    } else {
-        dom.qbankSearchResultsInfo.textContent = `Found ${results.length} questions.`;
-        dom.qbankSearchResultsContainer.classList.remove('hidden');
-    }
-}
-
-export function startSearchedQuiz() {
-    const requestedCount = parseInt(dom.qbankSearchQCount.value, 10);
-    const questionsToUse = appState.qbankSearchResults;
-
-    if (!isNaN(requestedCount) && requestedCount > 0) {
-        if (requestedCount > questionsToUse.length) {
-            dom.qbankSearchError.textContent = `Only ${questionsToUse.length} questions found.`;
-            dom.qbankSearchError.classList.remove('hidden');
-            return;
-        }
-        const quizQuestions = [...questionsToUse].sort(() => Math.random() - 0.5).slice(0, requestedCount);
-        launchQuiz(quizQuestions, `Quiz for "${dom.qbankSearchInput.value}"`);
-    } else {
-        const shuffled = [...questionsToUse].sort(() => Math.random() - 0.5);
-        launchQuiz(shuffled, `Quiz for "${dom.qbankSearchInput.value}"`);
     }
 }
