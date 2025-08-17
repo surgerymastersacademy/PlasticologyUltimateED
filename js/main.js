@@ -11,9 +11,10 @@ import { renderLectures, saveUserProgress, fetchAndShowLastActivity } from './fe
 import { startOsceSlayer, startCustomOsce, endOsceQuiz, handleOsceNext, handleOscePrevious, showOsceNavigator } from './features/osce.js';
 import { showStudyPlannerScreen, handleGeneratePlan, handleAddCustomTask } from './features/planner.js';
 import { showLearningModeBrowseScreen, handleLearningSearch, handleLearningNext, handleLearningPrevious } from './features/learningMode.js';
-// NEW IMPORTS
 import { showActivityLog, renderFilteredLog } from './features/activityLog.js';
 import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.js';
+// NEW IMPORT FOR LEADERBOARD
+import { showLeaderboardScreen } from './features/leaderboard.js';
 
 
 // SHARED & EXPORTED FUNCTIONS
@@ -115,16 +116,15 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.sendMessageBtn.addEventListener('click', handleSendMessageBtn);
     dom.lectureSearchInput.addEventListener('keyup', (e) => renderLectures(e.target.value));
 
-    // **UN-COMMENTED AND ACTIVATED**
+    // ACTIVATED LEADERBOARD BUTTON
+    dom.leaderboardBtn.addEventListener('click', () => checkPermission('LeadersBoard') && showLeaderboardScreen());
+
+    // Notes & Activity Log
     dom.notesBtn.addEventListener('click', showNotesScreen);
     dom.activityLogBtn.addEventListener('click', showActivityLog);
-
-    // Activity Log Filters
     dom.logFilterAll.addEventListener('click', () => renderFilteredLog('all'));
     dom.logFilterQuizzes.addEventListener('click', () => renderFilteredLog('quizzes'));
     dom.logFilterLectures.addEventListener('click', () => renderFilteredLog('lectures'));
-
-    // Notes Filters & Actions
     dom.notesFilterQuizzes.addEventListener('click', () => renderNotes('quizzes'));
     dom.notesFilterLectures.addEventListener('click', () => renderNotes('lectures'));
     dom.noteSaveBtn.addEventListener('click', handleSaveNote);
