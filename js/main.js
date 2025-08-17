@@ -1,4 +1,4 @@
-// js/main.js (FINAL VERSION with custom loading messages)
+// js/main.js (FINAL VERSION - ALL FEATURES ENABLED)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -6,11 +6,14 @@ import * as ui from './ui.js';
 import * as utils from './utils.js';
 import { fetchContentData } from './api.js';
 import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
-import { launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch } from './features/quiz.js';
+import { launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter } from './features/quiz.js';
 import { renderLectures, saveUserProgress, fetchAndShowLastActivity } from './features/lectures.js';
 import { startOsceSlayer, startCustomOsce, endOsceQuiz, handleOsceNext, handleOscePrevious, showOsceNavigator } from './features/osce.js';
 import { showStudyPlannerScreen, handleGeneratePlan, handleAddCustomTask } from './features/planner.js';
 import { showLearningModeBrowseScreen, handleLearningSearch, handleLearningNext, handleLearningPrevious } from './features/learningMode.js';
+// NEW IMPORTS
+import { showActivityLog, renderFilteredLog } from './features/activityLog.js';
+import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.js';
 
 
 // SHARED & EXPORTED FUNCTIONS
@@ -33,17 +36,13 @@ export function openNoteModal(type, itemId, itemTitle) {
     dom.noteModal.classList.remove('hidden');
 }
 
-
 // MAIN APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', () => {
 
     async function initializeApp() {
-        // --- MODIFICATION START: Using your new custom messages ---
         dom.loginSubmitBtn.disabled = true;
-        // The loading message
-        dom.loginSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Your Companion is on His way to you... Be Ready';
+        dom.loginSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Your Companion is on His way...';
         dom.freeTestBtn.disabled = true;
-        // --- MODIFICATION END ---
 
         const data = await fetchContentData();
         if (data && data.roles && data.questions) {
@@ -55,27 +54,24 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.allOsceQuestions = utils.parseOsceQuestions(data.osceQuestions);
             appState.allRoles = data.roles || [];
             appState.allChaptersNames = Object.keys(appState.groupedLectures);
-
-            // --- MODIFICATION START: Success message shown briefly ---
-            dom.loginSubmitBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Your Companion is Here for You';
+            
+            dom.loginSubmitBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Your Companion is Here!';
             dom.freeTestBtn.disabled = false;
             
-            // After a short delay, revert to "Log In"
             setTimeout(() => {
                 dom.loginSubmitBtn.disabled = false;
                 dom.loginSubmitBtn.textContent = 'Log In';
-            }, 1500); // Wait 1.5 seconds before changing to "Log In"
-            // --- MODIFICATION END ---
+            }, 1500);
 
         } else {
             dom.loginSubmitBtn.textContent = 'Error Loading Data';
-            dom.loginError.textContent = 'Failed to load app content. Please check your connection and refresh.';
+            dom.loginError.textContent = 'Failed to load app content. Please refresh.';
             dom.loginError.classList.remove('hidden');
         }
     }
 
-    // --- EVENT LISTENERS (No changes needed here) ---
-
+    // --- EVENT LISTENERS ---
+    
     // Login & Navigation
     dom.loginForm.addEventListener('submit', handleLogin);
     dom.logoutBtn.addEventListener('click', handleLogout);
@@ -94,49 +90,60 @@ document.addEventListener('DOMContentLoaded', () => {
             if (appState.navigationHistory.length > 1) {
                 appState.navigationHistory.pop();
                 const previousScreen = appState.navigationHistory[appState.navigationHistory.length - 1];
-                if (typeof previousScreen === 'function') {
-                    previousScreen();
-                }
+                if (typeof previousScreen === 'function') previousScreen();
             } else {
                 showMainMenuScreen();
             }
         });
     });
 
-    // Main Menu
+    // Main Menu & Header
     dom.lecturesBtn.addEventListener('click', () => { if (checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); appState.navigationHistory.push(() => ui.showScreen(dom.lecturesContainer)); } });
     dom.qbankBtn.addEventListener('click', () => { if (checkPermission('MCQBank')) { ui.showScreen(dom.qbankContainer); appState.navigationHistory.push(() => ui.showScreen(dom.qbankContainer)); } });
     dom.learningModeBtn.addEventListener('click', () => { if (checkPermission('LerningMode')) showLearningModeBrowseScreen(); });
     dom.osceBtn.addEventListener('click', () => { if (checkPermission('OSCEBank')) { ui.showScreen(dom.osceContainer); appState.navigationHistory.push(() => ui.showScreen(dom.osceContainer)); } });
     dom.libraryBtn.addEventListener('click', () => { if (checkPermission('Library')) { ui.renderBooks(); ui.showScreen(dom.libraryContainer); appState.navigationHistory.push(() => ui.showScreen(dom.libraryContainer)); } });
-    // dom.leaderboardBtn.addEventListener('click', () => checkPermission('LeadersBoard') && showLeaderboardScreen());
     dom.studyPlannerBtn.addEventListener('click', () => { if (checkPermission('StudyPlanner')) showStudyPlannerScreen(); });
-    
-    // Header & User Profile
     dom.userProfileHeaderBtn.addEventListener('click', () => showUserCardModal(false));
     dom.editProfileBtn.addEventListener('click', () => toggleProfileEditMode(true));
     dom.cancelEditProfileBtn.addEventListener('click', () => toggleProfileEditMode(false));
     dom.saveProfileBtn.addEventListener('click', handleSaveProfile);
-    
-    // Misc Header
     dom.radioBtn.addEventListener('click', () => dom.radioBannerContainer.classList.toggle('open'));
     dom.radioCloseBtn.addEventListener('click', () => dom.radioBannerContainer.classList.remove('open'));
     dom.announcementsBtn.addEventListener('click', ui.showAnnouncementsModal);
-    // dom.notesBtn.addEventListener('click', () => (ui.showScreen(dom.notesContainer), renderNotes('quizzes')));
-    // dom.activityLogBtn.addEventListener('click', () => (ui.showScreen(dom.activityLogContainer), renderFilteredLog('all')));
-    
-    // Messenger
     dom.messengerBtn.addEventListener('click', showMessengerModal);
     dom.sendMessageBtn.addEventListener('click', handleSendMessageBtn);
-
-    // Lectures
     dom.lectureSearchInput.addEventListener('keyup', (e) => renderLectures(e.target.value));
 
-    // QBank
+    // **UN-COMMENTED AND ACTIVATED**
+    dom.notesBtn.addEventListener('click', showNotesScreen);
+    dom.activityLogBtn.addEventListener('click', showActivityLog);
+
+    // Activity Log Filters
+    dom.logFilterAll.addEventListener('click', () => renderFilteredLog('all'));
+    dom.logFilterQuizzes.addEventListener('click', () => renderFilteredLog('quizzes'));
+    dom.logFilterLectures.addEventListener('click', () => renderFilteredLog('lectures'));
+
+    // Notes Filters & Actions
+    dom.notesFilterQuizzes.addEventListener('click', () => renderNotes('quizzes'));
+    dom.notesFilterLectures.addEventListener('click', () => renderNotes('lectures'));
+    dom.noteSaveBtn.addEventListener('click', handleSaveNote);
+    dom.noteCancelBtn.addEventListener('click', () => { dom.noteModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
+
+    // QBank & Custom Mock
     dom.startMockBtn.addEventListener('click', handleMockExamStart);
     dom.startSimulationBtn.addEventListener('click', handleStartSimulation);
     dom.qbankSearchBtn.addEventListener('click', handleQBankSearch);
     dom.qbankStartSearchQuizBtn.addEventListener('click', startSearchedQuiz);
+    dom.toggleCustomOptionsBtn.addEventListener('click', () => dom.customExamOptions.classList.toggle('visible'));
+    dom.sourceSelectMock.addEventListener('change', updateChapterFilter);
+    dom.selectAllSourcesMock.addEventListener('change', (e) => {
+        dom.sourceSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
+        updateChapterFilter();
+    });
+    dom.selectAllChaptersMock.addEventListener('change', (e) => {
+        dom.chapterSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
+    });
     
     // Quiz Controls
     dom.endQuizBtn.addEventListener('click', triggerEndQuiz);
