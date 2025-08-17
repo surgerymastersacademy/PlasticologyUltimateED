@@ -1,4 +1,4 @@
-// js/features/planner.js (CORRECTED AND COMPLETE VERSION)
+// js/features/planner.js (FINAL ENHANCED VERSION)
 
 import { appState, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -14,11 +14,10 @@ export function showStudyPlannerScreen() {
     dom.studyPlannerContent.classList.add('hidden');
     dom.studyPlannerInitialSetup.classList.add('hidden');
 
-    // This logic is now correct
     if (!appState.userCardData || !appState.userCardData.ExamDate) {
         promptForExamDate();
     } else if (!appState.studyPlannerData) {
-        generateInitialStudyPlanPrompt(); // This function now exists
+        generateInitialStudyPlanPrompt();
     } else {
         renderStudyPlan();
     }
@@ -33,15 +32,13 @@ function promptForExamDate() {
     dom.studyPlannerGenerateBtn.textContent = 'Set Exam Date & Generate Plan';
 }
 
-// THIS IS THE MISSING FUNCTION THAT HAS BEEN ADDED
 function generateInitialStudyPlanPrompt() {
     dom.studyPlannerInitialSetup.classList.remove('hidden');
     dom.studyPlannerContent.classList.add('hidden');
     dom.studyPlannerExamDateInput.value = new Date(appState.userCardData.ExamDate).toISOString().split('T')[0];
-    dom.studyPlannerExamDateInput.disabled = true; // Date is already set
+    dom.studyPlannerExamDateInput.disabled = true;
     dom.studyPlannerGenerateBtn.textContent = 'Generate Initial Plan';
 }
-
 
 export async function handleGeneratePlan() {
     const examDate = dom.studyPlannerExamDateInput.value;
@@ -52,7 +49,6 @@ export async function handleGeneratePlan() {
     }
     dom.studyPlannerError.classList.add('hidden');
 
-    // Save exam date to user card if it's not already set/disabled
     if (!dom.studyPlannerExamDateInput.disabled) {
         const payload = { eventType: 'updateUserCardData', userId: appState.currentUser.UniqueID, examDate };
         try {
@@ -86,7 +82,8 @@ function generateInitialStudyPlan() {
         const dayPlan = { date: date.toISOString().split('T')[0], tasks: [] };
         const assignedChapters = chapters.splice(0, chaptersPerDay);
         if (assignedChapters.length > 0) {
-            dayPlan.tasks.push({ type: 'lecture', name: `Study: ${assignedChapters.join(', ')}`, completed: false });
+            dayPlan.tasks.push({ type: 'lecture', name: `Study Lectures for: ${assignedChapters.join(', ')}`, chapters: assignedChapters, completed: false });
+            dayPlan.tasks.push({ type: 'quiz', name: `Quiz on: ${assignedChapters.join(', ')}`, chapters: assignedChapters, completed: false });
         }
         if (dayPlan.tasks.length > 0) {
              plan.push(dayPlan);
@@ -122,7 +119,6 @@ function renderStudyPlan() {
         dayDiv.className = 'bg-white rounded-lg shadow-md p-4';
         
         const date = new Date(day.date);
-        // Set time to 0 to compare dates only
         date.setHours(0,0,0,0);
         const today = new Date();
         today.setHours(0,0,0,0);
@@ -132,9 +128,12 @@ function renderStudyPlan() {
         if(isToday) dateDisplay += ' (Today)';
 
         let tasksHtml = day.tasks.map((task, taskIndex) => `
-            <li class="flex items-center p-2 rounded-md ${task.completed ? 'bg-green-100' : 'bg-slate-50'}">
-                <input type="checkbox" class="task-checkbox h-4 w-4 mr-3" data-day="${dayIndex}" data-task="${taskIndex}" ${task.completed ? 'checked' : ''}>
-                <span class="${task.completed ? 'line-through text-slate-500' : ''}">${task.name}</span>
+            <li class="flex items-center justify-between p-2 rounded-md ${task.completed ? 'bg-green-100' : 'bg-slate-50'}">
+                <div class="flex items-center">
+                    <input type="checkbox" class="task-checkbox h-4 w-4 mr-3" data-day="${dayIndex}" data-task="${taskIndex}" ${task.completed ? 'checked' : ''}>
+                    <span class="${task.completed ? 'line-through text-slate-500' : ''}">${task.name}</span>
+                </div>
+                ${task.type === 'quiz' && !task.completed ? `<button class="start-planner-quiz-btn text-xs bg-blue-500 text-white py-1 px-2 rounded hover:bg-blue-600" data-chapters='${JSON.stringify(task.chapters)}'>Start Quiz</button>` : ''}
             </li>
         `).join('');
 
@@ -155,6 +154,18 @@ function addStudyPlanEventListeners() {
             renderStudyPlan();
         });
     });
+
+    document.querySelectorAll('.start-planner-quiz-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const chapters = JSON.parse(e.target.dataset.chapters);
+            const questions = appState.allQuestions.filter(q => chapters.includes(q.chapter));
+            if (questions.length > 0) {
+                launchQuiz(questions, `Quiz for: ${chapters.join(', ')}`);
+            } else {
+                alert('No questions found for the chapters in this task.');
+            }
+        });
+    });
 }
 
 export function updateStudyPlanProgress(eventType, itemName) {
@@ -162,7 +173,7 @@ export function updateStudyPlanProgress(eventType, itemName) {
     let planUpdated = false;
     appState.studyPlannerData.forEach(day => {
         day.tasks.forEach(task => {
-            if (!task.completed && itemName.includes(task.chapter)) { // Assumes task name contains chapter
+            if (!task.completed && task.chapters && task.chapters.some(ch => itemName.includes(ch))) {
                 task.completed = true;
                 planUpdated = true;
             }
@@ -175,13 +186,10 @@ export function handleAddCustomTask() {
     const taskName = dom.studyPlanCustomTaskInput.value.trim();
     const taskDate = dom.studyPlanCustomTaskDateInput.value;
     if (!taskName || !taskDate) {
-        // You are missing a dom element for this error message in your dom.js file
-        // Let's use the generic planner error for now.
         dom.studyPlannerError.textContent = 'Please provide both task name and date.';
         dom.studyPlannerError.classList.remove('hidden');
         return;
     }
-    // dom.customTaskError.classList.add('hidden');
 
     const dayData = appState.studyPlannerData.find(d => d.date === taskDate);
     if (dayData) {
