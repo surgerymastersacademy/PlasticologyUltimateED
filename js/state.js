@@ -85,4 +85,5 @@ export const appState = {
         currentIndex: 0,
         title: ''
     },
+
 };
