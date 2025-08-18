@@ -50,6 +50,8 @@ export async function showStudyPlannerScreen() {
 /**
  * Renders the dashboard view, showing a list of all created plans.
  */
+// js/features/planner.js
+
 function renderPlannerDashboard() {
     const plansList = dom.studyPlansList;
     plansList.innerHTML = '';
@@ -60,13 +62,26 @@ function renderPlannerDashboard() {
             const isActive = String(plan.Plan_Status).toUpperCase() === 'TRUE';
             const planCard = document.createElement('div');
             planCard.className = `p-4 rounded-lg border-2 flex justify-between items-center ${isActive ? 'bg-blue-50 border-blue-400' : 'bg-white border-slate-200'}`;
+
+            // --- START: Code Enhancement ---
+            let planName = plan.Plan_Name;
+            let planDetailsHTML = `
+                <p class="text-sm text-slate-500">
+                    ${new Date(plan.Plan_StartDate).toLocaleDateString('en-GB')} - ${new Date(plan.Plan_EndDate).toLocaleDateString('en-GB')}
+                    ${isActive ? '<span class="ml-2 text-xs font-bold text-white bg-blue-500 px-2 py-1 rounded-full">ACTIVE</span>' : ''}
+                </p>`;
+
+            // Check if plan name looks like raw JSON data
+            if (typeof planName === 'string' && planName.startsWith('[{')) {
+                planName = "Corrupted Plan Data"; // Show a placeholder name
+                planDetailsHTML = `<p class="text-sm text-red-500">Error: Please correct this plan's data in the Google Sheet.</p>`;
+            }
+            // --- END: Code Enhancement ---
+
             planCard.innerHTML = `
                 <div>
-                    <h4 class="font-bold text-lg text-slate-800">${plan.Plan_Name}</h4>
-                    <p class="text-sm text-slate-500">
-                        ${new Date(plan.Plan_StartDate).toLocaleDateString('en-GB')} - ${new Date(plan.Plan_EndDate).toLocaleDateString('en-GB')}
-                        ${isActive ? '<span class="ml-2 text-xs font-bold text-white bg-blue-500 px-2 py-1 rounded-full">ACTIVE</span>' : ''}
-                    </p>
+                    <h4 class="font-bold text-lg text-slate-800">${planName}</h4>
+                    ${planDetailsHTML}
                 </div>
                 <div class="flex gap-2">
                     ${!isActive ? `<button class="activate-plan-btn action-btn bg-green-500 hover:bg-green-600 text-white text-sm font-bold py-1 px-3 rounded" data-plan-id="${plan.Plan_ID}">Activate</button>` : ''}
@@ -78,7 +93,6 @@ function renderPlannerDashboard() {
     }
     addDashboardEventListeners();
 }
-
 /**
  * Renders the detailed view of the currently active study plan.
  */
@@ -282,3 +296,4 @@ function addActivePlanEventListeners() {
         });
     });
 }
+
