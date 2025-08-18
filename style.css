@@ -1,7 +1,7 @@
 /* Custom styles */
 body {
     font-family: 'Cairo', 'Inter', sans-serif;
-    background-color: #f0f4f8;
+    /* background-color: #f0f4f8; */ /* Replaced by modern login styles */
 }
 
 .main-app-container {
@@ -185,4 +185,32 @@ details[open] > summary .fa-chevron-down {
 
 #avatar-selection-grid img:hover {
     border: 2px solid #3b82f6; /* Highlight on hover */
+}
+
+/* --- NEW: Modern Login Page Enhancements --- */
+body {
+    background-color: #eef2f7; /* Fallback color */
+    background-image: linear-gradient(to top right, #e0e7ff, #f0f4f8);
+}
+
+.login-card {
+    background-color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.input-with-icon-container {
+    position: relative;
+}
+
+.input-with-icon-container .input-icon {
+    position: absolute;
+    left: 0.75rem; /* 12px */
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af; /* text-gray-400 */
+}
+
+.input-with-icon {
+    padding-left: 2.5rem; /* 40px */
 }
