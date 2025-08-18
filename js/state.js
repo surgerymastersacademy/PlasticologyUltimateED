@@ -77,4 +77,3 @@ export const appState = {
         title: ''
     },
 };
-
