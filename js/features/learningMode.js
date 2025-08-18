@@ -1,4 +1,4 @@
-// js/features/learningMode.js (CORRECTED VERSION)
+// js/features/learningMode.js (Corrected and Enhanced with Browse functionality)
 
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
@@ -12,11 +12,17 @@ export function showLearningModeBrowseScreen() {
 }
 
 function launchLearningMode(title, questions) {
+    if (questions.length === 0) {
+        // This is a safeguard, should not happen if called from a button with items.
+        alert(`No questions found for ${title}.`);
+        return;
+    }
     ui.showScreen(dom.learningModeContainer);
     appState.currentLearning = { questions, currentIndex: 0, title };
     dom.learningModeControls.classList.add('hidden');
     dom.learningModeViewer.classList.remove('hidden');
     dom.learningTitle.textContent = `Studying: ${title}`;
+    appState.navigationHistory.push(() => launchLearningMode(title, questions));
     showLearningQuestion();
 }
 
@@ -33,7 +39,7 @@ function showLearningQuestion() {
     currentQuestion.answerOptions.forEach(answer => {
         const answerDiv = document.createElement('div');
         const button = document.createElement('button');
-        button.textContent = answer.text;
+        button.innerHTML = answer.text; // Use innerHTML to render any potential HTML tags
         button.className = 'learning-answer-btn w-full text-left p-4 rounded-lg';
         button.disabled = true;
 
@@ -41,7 +47,7 @@ function showLearningQuestion() {
             button.classList.add('correct');
             const rationale = document.createElement('p');
             rationale.className = 'learning-rationale';
-            rationale.textContent = answer.rationale || 'No rationale provided.';
+            rationale.innerHTML = answer.rationale || 'No rationale provided.';
             answerDiv.appendChild(button);
             answerDiv.appendChild(rationale);
         } else {
@@ -88,4 +94,47 @@ export function handleLearningSearch() {
     } else {
         launchLearningMode(`Search: "${dom.learningSearchInput.value}"`, filteredQuestions);
     }
+}
+
+
+// --- NEW --- Functions for Browse by Chapter/Source
+export function startLearningBrowse(browseBy) {
+    const isChapter = browseBy === 'chapter';
+    const title = isChapter ? 'Browse by Chapter' : 'Browse by Source';
+    
+    // Get unique items (chapters or sources) and count questions for each
+    const itemCounts = appState.allQuestions.reduce((acc, q) => {
+        const item = isChapter ? (q.chapter || 'Uncategorized') : (q.source || 'Uncategorized');
+        acc[item] = (acc[item] || 0) + 1;
+        return acc;
+    }, {});
+
+    const items = Object.keys(itemCounts).sort();
+
+    dom.listTitle.textContent = title;
+    dom.listItems.innerHTML = ''; // Clear previous items
+
+    if (items.length === 0) {
+        dom.listItems.innerHTML = `<p class="text-slate-500 col-span-full text-center">No ${browseBy}s found.</p>`;
+    } else {
+        items.forEach(item => {
+            const button = document.createElement('button');
+            button.className = 'action-btn p-4 bg-white rounded-lg shadow-sm text-center hover:bg-slate-50';
+            button.innerHTML = `
+                <h3 class="font-bold text-slate-800">${item}</h3>
+                <p class="text-sm text-slate-500">${itemCounts[item]} Questions</p>
+            `;
+            button.addEventListener('click', () => {
+                const questions = appState.allQuestions.filter(q => {
+                    const qItem = isChapter ? (q.chapter || 'Uncategorized') : (q.source || 'Uncategorized');
+                    return qItem === item;
+                });
+                launchLearningMode(item, questions);
+            });
+            dom.listItems.appendChild(button);
+        });
+    }
+
+    ui.showScreen(dom.listContainer);
+    appState.navigationHistory.push(() => startLearningBrowse(browseBy));
 }
