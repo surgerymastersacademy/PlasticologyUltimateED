@@ -243,7 +243,8 @@ export const studyPlanWeaknessesContainer = document.getElementById('study-plan-
 export const planDaysRemaining = document.getElementById('plan-days-remaining');
 export const planTasksToday = document.getElementById('plan-tasks-today');
 export const planProgressBar = document.getElementById('plan-progress-bar');
-// ADD THESE NEW LINES FOR THE MULTI-PLANNER MODALS AND DASHBOARD
+
+// --- ADDED/CORRECTED SECTION FOR MULTI-PLANNER ---
 export const plannerDashboard = document.getElementById('planner-dashboard');
 export const activePlanView = document.getElementById('active-plan-view');
 export const studyPlansList = document.getElementById('study-plans-list');
@@ -257,6 +258,3 @@ export const newPlanEndDate = document.getElementById('new-plan-end-date');
 export const createPlanError = document.getElementById('create-plan-error');
 export const cancelCreatePlanBtn = document.getElementById('cancel-create-plan-btn');
 export const confirmCreatePlanBtn = document.getElementById('confirm-create-plan-btn');
-
-
-export const planProgressBar = document.getElementById('plan-progress-bar');
