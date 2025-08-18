@@ -4,7 +4,7 @@
 
 // --- URL FOR GOOGLE SHEETS ---
 // Make sure to update this link with the one you get after deploying the Google Apps Script
-export const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlVVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec';
+export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
 
 // --- SIMULATION SETTINGS ---
 export const SIMULATION_Q_COUNT = 100; // The number of questions for the simulation
@@ -87,3 +87,4 @@ export const appState = {
         title: ''
     },
 };
+
