@@ -1,13 +1,16 @@
-// js/features/quiz.js (FINAL AND COMPLETE VERSION)
+// js/features/quiz.js (FINAL, COMPLETE, AND COMPREHENSIVE VERSION)
 
-import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES } from '../state.js';
+import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
 import { logUserActivity, logIncorrectAnswer, logCorrectedMistake } from '../api.js';
-import { formatTime } from '../utils.js';
+import { formatTime, parseQuestions } from '../utils.js';
 import { showMainMenuScreen, openNoteModal } from '../main.js';
 import { populateFilterOptions } from '../ui.js';
 
+/**
+ * The main function to launch any quiz session.
+ */
 export function launchQuiz(questions, title, config = {}) {
     const {
         timePerQuestion = DEFAULT_TIME_PER_QUESTION,
@@ -368,7 +371,6 @@ export function startSearchedQuiz() {
     }
 }
 
-// THIS IS THE MISSING FUNCTION, NOW ADDED AND EXPORTED
 export function updateChapterFilter() {
     const selectedSources = [...dom.sourceSelectMock.querySelectorAll('input:checked')].map(el => el.value);
     
@@ -382,6 +384,52 @@ export function updateChapterFilter() {
         chapterCounts[chapter] = (chapterCounts[chapter] || 0) + 1;
     });
 
-    // This function needs to exist in ui.js to populate the checkboxes
     populateFilterOptions(dom.chapterSelectMock, Object.keys(chapterCounts).sort(), 'mock-chapter', chapterCounts);
+}
+
+export async function startIncorrectQuestionsQuiz() {
+    dom.loader.classList.remove('hidden');
+    dom.loadingText.textContent = 'Loading your mistakes...';
+    dom.loadingText.classList.remove('hidden');
+    try {
+        const response = await fetch(`${API_URL}?request=getIncorrectQuestions&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
+        if (!response.ok) throw new Error('Failed to fetch your mistakes.');
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        if (data.questions.length === 0) {
+            ui.showConfirmationModal('All Clear!', 'You have no incorrect questions to practice. Well done!', () => dom.modalBackdrop.classList.add('hidden'));
+            return;
+        }
+        const mistakeQuestions = parseQuestions(data.questions);
+        launchQuiz(mistakeQuestions, "Practice Mistakes", { isMistakePractice: true });
+    } catch (error) {
+        dom.mockError.textContent = error.message;
+        dom.mockError.classList.remove('hidden');
+    } finally {
+        dom.loader.classList.add('hidden');
+        dom.loadingText.classList.add('hidden');
+    }
+}
+
+export function startBookmarkedQuestionsQuiz() {
+    const bookmarkedIds = Array.from(appState.bookmarkedQuestions);
+    if (bookmarkedIds.length === 0) {
+        ui.showConfirmationModal('No Bookmarks', 'You have not bookmarked any questions yet.', () => dom.modalBackdrop.classList.add('hidden'));
+        return;
+    }
+
+    const bookmarkedQuestions = appState.allQuestions.filter(q => bookmarkedIds.includes(q.UniqueID));
+    launchQuiz(bookmarkedQuestions, "Bookmarked Questions");
+}
+
+export function startFreeTest() {
+    if (appState.allFreeTestQuestions.length === 0) {
+        alert("Free test questions are not available, please contact support.");
+        return;
+    }
+    const shuffled = [...appState.allFreeTestQuestions].sort(() => 0.5 - Math.random());
+    const sampleQuestions = shuffled.slice(0, 10);
+    appState.currentUser = { Name: 'Guest', UniqueID: `guest_${Date.now()}`, Role: 'Guest' };
+    launchQuiz(sampleQuestions, "Free Sample Test");
 }
