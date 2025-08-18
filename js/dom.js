@@ -243,3 +243,20 @@ export const studyPlanWeaknessesContainer = document.getElementById('study-plan-
 export const planDaysRemaining = document.getElementById('plan-days-remaining');
 export const planTasksToday = document.getElementById('plan-tasks-today');
 export const planProgressBar = document.getElementById('plan-progress-bar');
+// ADD THESE NEW LINES FOR THE MULTI-PLANNER MODALS AND DASHBOARD
+export const plannerDashboard = document.getElementById('planner-dashboard');
+export const activePlanView = document.getElementById('active-plan-view');
+export const studyPlansList = document.getElementById('study-plans-list');
+export const activePlanName = document.getElementById('active-plan-name');
+export const backToPlansDashboardBtn = document.getElementById('back-to-plans-dashboard-btn');
+export const showCreatePlanModalBtn = document.getElementById('show-create-plan-modal-btn');
+export const createPlanModal = document.getElementById('create-plan-modal');
+export const newPlanName = document.getElementById('new-plan-name');
+export const newPlanStartDate = document.getElementById('new-plan-start-date');
+export const newPlanEndDate = document.getElementById('new-plan-end-date');
+export const createPlanError = document.getElementById('create-plan-error');
+export const cancelCreatePlanBtn = document.getElementById('cancel-create-plan-btn');
+export const confirmCreatePlanBtn = document.getElementById('confirm-create-plan-btn');
+
+
+export const planProgressBar = document.getElementById('plan-progress-bar');
