@@ -23,7 +23,8 @@ export const AVATAR_OPTIONS = [
 // --- Centralized Application State ---
 export const appState = {
     // Content Data
-    allQuestions: [],
+    allQuestions: [], // <-- بنك الأسئلة الرئيسي
+    allFreeTestQuestions: [], // <-- هذا هو السطر الجديد الذي تمت إضافته
     allOsceCases: [],
     allOsceQuestions: [],
     groupedLectures: {},
@@ -87,4 +88,5 @@ export const appState = {
     },
 
 };
+
 
