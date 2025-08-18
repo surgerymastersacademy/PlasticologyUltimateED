@@ -372,4 +372,5 @@ export function initializeDomElements() {
     modalBackdrop = document.getElementById('modal-backdrop');
     confirmationModal = document.getElementById('confirmation-modal');
     modalConfirmBtn = document.getElementById('modal-confirm-btn');
-    modalCancelBtn = document.getElementById('modal-cancel-
+    modalCancelBtn = document.getElementById('modal-cancel-btn');
+    
