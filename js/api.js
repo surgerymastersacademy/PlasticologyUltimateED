@@ -1,7 +1,10 @@
-// js/api.js (FINAL CORRECTED VERSION)
+// js/api.js
+
+// This file is the data abstraction layer. It handles all communication
+// with the Google Apps Script backend.
 
 import { API_URL, appState } from './state.js';
-// REMOVED: import { updateStudyPlanProgress } from './features/planner.js';
+import { updateStudyPlanProgress } from './features/planner.js';
 
 /**
  * Logs a user activity event to the backend.
@@ -36,7 +39,7 @@ export function logUserActivity(eventData) {
             total: payload.totalQuestions,
             isReviewable: true
         };
-        // REMOVED: updateStudyPlanProgress('quiz', payload.quizTitle);
+        updateStudyPlanProgress('quiz', payload.quizTitle);
 
     } else if (payload.eventType === 'ViewLecture') {
         newLogEntry = {
@@ -44,7 +47,7 @@ export function logUserActivity(eventData) {
             eventType: 'ViewLecture',
             title: payload.lectureName
         };
-        // REMOVED: updateStudyPlanProgress('lecture', payload.lectureName);
+        updateStudyPlanProgress('lecture', payload.lectureName);
     }
 
     fetch(API_URL, {
@@ -57,6 +60,30 @@ export function logUserActivity(eventData) {
         }
     }).catch(error => console.error('Error logging activity:', error));
 }
+
+/**
+ * Saves the user's study plan to the backend.
+ * @param {Array} plan - The study plan data.
+ */
+export async function saveStudyPlan(plan) {
+    const payload = {
+        eventType: 'saveStudyPlan',
+        userId: appState.currentUser.UniqueID,
+        planData: plan
+    };
+    try {
+        await fetch(API_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify(payload)
+        });
+        appState.studyPlannerData = plan; // Ensure appState is updated after saving
+        console.log("Study plan saved successfully.");
+    } catch (error) {
+        console.error("Error saving study plan:", error);
+    }
+}
+
 
 /**
  * Fetches the main content data (questions, lectures, etc.) from the backend.
@@ -80,22 +107,26 @@ export async function fetchContentData() {
 }
 
 /**
- * Fetches all data specific to the logged-in user (logs, notes, plans).
+ * Fetches all data specific to the logged-in user (logs, notes, plan).
  */
 export async function fetchUserData() {
     if (!appState.currentUser || appState.currentUser.Role === 'Guest') return;
     try {
-        const response = await fetch(`${API_URL}?request=userData&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
-        if (!response.ok) throw new Error('Could not fetch user data.');
-        const data = await response.json();
+        const userDataResponse = await fetch(`${API_URL}?request=userData&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
+        if (!userDataResponse.ok) throw new Error('Could not fetch user data.');
+        const data = await userDataResponse.json();
         if (data.error) throw new Error(data.error);
 
         appState.fullActivityLog = data.logs || [];
         appState.userQuizNotes = data.quizNotes || [];
         appState.userLectureNotes = data.lectureNotes || [];
-        appState.answeredQuestions = new Set(data.answeredQuestions || []);
 
-        return data; // Return data so it can be used by other functions
+        const studyPlanResponse = await fetch(`${API_URL}?request=getStudyPlan&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
+        if (!studyPlanResponse.ok) throw new Error('Could not fetch study plan.');
+        const studyPlanData = await studyPlanResponse.json();
+        if (studyPlanData.error) throw new Error(studyPlanData.error);
+        appState.studyPlannerData = studyPlanData.plan;
+
     } catch (error) {
         console.error('Error loading user data:', error);
     }
