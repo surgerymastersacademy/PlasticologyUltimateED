@@ -1,4 +1,4 @@
-// js/main.js (Corrected for Filters & Learning Mode & QBank Browse)
+// js/main.js (Corrected for All Filters & Browse Modes)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -6,7 +6,6 @@ import * as ui from './ui.js';
 import * as utils from './utils.js';
 import { fetchContentData, fetchUserData } from './api.js';
 import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
-// --- MODIFIED IMPORT ---
 import {
     launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz,
     toggleBookmark, toggleFlag, showHint, showQuestionNavigator, startQuizBrowse
@@ -174,10 +173,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     dom.practiceMistakesBtn.addEventListener('click', startIncorrectQuestionsQuiz);
     dom.practiceBookmarkedBtn.addEventListener('click', startBookmarkedQuestionsQuiz);
-    // --- NEW: Event Listeners for QBank Browse Buttons ---
     dom.browseByChapterBtn.addEventListener('click', () => startQuizBrowse('chapter'));
     dom.browseBySourceBtn.addEventListener('click', () => startQuizBrowse('source'));
-
 
     // In-Quiz Listeners
     dom.endQuizBtn.addEventListener('click', triggerEndQuiz);
@@ -201,6 +198,14 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.osceNextBtn.addEventListener('click', handleOsceNext);
     dom.oscePreviousBtn.addEventListener('click', handleOscePrevious);
     dom.osceNavigatorBtn.addEventListener('click', showOsceNavigator);
+    // START: Added Event Listeners for OSCE Select All
+    document.getElementById('select-all-chapters-osce').addEventListener('change', (e) => {
+        dom.chapterSelectOsce.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
+    });
+    document.getElementById('select-all-sources-osce').addEventListener('change', (e) => {
+        dom.sourceSelectOsce.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
+    });
+    // END: Added Event Listeners for OSCE Select All
     
     // Learning Mode Listeners
     dom.endLearningBtn.addEventListener('click', showLearningModeBrowseScreen);
