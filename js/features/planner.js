@@ -1,4 +1,4 @@
-// js/features/planner.js (FINAL, COMPLETE, AND CORRECTED DISPLAY LOGIC)
+// js/features/planner.js (FINAL, COMPLETE, AND ENHANCED VERSION)
 
 import { appState, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -37,9 +37,11 @@ export async function showStudyPlannerScreen() {
 
     } catch (error) {
         console.error("Error loading study plans:", error);
-        // This assumes you have a general error display element in your planner container.
-        const plannerErrorDisplay = dom.studyPlannerError; 
-        if(plannerErrorDisplay) plannerErrorDisplay.textContent = error.message;
+        const plannerErrorDisplay = dom.studyPlannerError;
+        if(plannerErrorDisplay) {
+            plannerErrorDisplay.textContent = error.message;
+            plannerErrorDisplay.classList.remove('hidden');
+        }
     } finally {
         dom.studyPlannerLoader.classList.add('hidden');
     }
@@ -58,9 +60,6 @@ function renderPlannerDashboard() {
             const isActive = String(plan.Plan_Status).toUpperCase() === 'TRUE';
             const planCard = document.createElement('div');
             planCard.className = `p-4 rounded-lg border-2 flex justify-between items-center ${isActive ? 'bg-blue-50 border-blue-400' : 'bg-white border-slate-200'}`;
-            
-            // --- THIS IS THE CORRECTED PART ---
-            // It now correctly displays the dates and status.
             planCard.innerHTML = `
                 <div>
                     <h4 class="font-bold text-lg text-slate-800">${plan.Plan_Name}</h4>
@@ -216,7 +215,7 @@ export async function handleCreatePlan() {
         await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
         dom.modalBackdrop.classList.add('hidden');
         dom.createPlanModal.classList.add('hidden');
-        showStudyPlannerScreen();
+        showStudyPlannerScreen(); // Refresh the planner screen
     } catch (error) {
         console.error("Error creating plan:", error);
         errorEl.textContent = 'An error occurred while saving the plan.';
@@ -244,7 +243,7 @@ function addDashboardEventListeners() {
             const payload = { eventType: 'activateStudyPlan', userId: appState.currentUser.UniqueID, planId: planId };
             try {
                 await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-                showStudyPlannerScreen();
+                showStudyPlannerScreen(); // Refresh the whole view
             } catch (error) {
                 console.error("Error activating plan:", error);
             }
