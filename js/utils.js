@@ -20,7 +20,7 @@ export function parseQuestions(data) {
             chapter: (row.Chapter && String(row.Chapter).trim()) ? row.Chapter : 'Uncategorized',
             question: row.Question,
             hint: row.Hint || '',
-            source: (row.Source && String(row.Source).trim()) ? String(row.Source).trim() : 'N/A', // Ensure source is not empty and trimmed
+            source: row.Source || '',
             ImageURL: row.ImageURL || '',
             answerOptions: answerOptions
         };

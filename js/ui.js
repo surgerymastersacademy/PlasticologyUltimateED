@@ -1,7 +1,4 @@
-// js/ui.js
-
-// This file handles UI-related logic, such as showing/hiding screens,
-// rendering dynamic content (lists, leaderboards), and managing modals.
+// js/ui.js (FINAL AND COMPLETE VERSION)
 
 import * as dom from './dom.js';
 import { appState } from './state.js';
@@ -9,8 +6,6 @@ import { applyRolePermissions } from './features/userProfile.js';
 
 /**
  * Hides all main screens and shows the specified one.
- * @param {HTMLElement} screenToShow - The container element to display.
- * @param {boolean} isGuest - Flag for guest mode UI adjustments.
  */
 export function showScreen(screenToShow, isGuest = false) {
     // Close all modals first
@@ -45,9 +40,6 @@ export function showScreen(screenToShow, isGuest = false) {
 
 /**
  * Displays a confirmation modal.
- * @param {string} title - The title of the modal.
- * @param {string} text - The descriptive text of the modal.
- * @param {Function} onConfirm - The action to perform on confirmation.
  */
 export function showConfirmationModal(title, text, onConfirm) {
     appState.modalConfirmAction = onConfirm;
@@ -59,11 +51,10 @@ export function showConfirmationModal(title, text, onConfirm) {
 
 /**
  * Displays the image viewer modal.
- * @param {string} src - The source URL of the image to display.
  */
 export function showImageModal(src) {
-    dom.imageViewerModal.classList.remove('hidden');
     dom.modalBackdrop.classList.remove('hidden');
+    dom.imageViewerModal.classList.remove('hidden');
     dom.modalImage.src = src;
 }
 
@@ -101,8 +92,6 @@ export function renderBooks() {
 
 /**
  * Renders the leaderboard with top 10 users and current user's rank.
- * @param {Array} top10 - The top 10 users.
- * @param {object} currentUserRank - The current user's rank data.
  */
 export function renderLeaderboard(top10, currentUserRank) {
     dom.leaderboardList.innerHTML = '';
@@ -185,19 +174,16 @@ export function updateWatermark() {
  */
 export function displayAnnouncement() {
     const banner = document.getElementById('announcement-banner');
-    if (appState.allAnnouncements.length === 0) {
+    if (!appState.allAnnouncements.length) {
         banner.classList.add('hidden');
         return;
     }
-
     const latestAnnouncement = appState.allAnnouncements[0];
     const seenAnnouncementId = localStorage.getItem('seenAnnouncementId');
-
     if (seenAnnouncementId === latestAnnouncement.UniqueID) {
         banner.classList.add('hidden');
         return;
     }
-
     banner.innerHTML = `
         <div class="mb-4 p-4 bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700 rounded-lg relative">
             <div class="flex">
@@ -211,7 +197,6 @@ export function displayAnnouncement() {
         </div>
     `;
     banner.classList.remove('hidden');
-
     document.getElementById('close-announcement-btn').addEventListener('click', () => {
         banner.classList.add('hidden');
         localStorage.setItem('seenAnnouncementId', latestAnnouncement.UniqueID);
@@ -242,44 +227,25 @@ export function showAnnouncementsModal() {
 }
 
 /**
- * Renders the chapter and source filters for the QBank mock exam.
+ * Populates a container with checkbox filter options. REQUIRED FOR CUSTOM MOCK.
+ * @param {HTMLElement} containerElement
+ * @param {Array<string>} items
+ * @param {string} inputNamePrefix
+ * @param {object} counts
  */
-export function renderQBankFilters() {
-    // Render Chapters
-    dom.chapterSelectMock.innerHTML = '';
-    appState.allChaptersNames.forEach(chapter => {
+export function populateFilterOptions(containerElement, items, inputNamePrefix, counts) {
+    containerElement.innerHTML = '';
+    if (!items || items.length === 0) {
+        containerElement.innerHTML = `<p class="text-slate-400 text-sm">No options available.</p>`;
+        return;
+    }
+
+    items.forEach(item => {
         const div = document.createElement('div');
         div.className = 'flex items-center';
-        div.innerHTML = `
-            <input type="checkbox" id="chapter-${chapter.replace(/\s/g, '-')}" value="${chapter}" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-            <label for="chapter-${chapter.replace(/\s/g, '-')}" class="ml-3 text-sm text-gray-700">${chapter}</label>
-        `;
-        dom.chapterSelectMock.appendChild(div);
+        const safeId = `${inputNamePrefix}-${item.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        const count = counts[item] || 0;
+        div.innerHTML = `<input id="${safeId}" name="${inputNamePrefix}" value="${item}" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"><label for="${safeId}" class="ml-3 text-sm text-gray-600">${item} ${count > 0 ? `(${count} Qs)` : ''}</label>`;
+        containerElement.appendChild(div);
     });
-
-    // Handle "Select All Chapters" checkbox
-    dom.selectAllChaptersMock.onchange = (e) => {
-        dom.chapterSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.checked = e.target.checked;
-        });
-    };
-
-    // Render Sources
-    dom.sourceSelectMock.innerHTML = '';
-    appState.allSourcesNames.forEach(source => {
-        const div = document.createElement('div');
-        div.className = 'flex items-center';
-        div.innerHTML = `
-            <input type="checkbox" id="source-${source.replace(/\s/g, '-')}" value="${source}" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-            <label for="source-${source.replace(/\s/g, '-')}" class="ml-3 text-sm text-gray-700">${source}</label>
-        `;
-        dom.sourceSelectMock.appendChild(div);
-    });
-
-    // Handle "Select All Sources" checkbox
-    dom.selectAllSourcesMock.onchange = (e) => {
-        dom.sourceSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.checked = e.target.checked;
-        });
-    };
 }
