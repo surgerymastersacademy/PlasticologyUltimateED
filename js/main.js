@@ -1,4 +1,4 @@
-// js/main.js (FINAL VERSION - ALL FEATURES & MULTI-PLANNER ENABLED)
+// js/main.js (Corrected for Filters & Learning Mode Browse)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -6,7 +6,6 @@ import * as ui from './ui.js';
 import * as utils from './utils.js';
 import { fetchContentData, fetchUserData } from './api.js';
 import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
-// MODIFIED IMPORT: Added functions for in-quiz buttons
 import {
     launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz,
     toggleBookmark, toggleFlag, showHint, showQuestionNavigator
@@ -14,7 +13,8 @@ import {
 import { renderLectures, saveUserProgress, fetchAndShowLastActivity } from './features/lectures.js';
 import { startOsceSlayer, startCustomOsce, endOsceQuiz, handleOsceNext, handleOscePrevious, showOsceNavigator } from './features/osce.js';
 import { showStudyPlannerScreen, handleCreatePlan } from './features/planner.js';
-import { showLearningModeBrowseScreen, handleLearningSearch, handleLearningNext, handleLearningPrevious } from './features/learningMode.js';
+// --- NEW ---
+import { showLearningModeBrowseScreen, handleLearningSearch, handleLearningNext, handleLearningPrevious, startLearningBrowse } from './features/learningMode.js';
 import { showActivityLog, renderFilteredLog } from './features/activityLog.js';
 import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.js';
 import { showLeaderboardScreen } from './features/leaderboard.js';
@@ -39,6 +39,36 @@ export function openNoteModal(type, itemId, itemTitle) {
     dom.noteModal.classList.remove('hidden');
 }
 
+// --- NEW FUNCTION TO POPULATE FILTERS ---
+function populateAllFilters() {
+    // For QBank (Exam Mode)
+    const allSources = [...new Set(appState.allQuestions.map(q => q.source || 'Uncategorized'))].sort();
+    const sourceCounts = appState.allQuestions.reduce((acc, q) => {
+        const source = q.source || 'Uncategorized';
+        acc[source] = (acc[source] || 0) + 1;
+        return acc;
+    }, {});
+    ui.populateFilterOptions(dom.sourceSelectMock, allSources, 'mock-source', sourceCounts);
+    updateChapterFilter(); // To initially populate chapters
+
+    // For OSCE
+    const osceChapters = [...new Set(appState.allOsceCases.map(c => c.Chapter || 'Uncategorized'))].sort();
+    const osceSources = [...new Set(appState.allOsceCases.map(c => c.Source || 'Uncategorized'))].sort();
+    const osceChapterCounts = appState.allOsceCases.reduce((acc, c) => {
+        const chapter = c.Chapter || 'Uncategorized';
+        acc[chapter] = (acc[chapter] || 0) + 1;
+        return acc;
+    }, {});
+    const osceSourceCounts = appState.allOsceCases.reduce((acc, c) => {
+        const source = c.Source || 'Uncategorized';
+        acc[source] = (acc[source] || 0) + 1;
+        return acc;
+    }, {});
+    ui.populateFilterOptions(dom.chapterSelectOsce, osceChapters, 'osce-chapter', osceChapterCounts);
+    ui.populateFilterOptions(dom.sourceSelectOsce, osceSources, 'osce-source', osceSourceCounts);
+}
+
+
 // MAIN APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -58,6 +88,9 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.allOsceQuestions = utils.parseOsceQuestions(data.osceQuestions);
             appState.allRoles = data.roles || [];
             appState.allChaptersNames = Object.keys(appState.groupedLectures);
+
+            // --- NEW --- Call the function to populate filters after data is loaded
+            populateAllFilters();
             
             dom.loginSubmitBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Your Companion is Here!';
             dom.freeTestBtn.disabled = false;
@@ -144,8 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.endQuizBtn.addEventListener('click', triggerEndQuiz);
     dom.nextSkipBtn.addEventListener('click', handleNextQuestion);
     dom.previousBtn.addEventListener('click', handlePreviousQuestion);
-
-    // --- NEW: Added Event Listeners for In-Quiz Controls ---
+    
     dom.bookmarkBtn.addEventListener('click', toggleBookmark);
     dom.flagBtn.addEventListener('click', toggleFlag);
     dom.hintBtn.addEventListener('click', showHint);
@@ -156,18 +188,21 @@ document.addEventListener('DOMContentLoaded', () => {
             openNoteModal('quiz', question.UniqueID, question.question);
         }
     });
-    // --- END of New Listeners ---
-
+    
     dom.startOsceSlayerBtn.addEventListener('click', startOsceSlayer);
     dom.startCustomOsceBtn.addEventListener('click', startCustomOsce);
     dom.endOsceQuizBtn.addEventListener('click', () => endOsceQuiz(false));
     dom.osceNextBtn.addEventListener('click', handleOsceNext);
     dom.oscePreviousBtn.addEventListener('click', handleOscePrevious);
     dom.osceNavigatorBtn.addEventListener('click', showOsceNavigator);
+    
     dom.endLearningBtn.addEventListener('click', showLearningModeBrowseScreen);
     dom.learningNextBtn.addEventListener('click', handleLearningNext);
     dom.learningPreviousBtn.addEventListener('click', handleLearningPrevious);
     dom.learningSearchBtn.addEventListener('click', handleLearningSearch);
+    // --- NEW: Event Listeners for Learning Mode Browse Buttons ---
+    dom.learningBrowseByChapterBtn.addEventListener('click', () => startLearningBrowse('chapter'));
+    dom.learningBrowseBySourceBtn.addEventListener('click', () => startLearningBrowse('source'));
 
     // Study Planner Event Listeners
     dom.showCreatePlanModalBtn.addEventListener('click', () => {
@@ -195,6 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.modalBackdrop.classList.add('hidden');
         if (appState.messengerPollInterval) clearInterval(appState.messengerPollInterval);
     });
+    dom.navigatorCloseBtn.addEventListener('click', () => { dom.questionNavigatorModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');});
     dom.osceNavigatorCloseBtn.addEventListener('click', () => { dom.osceNavigatorModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');});
 
     initializeApp();
