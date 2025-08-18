@@ -6,7 +6,7 @@ import * as ui from './ui.js';
 import * as utils from './utils.js';
 import { fetchContentData } from './api.js';
 import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
-import { launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest } from './features/quiz.js';
+import { launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz } from './features/quiz.js';
 import { renderLectures, saveUserProgress, fetchAndShowLastActivity } from './features/lectures.js';
 import { startOsceSlayer, startCustomOsce, endOsceQuiz, handleOsceNext, handleOscePrevious, showOsceNavigator } from './features/osce.js';
 import { showStudyPlannerScreen, handleGeneratePlan, handleAddCustomTask } from './features/planner.js';
@@ -15,6 +15,7 @@ import { showActivityLog, renderFilteredLog } from './features/activityLog.js';
 import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.js';
 import { showLeaderboardScreen } from './features/leaderboard.js';
 
+// SHARED & EXPORTED FUNCTIONS
 export function showMainMenuScreen() {
     ui.showScreen(dom.mainMenuContainer);
     appState.navigationHistory = [showMainMenuScreen];
@@ -34,6 +35,7 @@ export function openNoteModal(type, itemId, itemTitle) {
     dom.noteModal.classList.remove('hidden');
 }
 
+// MAIN APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', () => {
 
     async function initializeApp() {
@@ -44,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await fetchContentData();
         if (data && data.roles && data.questions) {
             appState.allQuestions = utils.parseQuestions(data.questions);
-            // --- ADDED LINE TO STORE FREE QUESTIONS ---
+            // --- MODIFICATION: STORE THE NEW FREE TEST QUESTIONS ---
             appState.allFreeTestQuestions = utils.parseQuestions(data.freeTestQuestions);
             
             appState.groupedLectures = utils.groupLecturesByChapter(data.lectures);
@@ -132,6 +134,8 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.selectAllChaptersMock.addEventListener('change', (e) => {
         dom.chapterSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
     });
+    dom.practiceMistakesBtn.addEventListener('click', startIncorrectQuestionsQuiz);
+    dom.practiceBookmarkedBtn.addEventListener('click', startBookmarkedQuestionsQuiz);
     dom.endQuizBtn.addEventListener('click', triggerEndQuiz);
     dom.nextSkipBtn.addEventListener('click', handleNextQuestion);
     dom.previousBtn.addEventListener('click', handlePreviousQuestion);
