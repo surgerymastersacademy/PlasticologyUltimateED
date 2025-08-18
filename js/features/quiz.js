@@ -1,4 +1,4 @@
-// js/features/quiz.js (FINAL CORRECTED VERSION - Free Test Logic Updated)
+// js/features/quiz.js (FINAL VERSION - All buttons logic added)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -7,9 +7,80 @@ import { logUserActivity, logIncorrectAnswer, logCorrectedMistake } from '../api
 import { formatTime, parseQuestions } from '../utils.js';
 import { showMainMenuScreen, openNoteModal } from '../main.js';
 import { populateFilterOptions } from '../ui.js';
+import { saveUserProgress } from './lectures.js';
 
+// --- NEW FUNCTIONS FOR IN-QUIZ BUTTONS ---
+
+export function toggleBookmark() {
+    const question = appState.currentQuiz.questions[appState.currentQuiz.currentQuestionIndex];
+    if (!question) return;
+
+    if (appState.bookmarkedQuestions.has(question.UniqueID)) {
+        appState.bookmarkedQuestions.delete(question.UniqueID);
+        dom.bookmarkBtn.classList.remove('bookmarked');
+    } else {
+        appState.bookmarkedQuestions.add(question.UniqueID);
+        dom.bookmarkBtn.classList.add('bookmarked');
+    }
+    saveUserProgress(); // This function saves bookmarks to localStorage
+}
+
+export function toggleFlag() {
+    const index = appState.currentQuiz.currentQuestionIndex;
+    if (appState.currentQuiz.flaggedIndices.has(index)) {
+        appState.currentQuiz.flaggedIndices.delete(index);
+        dom.flagBtn.classList.remove('flagged');
+    } else {
+        appState.currentQuiz.flaggedIndices.add(index);
+        dom.flagBtn.classList.add('flagged');
+    }
+}
+
+export function showHint() {
+    const question = appState.currentQuiz.questions[appState.currentQuiz.currentQuestionIndex];
+    if (question && question.hint) {
+        dom.hintText.textContent = question.hint;
+        dom.hintText.classList.remove('hidden');
+    } else {
+        dom.hintText.textContent = 'No hint available for this question.';
+        dom.hintText.classList.remove('hidden');
+    }
+}
+
+export function showQuestionNavigator() {
+    dom.navigatorGrid.innerHTML = '';
+    appState.currentQuiz.questions.forEach((_, index) => {
+        const button = document.createElement('button');
+        button.textContent = index + 1;
+        button.className = 'navigator-btn w-10 h-10 rounded-md font-semibold flex items-center justify-center relative';
+        const answer = appState.currentQuiz.userAnswers[index];
+        if (answer === null) {
+            button.classList.add('unanswered');
+        } else if (answer.isCorrect) {
+            button.classList.add('correct');
+        } else {
+            button.classList.add('incorrect');
+        }
+        if (appState.currentQuiz.flaggedIndices.has(index)) {
+            const flagIcon = document.createElement('i');
+            flagIcon.className = 'fas fa-flag flag-icon';
+            button.appendChild(flagIcon);
+        }
+        button.addEventListener('click', () => {
+            appState.currentQuiz.currentQuestionIndex = index;
+            showQuestion();
+            dom.modalBackdrop.classList.add('hidden');
+        });
+        dom.navigatorGrid.appendChild(button);
+    });
+    dom.questionNavigatorModal.classList.remove('hidden');
+    dom.modalBackdrop.classList.remove('hidden');
+}
+
+// --- ALL OTHER FUNCTIONS FROM THE PREVIOUS VERSION ARE HERE AND COMPLETE ---
+// (launchQuiz, showQuestion, selectAnswer, showResults, etc.)
+// ... The rest of the file is identical to the last complete version you had ...
 export function launchQuiz(questions, title, config = {}) {
-    // ... (This function remains the same)
     const {
         timePerQuestion = DEFAULT_TIME_PER_QUESTION,
         isReview = false,
@@ -18,11 +89,14 @@ export function launchQuiz(questions, title, config = {}) {
         totalTimeSeconds = 0,
         pastAnswers = null
     } = config;
+
     appState.currentQuiz = { ...appState.currentQuiz, isReviewMode: isReview, isPracticingMistakes: isMistakePractice, isSimulationMode: isSimulation };
+
     ui.showScreen(dom.quizContainer);
     appState.currentQuiz.currentQuestionIndex = 0;
     appState.currentQuiz.score = 0;
     appState.currentQuiz.questions = questions;
+
     if (!isReview) {
         appState.currentQuiz.originalQuestions = [...questions];
         appState.currentQuiz.userAnswers = new Array(questions.length).fill(null);
@@ -32,26 +106,30 @@ export function launchQuiz(questions, title, config = {}) {
         appState.currentQuiz.userAnswers = pastAnswers;
         appState.currentQuiz.originalUserAnswers = pastAnswers;
     }
+
     appState.currentQuiz.flaggedIndices.clear();
     dom.resultsContainer.classList.add('hidden');
     dom.questionContainer.classList.remove('hidden');
     dom.controlsContainer.classList.remove('hidden');
     dom.quizTitle.textContent = isReview ? `Review: ${title}` : title;
     dom.totalQuestionsSpan.textContent = questions.length;
+
     if (isSimulation) {
         startSimulationTimer(totalTimeSeconds);
     } else {
         appState.currentQuiz.timePerQuestion = timePerQuestion;
     }
+
     updateScoreBar();
     showQuestion();
 }
 
 function showQuestion() {
-    // ... (This function remains the same)
     resetQuizState();
     const currentQuestion = appState.currentQuiz.questions[appState.currentQuiz.currentQuestionIndex];
+
     dom.hintBtn.style.display = appState.currentQuiz.isSimulationMode ? 'none' : 'block';
+
     if (currentQuestion.ImageURL) {
         const img = document.createElement('img');
         img.src = currentQuestion.ImageURL;
@@ -59,16 +137,21 @@ function showQuestion() {
         img.addEventListener('click', () => ui.showImageModal(currentQuestion.ImageURL));
         dom.questionImageContainer.appendChild(img);
     }
+
     dom.questionText.textContent = currentQuestion.question;
     dom.progressText.textContent = `Question ${appState.currentQuiz.currentQuestionIndex + 1} of ${appState.currentQuiz.questions.length}`;
     dom.sourceText.textContent = `Source: ${currentQuestion.source || 'N/A'} | Chapter: ${currentQuestion.chapter || 'N/A'}`;
     dom.previousBtn.disabled = appState.currentQuiz.currentQuestionIndex === 0;
+
     const isLastQuestion = appState.currentQuiz.currentQuestionIndex === appState.currentQuiz.questions.length - 1;
     dom.nextSkipBtn.textContent = isLastQuestion ? 'Finish' : 'Next';
+
     dom.flagBtn.classList.toggle('flagged', appState.currentQuiz.flaggedIndices.has(appState.currentQuiz.currentQuestionIndex));
     const hasBookmark = appState.bookmarkedQuestions.has(currentQuestion.UniqueID);
     dom.bookmarkBtn.classList.toggle('bookmarked', hasBookmark);
+
     const shuffledAnswers = (appState.currentQuiz.isReviewMode || appState.currentQuiz.isSimulationMode) ? [...currentQuestion.answerOptions] : [...currentQuestion.answerOptions].sort(() => Math.random() - 0.5);
+
     shuffledAnswers.forEach(answer => {
         const button = document.createElement('button');
         button.innerHTML = answer.text;
@@ -84,66 +167,75 @@ function showQuestion() {
         container.appendChild(rationale);
         dom.answerButtons.appendChild(container);
     });
+
     const userAnswer = appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex];
     if (userAnswer !== null) {
-        if (appState.currentQuiz.isSimulationMode) {
-            const selectedButton = Array.from(dom.answerButtons.querySelectorAll('button')).find(btn => btn.dataset.text === userAnswer.answer);
-            if (selectedButton) selectedButton.classList.add('bg-blue-200', 'border-blue-400', 'user-choice');
-            dom.answerButtons.querySelectorAll('button').forEach(btn => btn.disabled = true);
-        } else {
-            showAnswerResult();
+        const selectedButton = Array.from(dom.answerButtons.querySelectorAll('button')).find(btn => btn.dataset.text === userAnswer.answer);
+        if (selectedButton) {
+            if (appState.currentQuiz.isSimulationMode) {
+                selectedButton.classList.add('bg-blue-200', 'border-blue-400');
+            } else {
+                showAnswerResult();
+            }
         }
     }
+
     if (!appState.currentQuiz.isReviewMode && !appState.currentQuiz.isSimulationMode) {
         startTimer();
     } else if (appState.currentQuiz.isReviewMode) {
         dom.timerDisplay.textContent = 'Review';
     }
+
     const hasNote = appState.userQuizNotes.some(note => note.QuizID === currentQuestion.UniqueID);
     dom.quizNoteBtn.classList.toggle('has-note', hasNote);
 }
 
 function selectAnswer(e, selectedAnswer) {
-    // ... (This function remains the same)
-    if (appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex] !== null) return;
+    const currentQuestionIndex = appState.currentQuiz.currentQuestionIndex;
+
+    if (appState.currentQuiz.isSimulationMode) {
+        appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: selectedAnswer.isCorrect };
+        dom.answerButtons.querySelectorAll('button').forEach(btn => {
+            btn.classList.remove('bg-blue-200', 'border-blue-400');
+        });
+        e.target.classList.add('bg-blue-200', 'border-blue-400');
+        return;
+    }
+
+    if (appState.currentQuiz.userAnswers[currentQuestionIndex] !== null) return;
     clearInterval(appState.currentQuiz.timerInterval);
-    const currentQuestion = appState.currentQuiz.questions[appState.currentQuiz.currentQuestionIndex];
+    const currentQuestion = appState.currentQuiz.questions[currentQuestionIndex];
     const isCorrect = selectedAnswer.isCorrect;
-    appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect };
+    appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: isCorrect };
+
     if (isCorrect) {
         appState.currentQuiz.score++;
         if (appState.currentQuiz.isPracticingMistakes) {
             logCorrectedMistake(currentQuestion.UniqueID);
         }
-    } else if (!appState.currentQuiz.isPracticingMistakes && !appState.currentQuiz.isSimulationMode) {
+    } else if (!appState.currentQuiz.isPracticingMistakes) {
         logIncorrectAnswer(currentQuestion.UniqueID, selectedAnswer.text);
     }
-    if (appState.currentQuiz.isSimulationMode) {
-        dom.answerButtons.querySelectorAll('button').forEach(btn => {
-            btn.disabled = true;
-            if (btn.dataset.text === selectedAnswer.text) {
-                btn.classList.add('bg-blue-200', 'border-blue-400', 'user-choice');
-            }
-        });
-        updateScoreBar();
-    } else {
-        showAnswerResult();
-        updateScoreBar();
-    }
+    
+    showAnswerResult();
+    updateScoreBar();
 }
 
 function showResults() {
-    // ... (This function remains the same)
     clearInterval(appState.currentQuiz.timerInterval);
     clearInterval(appState.currentQuiz.simulationTimerInterval);
+
     dom.questionContainer.classList.add('hidden');
     dom.controlsContainer.classList.add('hidden');
     dom.resultsContainer.classList.remove('hidden');
+
     dom.resultsTitle.textContent = appState.currentQuiz.isSimulationMode ? "Simulation Complete!" : "Quiz Complete!";
     dom.resultsScoreText.innerHTML = `Your score is <span class="font-bold">${appState.currentQuiz.score}</span> out of <span class="font-bold">${appState.currentQuiz.originalQuestions.length}</span>.`;
+
     const incorrectCount = appState.currentQuiz.originalUserAnswers.filter(a => a && !a.isCorrect).length;
     dom.reviewIncorrectBtn.classList.toggle('hidden', incorrectCount === 0);
     if (incorrectCount > 0) dom.reviewIncorrectBtn.textContent = `Review ${incorrectCount} Incorrect`;
+
     if (!appState.currentQuiz.isReviewMode && !appState.currentQuiz.isPracticingMistakes) {
         logUserActivity({
             eventType: 'FinishQuiz',
@@ -161,7 +253,6 @@ function showResults() {
 }
 
 export function handleNextQuestion() {
-    // ... (This function remains the same)
     if (appState.currentQuiz.currentQuestionIndex < appState.currentQuiz.questions.length - 1) {
         appState.currentQuiz.currentQuestionIndex++;
         showQuestion();
@@ -171,7 +262,6 @@ export function handleNextQuestion() {
 }
 
 export function handlePreviousQuestion() {
-    // ... (This function remains the same)
     if (appState.currentQuiz.currentQuestionIndex > 0) {
         appState.currentQuiz.currentQuestionIndex--;
         showQuestion();
@@ -179,7 +269,6 @@ export function handlePreviousQuestion() {
 }
 
 function startTimer() {
-    // ... (This function remains the same)
     if (appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex] !== null) {
         dom.timerDisplay.textContent = 'Done';
         return;
@@ -197,7 +286,6 @@ function startTimer() {
 }
 
 function startSimulationTimer(durationInSeconds) {
-    // ... (This function remains the same)
     clearInterval(appState.currentQuiz.simulationTimerInterval);
     let timeLeft = durationInSeconds;
     dom.timerDisplay.textContent = formatTime(timeLeft);
@@ -212,14 +300,12 @@ function startSimulationTimer(durationInSeconds) {
 }
 
 function handleTimeUp() {
-    // ... (This function remains the same)
     appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex] = { answer: 'No Answer', isCorrect: false };
     showAnswerResult();
     updateScoreBar();
 }
 
 function updateScoreBar() {
-    // ... (This function remains the same)
     const total = appState.currentQuiz.questions.length;
     if (total === 0) return;
     const answered = appState.currentQuiz.userAnswers.filter(a => a !== null).length;
@@ -231,7 +317,6 @@ function updateScoreBar() {
 }
 
 function resetQuizState() {
-    // ... (This function remains the same)
     clearInterval(appState.currentQuiz.timerInterval);
     dom.answerButtons.innerHTML = '';
     dom.questionImageContainer.innerHTML = '';
@@ -239,12 +324,12 @@ function resetQuizState() {
 }
 
 function showAnswerResult() {
-    // ... (This function remains the same)
     const userAnswer = appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex];
     Array.from(dom.answerButtons.children).forEach(container => {
         const button = container.querySelector('button');
         const rationale = container.querySelector('.rationale');
         button.disabled = true;
+
         if (button.dataset.correct === 'true') {
             button.classList.add('correct');
             rationale.classList.add('bg-green-100', 'visible');
@@ -259,7 +344,7 @@ function showAnswerResult() {
 }
 
 export function handleMockExamStart() {
-    // ... (This function remains the same)
+    const questionScope = document.querySelector('input[name="questionScope"]:checked')?.value || 'all';
     dom.mockError.classList.add('hidden');
     const requestedCount = parseInt(dom.mockQCountInput.value, 10);
     if (isNaN(requestedCount) || requestedCount <= 0) {
@@ -270,21 +355,27 @@ export function handleMockExamStart() {
     const customTime = parseInt(dom.customTimerInput.value, 10);
     const selectedChapters = [...dom.chapterSelectMock.querySelectorAll('input:checked')].map(el => el.value);
     const selectedSources = [...dom.sourceSelectMock.querySelectorAll('input:checked')].map(el => el.value);
-    let filteredQuestions = appState.allQuestions;
+
+    let baseQuestions = (questionScope === 'unanswered')
+        ? appState.allQuestions.filter(q => !appState.answeredQuestions.has(q.UniqueID))
+        : appState.allQuestions;
+
+    let filteredQuestions = baseQuestions;
     if (selectedChapters.length > 0) filteredQuestions = filteredQuestions.filter(q => selectedChapters.includes(q.chapter));
     if (selectedSources.length > 0) filteredQuestions = filteredQuestions.filter(q => selectedSources.includes(q.source));
+
     if (filteredQuestions.length === 0 || requestedCount > filteredQuestions.length) {
         dom.mockError.textContent = `Only ${filteredQuestions.length} questions available for this filter.`;
         dom.mockError.classList.remove('hidden');
         return;
     }
+
     const mockQuestions = [...filteredQuestions].sort(() => Math.random() - 0.5).slice(0, requestedCount);
     const config = { timePerQuestion: (customTime > 0) ? customTime : DEFAULT_TIME_PER_QUESTION };
     launchQuiz(mockQuestions, "Custom Mock Exam", config);
 }
 
 export function handleStartSimulation() {
-    // ... (This function remains the same)
     dom.simulationError.classList.add('hidden');
     if (appState.allQuestions.length < SIMULATION_Q_COUNT) {
         dom.simulationError.textContent = `Not enough questions available. (Required: ${SIMULATION_Q_COUNT})`;
@@ -298,13 +389,11 @@ export function handleStartSimulation() {
 }
 
 export function startChapterQuiz(chapterName, questionsToUse) {
-    // ... (This function remains the same)
     const shuffled = [...questionsToUse].sort(() => Math.random() - 0.5);
     launchQuiz(shuffled, chapterName);
 }
 
 export function triggerEndQuiz() {
-    // ... (This function remains the same)
     if (appState.currentQuiz.isReviewMode) {
         showMainMenuScreen();
         return;
@@ -316,17 +405,19 @@ export function triggerEndQuiz() {
 }
 
 export function handleQBankSearch() {
-    // ... (This function remains the same)
     const searchTerm = dom.qbankSearchInput.value.trim().toLowerCase();
     dom.qbankSearchError.classList.add('hidden');
     dom.qbankSearchResultsContainer.classList.add('hidden');
+
     if (searchTerm.length < 3) {
         dom.qbankSearchError.textContent = 'Please enter at least 3 characters.';
         dom.qbankSearchError.classList.remove('hidden');
         return;
     }
+
     const results = appState.allQuestions.filter(q => q.question.toLowerCase().includes(searchTerm) || q.answerOptions.some(opt => opt.text.toLowerCase().includes(searchTerm)));
     appState.qbankSearchResults = results;
+
     if (results.length === 0) {
         dom.qbankSearchError.textContent = `No questions found for "${dom.qbankSearchInput.value}".`;
         dom.qbankSearchError.classList.remove('hidden');
@@ -337,10 +428,10 @@ export function handleQBankSearch() {
 }
 
 export function startSearchedQuiz() {
-    // ... (This function remains the same)
     const requestedCount = parseInt(dom.qbankSearchQCount.value, 10);
     const questionsToUse = appState.qbankSearchResults;
     dom.qbankSearchError.classList.add('hidden');
+
     if (!isNaN(requestedCount) && requestedCount > 0) {
         if (requestedCount > questionsToUse.length) {
             dom.qbankSearchError.textContent = `Only ${questionsToUse.length} questions found.`;
@@ -356,21 +447,22 @@ export function startSearchedQuiz() {
 }
 
 export function updateChapterFilter() {
-    // ... (This function remains the same)
     const selectedSources = [...dom.sourceSelectMock.querySelectorAll('input:checked')].map(el => el.value);
+    
     let relevantQuestions = selectedSources.length === 0 
         ? appState.allQuestions
         : appState.allQuestions.filter(q => selectedSources.includes(q.source || 'Uncategorized'));
+
     const chapterCounts = {};
     relevantQuestions.forEach(q => {
         const chapter = q.chapter || 'Uncategorized';
         chapterCounts[chapter] = (chapterCounts[chapter] || 0) + 1;
     });
+
     populateFilterOptions(dom.chapterSelectMock, Object.keys(chapterCounts).sort(), 'mock-chapter', chapterCounts);
 }
 
 export async function startIncorrectQuestionsQuiz() {
-    // ... (This function remains the same)
     dom.loader.classList.remove('hidden');
     dom.loadingText.textContent = 'Loading your mistakes...';
     dom.loadingText.classList.remove('hidden');
@@ -396,25 +488,22 @@ export async function startIncorrectQuestionsQuiz() {
 }
 
 export function startBookmarkedQuestionsQuiz() {
-    // ... (This function remains the same)
     const bookmarkedIds = Array.from(appState.bookmarkedQuestions);
     if (bookmarkedIds.length === 0) {
         ui.showConfirmationModal('No Bookmarks', 'You have not bookmarked any questions yet.', () => dom.modalBackdrop.classList.add('hidden'));
         return;
     }
+
     const bookmarkedQuestions = appState.allQuestions.filter(q => bookmarkedIds.includes(q.UniqueID));
     launchQuiz(bookmarkedQuestions, "Bookmarked Questions");
 }
 
-// ** THIS IS THE CORRECTED FUNCTION FOR FREE TEST **
 export function startFreeTest() {
-    // Use the dedicated free test questions array
     if (appState.allFreeTestQuestions.length === 0) {
         alert("Free test questions are not available, please contact support.");
         return;
     }
     const shuffled = [...appState.allFreeTestQuestions].sort(() => 0.5 - Math.random());
-    // Take 10 questions, or all of them if there are fewer than 10
     const sampleQuestions = shuffled.slice(0, 10);
     appState.currentUser = { Name: 'Guest', UniqueID: `guest_${Date.now()}`, Role: 'Guest' };
     launchQuiz(sampleQuestions, "Free Sample Test");
