@@ -1,15 +1,16 @@
-// js/main.js (FINAL CORRECTED VERSION)
+// js/main.js (FINAL VERSION - ALL FEATURES & MULTI-PLANNER ENABLED)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
 import * as ui from './ui.js';
 import * as utils from './utils.js';
-import { fetchContentData } from './api.js';
+import { fetchContentData, fetchUserData } from './api.js';
 import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
 import { launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz } from './features/quiz.js';
 import { renderLectures, saveUserProgress, fetchAndShowLastActivity } from './features/lectures.js';
 import { startOsceSlayer, startCustomOsce, endOsceQuiz, handleOsceNext, handleOscePrevious, showOsceNavigator } from './features/osce.js';
-import { showStudyPlannerScreen, handleGeneratePlan, handleAddCustomTask } from './features/planner.js';
+// MODIFIED IMPORTS for the new planner functions
+import { showStudyPlannerScreen, handleCreatePlan } from './features/planner.js';
 import { showLearningModeBrowseScreen, handleLearningSearch, handleLearningNext, handleLearningPrevious } from './features/learningMode.js';
 import { showActivityLog, renderFilteredLog } from './features/activityLog.js';
 import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.js';
@@ -46,9 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await fetchContentData();
         if (data && data.roles && data.questions) {
             appState.allQuestions = utils.parseQuestions(data.questions);
-            // --- MODIFICATION: STORE THE NEW FREE TEST QUESTIONS ---
             appState.allFreeTestQuestions = utils.parseQuestions(data.freeTestQuestions);
-            
             appState.groupedLectures = utils.groupLecturesByChapter(data.lectures);
             appState.mcqBooks = data.books || [];
             appState.allAnnouncements = data.announcements || [];
@@ -73,6 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- EVENT LISTENERS ---
+    
     dom.loginForm.addEventListener('submit', handleLogin);
     dom.logoutBtn.addEventListener('click', handleLogout);
     dom.globalHomeBtn.addEventListener('click', () => {
@@ -95,6 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // Main Menu & Header
     dom.lecturesBtn.addEventListener('click', () => { if (checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); appState.navigationHistory.push(() => ui.showScreen(dom.lecturesContainer)); } });
     dom.qbankBtn.addEventListener('click', () => { if (checkPermission('MCQBank')) { ui.showScreen(dom.qbankContainer); appState.navigationHistory.push(() => ui.showScreen(dom.qbankContainer)); } });
     dom.learningModeBtn.addEventListener('click', () => { if (checkPermission('LerningMode')) showLearningModeBrowseScreen(); });
@@ -149,8 +151,23 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.learningNextBtn.addEventListener('click', handleLearningNext);
     dom.learningPreviousBtn.addEventListener('click', handleLearningPrevious);
     dom.learningSearchBtn.addEventListener('click', handleLearningSearch);
-    dom.studyPlannerGenerateBtn.addEventListener('click', handleGeneratePlan);
-    dom.studyPlanAddCustomTaskBtn.addEventListener('click', handleAddCustomTask);
+
+    // --- MODIFICATION: Updated Study Planner Event Listeners ---
+    dom.showCreatePlanModalBtn.addEventListener('click', () => {
+        dom.createPlanModal.classList.remove('hidden');
+        dom.modalBackdrop.classList.remove('hidden');
+    });
+    dom.cancelCreatePlanBtn.addEventListener('click', () => {
+        dom.createPlanModal.classList.add('hidden');
+        dom.modalBackdrop.classList.add('hidden');
+    });
+    dom.confirmCreatePlanBtn.addEventListener('click', handleCreatePlan);
+    dom.backToPlansDashboardBtn.addEventListener('click', () => {
+        dom.activePlanView.classList.add('hidden');
+        dom.plannerDashboard.classList.remove('hidden');
+    });
+
+    // Modals
     dom.modalCancelBtn.addEventListener('click', () => { dom.modalBackdrop.classList.add('hidden'); });
     dom.modalConfirmBtn.addEventListener('click', () => { if (appState.modalConfirmAction) { appState.modalConfirmAction(); dom.modalBackdrop.classList.add('hidden');} });
     dom.imageViewerCloseBtn.addEventListener('click', () => { dom.imageViewerModal.classList.add('hidden'); if(dom.userCardModal.classList.contains('hidden')) dom.modalBackdrop.classList.add('hidden');});
