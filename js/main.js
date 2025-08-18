@@ -2,6 +2,7 @@
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
+import { initializeDomElements } from './dom.js'; // Import the new initialization function
 import * as ui from './ui.js';
 import * as utils from './utils.js';
 import { fetchContentData, fetchUserData } from './api.js';
@@ -38,6 +39,9 @@ export function openNoteModal(type, itemId, itemTitle) {
 
 // MAIN APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', () => {
+
+    // Initialize DOM elements AFTER the DOM is fully loaded
+    initializeDomElements(); 
 
     async function initializeApp() {
         dom.loginSubmitBtn.disabled = true;
