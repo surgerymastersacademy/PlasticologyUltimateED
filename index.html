@@ -90,12 +90,12 @@
                         <div class="mb-4">
                             <label for="username" class="block text-slate-700 text-sm font-bold mb-2">Username</label>
             
-                 <input type="text" id="username" class="shadow appearance-none border rounded w-full py-2 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                 <input type="text" id="username" autocomplete="off" class="shadow appearance-none border rounded w-full py-2 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         </div>
                         <div class="mb-6">
                     
          <label for="password" class="block text-slate-700 text-sm font-bold mb-2">Password</label>
-                            <input type="password" id="password" class="shadow appearance-none border rounded w-full py-2 px-3 text-slate-700 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <input type="password" id="password" autocomplete="off" class="shadow appearance-none border rounded w-full py-2 px-3 text-slate-700 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         </div>
                   
        <p id="login-error" class="text-red-500 text-xs italic mb-4 hidden">Invalid username or password.</p>
@@ -299,34 +299,26 @@
      
                      <div id="custom-exam-options" class="custom-exam-options mt-4">
                              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                 <div>
-            
-                          <label for="chapter-select-mock" class="block text-sm font-medium text-slate-700 mb-2">Filter by Chapters (optional)</label>
-                                      <div class="flex items-center p-2 border-b">
-                        
-                 <input id="select-all-chapters-mock" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                 <fieldset>
+                                    <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Chapters (optional)</legend>
+                                    <div class="flex items-center p-2 border-b">
+                                        <input id="select-all-chapters-mock" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                                         <label for="select-all-chapters-mock" class="ml-3 font-bold text-gray-700">Select All</label>
-                               
-        </div>
-                                     <div id="chapter-select-mock" class="filter-container space-y-2">
-                                         <p class="text-slate-400">Loading chapters...</p>
-          
-                            </div>
-                                 </div>
-                                 <div>
-       
-                               <label for="source-select-mock" class="block text-sm font-medium text-slate-700 mb-2">Filter by Sources (optional)</label>
-                                     <div class="flex items-center p-2 border-b">
-                    
-                     <input id="select-all-sources-mock" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                    </div>
+                                    <div id="chapter-select-mock" class="filter-container space-y-2">
+                                        <p class="text-slate-400">Loading chapters...</p>
+                                    </div>
+                                </fieldset>
+                                <fieldset>
+                                    <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Sources (optional)</legend>
+                                    <div class="flex items-center p-2 border-b">
+                                        <input id="select-all-sources-mock" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                                         <label for="select-all-sources-mock" class="ml-3 font-bold text-gray-700">Select All</label>
-                           
-            </div>
-                                     <div id="source-select-mock" class="filter-container space-y-2">
-                                         <p class="text-slate-400">Loading sources...</p>
-      
-                                </div>
-                                 </div>
+                                    </div>
+                                    <div id="source-select-mock" class="filter-container space-y-2">
+                                        <p class="text-slate-400">Loading sources...</p>
+                                    </div>
+                                </fieldset>
                              </div>
        
                  </div>
@@ -394,23 +386,18 @@
  
                         <div id="custom-osce-options" class="custom-exam-options mt-4">
                              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                 <div>
-        
-                              <label for="chapter-select-osce" class="block text-sm font-medium text-slate-700 mb-2">Filter by Chapters (optional)</label>
-                                     <div id="chapter-select-osce" class="filter-container space-y-2">
-                      
-                    <p class="text-slate-400">Loading chapters...</p>
-                                     </div>
-                                 </div>
-         
-                         <div>
-                                     <label for="source-select-osce" class="block text-sm font-medium text-slate-700 mb-2">Filter by Sources (optional)</label>
-                              
-        <div id="source-select-osce" class="filter-container space-y-2">
-                                         <p class="text-slate-400">Loading sources...</p>
-                                     </div>
-          
-                        </div>
+                                <fieldset>
+                                    <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Chapters (optional)</legend>
+                                    <div id="chapter-select-osce" class="filter-container space-y-2">
+                                        <p class="text-slate-400">Loading chapters...</p>
+                                    </div>
+                                </fieldset>
+                                <fieldset>
+                                    <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Sources (optional)</legend>
+                                    <div id="source-select-osce" class="filter-container space-y-2">
+                                        <p class="text-slate-400">Loading sources...</p>
+                                    </div>
+                                </fieldset>
                              </div>
                         </div>
                         
