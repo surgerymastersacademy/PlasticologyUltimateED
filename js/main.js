@@ -6,10 +6,13 @@ import * as ui from './ui.js';
 import * as utils from './utils.js';
 import { fetchContentData, fetchUserData } from './api.js';
 import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
-import { launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz } from './features/quiz.js';
+// MODIFIED IMPORT: Added functions for in-quiz buttons
+import {
+    launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz,
+    toggleBookmark, toggleFlag, showHint, showQuestionNavigator
+} from './features/quiz.js';
 import { renderLectures, saveUserProgress, fetchAndShowLastActivity } from './features/lectures.js';
 import { startOsceSlayer, startCustomOsce, endOsceQuiz, handleOsceNext, handleOscePrevious, showOsceNavigator } from './features/osce.js';
-// MODIFIED IMPORTS for the new planner functions
 import { showStudyPlannerScreen, handleCreatePlan } from './features/planner.js';
 import { showLearningModeBrowseScreen, handleLearningSearch, handleLearningNext, handleLearningPrevious } from './features/learningMode.js';
 import { showActivityLog, renderFilteredLog } from './features/activityLog.js';
@@ -141,6 +144,20 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.endQuizBtn.addEventListener('click', triggerEndQuiz);
     dom.nextSkipBtn.addEventListener('click', handleNextQuestion);
     dom.previousBtn.addEventListener('click', handlePreviousQuestion);
+
+    // --- NEW: Added Event Listeners for In-Quiz Controls ---
+    dom.bookmarkBtn.addEventListener('click', toggleBookmark);
+    dom.flagBtn.addEventListener('click', toggleFlag);
+    dom.hintBtn.addEventListener('click', showHint);
+    dom.navigatorBtn.addEventListener('click', showQuestionNavigator);
+    dom.quizNoteBtn.addEventListener('click', () => {
+        const question = appState.currentQuiz.questions[appState.currentQuiz.currentQuestionIndex];
+        if (question) {
+            openNoteModal('quiz', question.UniqueID, question.question);
+        }
+    });
+    // --- END of New Listeners ---
+
     dom.startOsceSlayerBtn.addEventListener('click', startOsceSlayer);
     dom.startCustomOsceBtn.addEventListener('click', startCustomOsce);
     dom.endOsceQuizBtn.addEventListener('click', () => endOsceQuiz(false));
@@ -152,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.learningPreviousBtn.addEventListener('click', handleLearningPrevious);
     dom.learningSearchBtn.addEventListener('click', handleLearningSearch);
 
-    // --- MODIFICATION: Updated Study Planner Event Listeners ---
+    // Study Planner Event Listeners
     dom.showCreatePlanModalBtn.addEventListener('click', () => {
         dom.createPlanModal.classList.remove('hidden');
         dom.modalBackdrop.classList.remove('hidden');
