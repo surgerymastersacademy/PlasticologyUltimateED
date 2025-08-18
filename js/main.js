@@ -1,4 +1,4 @@
-// js/main.js (FINAL VERSION - ALL FEATURES ENABLED)
+// js/main.js (FINAL CORRECTED VERSION)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -6,18 +6,15 @@ import * as ui from './ui.js';
 import * as utils from './utils.js';
 import { fetchContentData } from './api.js';
 import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
-import { launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter } from './features/quiz.js';
+import { launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest } from './features/quiz.js';
 import { renderLectures, saveUserProgress, fetchAndShowLastActivity } from './features/lectures.js';
 import { startOsceSlayer, startCustomOsce, endOsceQuiz, handleOsceNext, handleOscePrevious, showOsceNavigator } from './features/osce.js';
 import { showStudyPlannerScreen, handleGeneratePlan, handleAddCustomTask } from './features/planner.js';
 import { showLearningModeBrowseScreen, handleLearningSearch, handleLearningNext, handleLearningPrevious } from './features/learningMode.js';
 import { showActivityLog, renderFilteredLog } from './features/activityLog.js';
 import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.js';
-// NEW IMPORT FOR LEADERBOARD
 import { showLeaderboardScreen } from './features/leaderboard.js';
 
-
-// SHARED & EXPORTED FUNCTIONS
 export function showMainMenuScreen() {
     ui.showScreen(dom.mainMenuContainer);
     appState.navigationHistory = [showMainMenuScreen];
@@ -37,7 +34,6 @@ export function openNoteModal(type, itemId, itemTitle) {
     dom.noteModal.classList.remove('hidden');
 }
 
-// MAIN APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', () => {
 
     async function initializeApp() {
@@ -48,6 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await fetchContentData();
         if (data && data.roles && data.questions) {
             appState.allQuestions = utils.parseQuestions(data.questions);
+            // --- ADDED LINE TO STORE FREE QUESTIONS ---
+            appState.allFreeTestQuestions = utils.parseQuestions(data.freeTestQuestions);
+            
             appState.groupedLectures = utils.groupLecturesByChapter(data.lectures);
             appState.mcqBooks = data.books || [];
             appState.allAnnouncements = data.announcements || [];
@@ -72,8 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- EVENT LISTENERS ---
-    
-    // Login & Navigation
     dom.loginForm.addEventListener('submit', handleLogin);
     dom.logoutBtn.addEventListener('click', handleLogout);
     dom.globalHomeBtn.addEventListener('click', () => {
@@ -84,8 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showMainMenuScreen();
         }
     });
-    
-    // Back Buttons
+    dom.freeTestBtn.addEventListener('click', startFreeTest);
     [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn].forEach(btn => {
         btn.addEventListener('click', () => {
             if (appState.navigationHistory.length > 1) {
@@ -97,8 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-
-    // Main Menu & Header
     dom.lecturesBtn.addEventListener('click', () => { if (checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); appState.navigationHistory.push(() => ui.showScreen(dom.lecturesContainer)); } });
     dom.qbankBtn.addEventListener('click', () => { if (checkPermission('MCQBank')) { ui.showScreen(dom.qbankContainer); appState.navigationHistory.push(() => ui.showScreen(dom.qbankContainer)); } });
     dom.learningModeBtn.addEventListener('click', () => { if (checkPermission('LerningMode')) showLearningModeBrowseScreen(); });
@@ -115,11 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.messengerBtn.addEventListener('click', showMessengerModal);
     dom.sendMessageBtn.addEventListener('click', handleSendMessageBtn);
     dom.lectureSearchInput.addEventListener('keyup', (e) => renderLectures(e.target.value));
-
-    // ACTIVATED LEADERBOARD BUTTON
     dom.leaderboardBtn.addEventListener('click', () => checkPermission('LeadersBoard') && showLeaderboardScreen());
-
-    // Notes & Activity Log
     dom.notesBtn.addEventListener('click', showNotesScreen);
     dom.activityLogBtn.addEventListener('click', showActivityLog);
     dom.logFilterAll.addEventListener('click', () => renderFilteredLog('all'));
@@ -129,8 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.notesFilterLectures.addEventListener('click', () => renderNotes('lectures'));
     dom.noteSaveBtn.addEventListener('click', handleSaveNote);
     dom.noteCancelBtn.addEventListener('click', () => { dom.noteModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
-
-    // QBank & Custom Mock
     dom.startMockBtn.addEventListener('click', handleMockExamStart);
     dom.startSimulationBtn.addEventListener('click', handleStartSimulation);
     dom.qbankSearchBtn.addEventListener('click', handleQBankSearch);
@@ -144,31 +132,21 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.selectAllChaptersMock.addEventListener('change', (e) => {
         dom.chapterSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
     });
-    
-    // Quiz Controls
     dom.endQuizBtn.addEventListener('click', triggerEndQuiz);
     dom.nextSkipBtn.addEventListener('click', handleNextQuestion);
     dom.previousBtn.addEventListener('click', handlePreviousQuestion);
-    
-    // OSCE
     dom.startOsceSlayerBtn.addEventListener('click', startOsceSlayer);
     dom.startCustomOsceBtn.addEventListener('click', startCustomOsce);
     dom.endOsceQuizBtn.addEventListener('click', () => endOsceQuiz(false));
     dom.osceNextBtn.addEventListener('click', handleOsceNext);
     dom.oscePreviousBtn.addEventListener('click', handleOscePrevious);
     dom.osceNavigatorBtn.addEventListener('click', showOsceNavigator);
-
-    // Learning Mode
     dom.endLearningBtn.addEventListener('click', showLearningModeBrowseScreen);
     dom.learningNextBtn.addEventListener('click', handleLearningNext);
     dom.learningPreviousBtn.addEventListener('click', handleLearningPrevious);
     dom.learningSearchBtn.addEventListener('click', handleLearningSearch);
-
-    // Study Planner
     dom.studyPlannerGenerateBtn.addEventListener('click', handleGeneratePlan);
     dom.studyPlanAddCustomTaskBtn.addEventListener('click', handleAddCustomTask);
-
-    // Modals
     dom.modalCancelBtn.addEventListener('click', () => { dom.modalBackdrop.classList.add('hidden'); });
     dom.modalConfirmBtn.addEventListener('click', () => { if (appState.modalConfirmAction) { appState.modalConfirmAction(); dom.modalBackdrop.classList.add('hidden');} });
     dom.imageViewerCloseBtn.addEventListener('click', () => { dom.imageViewerModal.classList.add('hidden'); if(dom.userCardModal.classList.contains('hidden')) dom.modalBackdrop.classList.add('hidden');});
@@ -181,6 +159,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     dom.osceNavigatorCloseBtn.addEventListener('click', () => { dom.osceNavigatorModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');});
 
-    // Init App
     initializeApp();
 });
