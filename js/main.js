@@ -1,184 +1,510 @@
-// js/main.js (FINAL VERSION - ALL FEATURES & MULTI-PLANNER ENABLED)
+// js/features/quiz.js (FINAL VERSION - All buttons logic added)
 
-import { appState } from './state.js';
-import * as dom from './dom.js';
-import * as ui from './ui.js';
-import * as utils from './utils.js';
-import { fetchContentData, fetchUserData } from './api.js';
-import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
-import { launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz } from './features/quiz.js';
-import { renderLectures, saveUserProgress, fetchAndShowLastActivity } from './features/lectures.js';
-import { startOsceSlayer, startCustomOsce, endOsceQuiz, handleOsceNext, handleOscePrevious, showOsceNavigator } from './features/osce.js';
-// MODIFIED IMPORTS for the new planner functions
-import { showStudyPlannerScreen, handleCreatePlan } from './features/planner.js';
-import { showLearningModeBrowseScreen, handleLearningSearch, handleLearningNext, handleLearningPrevious } from './features/learningMode.js';
-import { showActivityLog, renderFilteredLog } from './features/activityLog.js';
-import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.js';
-import { showLeaderboardScreen } from './features/leaderboard.js';
+import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
+import * as dom from '../dom.js';
+import * as ui from '../ui.js';
+import { logUserActivity, logIncorrectAnswer, logCorrectedMistake } from '../api.js';
+import { formatTime, parseQuestions } from '../utils.js';
+import { showMainMenuScreen, openNoteModal } from '../main.js';
+import { populateFilterOptions } from '../ui.js';
+import { saveUserProgress } from './lectures.js';
 
-// SHARED & EXPORTED FUNCTIONS
-export function showMainMenuScreen() {
-    ui.showScreen(dom.mainMenuContainer);
-    appState.navigationHistory = [showMainMenuScreen];
-    ui.displayAnnouncement();
-    fetchAndShowLastActivity();
+// --- NEW FUNCTIONS FOR IN-QUIZ BUTTONS ---
+
+export function toggleBookmark() {
+    const question = appState.currentQuiz.questions[appState.currentQuiz.currentQuestionIndex];
+    if (!question) return;
+
+    if (appState.bookmarkedQuestions.has(question.UniqueID)) {
+        appState.bookmarkedQuestions.delete(question.UniqueID);
+        dom.bookmarkBtn.classList.remove('bookmarked');
+    } else {
+        appState.bookmarkedQuestions.add(question.UniqueID);
+        dom.bookmarkBtn.classList.add('bookmarked');
+    }
+    saveUserProgress(); // This function saves bookmarks to localStorage
 }
 
-export function openNoteModal(type, itemId, itemTitle) {
-    appState.currentNote = { type, itemId, itemTitle };
-    let existingNote = type === 'quiz'
-        ? appState.userQuizNotes.find(n => n.QuizID === itemId)
-        : appState.userLectureNotes.find(n => n.LectureID === itemId);
-
-    dom.noteModalTitle.textContent = `Note on: ${itemTitle.substring(0, 40)}...`;
-    dom.noteTextarea.value = existingNote ? existingNote.NoteText : '';
-    dom.modalBackdrop.classList.remove('hidden');
-    dom.noteModal.classList.remove('hidden');
+export function toggleFlag() {
+    const index = appState.currentQuiz.currentQuestionIndex;
+    if (appState.currentQuiz.flaggedIndices.has(index)) {
+        appState.currentQuiz.flaggedIndices.delete(index);
+        dom.flagBtn.classList.remove('flagged');
+    } else {
+        appState.currentQuiz.flaggedIndices.add(index);
+        dom.flagBtn.classList.add('flagged');
+    }
 }
 
-// MAIN APP INITIALIZATION
-document.addEventListener('DOMContentLoaded', () => {
+export function showHint() {
+    const question = appState.currentQuiz.questions[appState.currentQuiz.currentQuestionIndex];
+    if (question && question.hint) {
+        dom.hintText.textContent = question.hint;
+        dom.hintText.classList.remove('hidden');
+    } else {
+        dom.hintText.textContent = 'No hint available for this question.';
+        dom.hintText.classList.remove('hidden');
+    }
+}
 
-    async function initializeApp() {
-        dom.loginSubmitBtn.disabled = true;
-        dom.loginSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Your Companion is on His way...';
-        dom.freeTestBtn.disabled = true;
-
-        const data = await fetchContentData();
-        if (data && data.roles && data.questions) {
-            appState.allQuestions = utils.parseQuestions(data.questions);
-            appState.allFreeTestQuestions = utils.parseQuestions(data.freeTestQuestions);
-            appState.groupedLectures = utils.groupLecturesByChapter(data.lectures);
-            appState.mcqBooks = data.books || [];
-            appState.allAnnouncements = data.announcements || [];
-            appState.allOsceCases = utils.parseOsceCases(data.osceCases);
-            appState.allOsceQuestions = utils.parseOsceQuestions(data.osceQuestions);
-            appState.allRoles = data.roles || [];
-            appState.allChaptersNames = Object.keys(appState.groupedLectures);
-            
-            dom.loginSubmitBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Your Companion is Here!';
-            dom.freeTestBtn.disabled = false;
-            
-            setTimeout(() => {
-                dom.loginSubmitBtn.disabled = false;
-                dom.loginSubmitBtn.textContent = 'Log In';
-            }, 1500);
-
+export function showQuestionNavigator() {
+    dom.navigatorGrid.innerHTML = '';
+    appState.currentQuiz.questions.forEach((_, index) => {
+        const button = document.createElement('button');
+        button.textContent = index + 1;
+        button.className = 'navigator-btn w-10 h-10 rounded-md font-semibold flex items-center justify-center relative';
+        const answer = appState.currentQuiz.userAnswers[index];
+        if (answer === null) {
+            button.classList.add('unanswered');
+        } else if (answer.isCorrect) {
+            button.classList.add('correct');
         } else {
-            dom.loginSubmitBtn.textContent = 'Error Loading Data';
-            dom.loginError.textContent = 'Failed to load app content. Please refresh.';
-            dom.loginError.classList.remove('hidden');
+            button.classList.add('incorrect');
+        }
+        if (appState.currentQuiz.flaggedIndices.has(index)) {
+            const flagIcon = document.createElement('i');
+            flagIcon.className = 'fas fa-flag flag-icon';
+            button.appendChild(flagIcon);
+        }
+        button.addEventListener('click', () => {
+            appState.currentQuiz.currentQuestionIndex = index;
+            showQuestion();
+            dom.modalBackdrop.classList.add('hidden');
+        });
+        dom.navigatorGrid.appendChild(button);
+    });
+    dom.questionNavigatorModal.classList.remove('hidden');
+    dom.modalBackdrop.classList.remove('hidden');
+}
+
+// --- ALL OTHER FUNCTIONS FROM THE PREVIOUS VERSION ARE HERE AND COMPLETE ---
+// (launchQuiz, showQuestion, selectAnswer, showResults, etc.)
+// ... The rest of the file is identical to the last complete version you had ...
+export function launchQuiz(questions, title, config = {}) {
+    const {
+        timePerQuestion = DEFAULT_TIME_PER_QUESTION,
+        isReview = false,
+        isMistakePractice = false,
+        isSimulation = false,
+        totalTimeSeconds = 0,
+        pastAnswers = null
+    } = config;
+
+    appState.currentQuiz = { ...appState.currentQuiz, isReviewMode: isReview, isPracticingMistakes: isMistakePractice, isSimulationMode: isSimulation };
+
+    ui.showScreen(dom.quizContainer);
+    appState.currentQuiz.currentQuestionIndex = 0;
+    appState.currentQuiz.score = 0;
+    appState.currentQuiz.questions = questions;
+
+    if (!isReview) {
+        appState.currentQuiz.originalQuestions = [...questions];
+        appState.currentQuiz.userAnswers = new Array(questions.length).fill(null);
+        appState.currentQuiz.originalUserAnswers = appState.currentQuiz.userAnswers;
+    } else {
+        appState.currentQuiz.originalQuestions = [...questions]; 
+        appState.currentQuiz.userAnswers = pastAnswers;
+        appState.currentQuiz.originalUserAnswers = pastAnswers;
+    }
+
+    appState.currentQuiz.flaggedIndices.clear();
+    dom.resultsContainer.classList.add('hidden');
+    dom.questionContainer.classList.remove('hidden');
+    dom.controlsContainer.classList.remove('hidden');
+    dom.quizTitle.textContent = isReview ? `Review: ${title}` : title;
+    dom.totalQuestionsSpan.textContent = questions.length;
+
+    if (isSimulation) {
+        startSimulationTimer(totalTimeSeconds);
+    } else {
+        appState.currentQuiz.timePerQuestion = timePerQuestion;
+    }
+
+    updateScoreBar();
+    showQuestion();
+}
+
+function showQuestion() {
+    resetQuizState();
+    const currentQuestion = appState.currentQuiz.questions[appState.currentQuiz.currentQuestionIndex];
+
+    dom.hintBtn.style.display = appState.currentQuiz.isSimulationMode ? 'none' : 'block';
+
+    if (currentQuestion.ImageURL) {
+        const img = document.createElement('img');
+        img.src = currentQuestion.ImageURL;
+        img.className = 'max-h-48 rounded-lg mx-auto mb-4 cursor-pointer';
+        img.addEventListener('click', () => ui.showImageModal(currentQuestion.ImageURL));
+        dom.questionImageContainer.appendChild(img);
+    }
+
+    dom.questionText.textContent = currentQuestion.question;
+    dom.progressText.textContent = `Question ${appState.currentQuiz.currentQuestionIndex + 1} of ${appState.currentQuiz.questions.length}`;
+    dom.sourceText.textContent = `Source: ${currentQuestion.source || 'N/A'} | Chapter: ${currentQuestion.chapter || 'N/A'}`;
+    dom.previousBtn.disabled = appState.currentQuiz.currentQuestionIndex === 0;
+
+    const isLastQuestion = appState.currentQuiz.currentQuestionIndex === appState.currentQuiz.questions.length - 1;
+    dom.nextSkipBtn.textContent = isLastQuestion ? 'Finish' : 'Next';
+
+    dom.flagBtn.classList.toggle('flagged', appState.currentQuiz.flaggedIndices.has(appState.currentQuiz.currentQuestionIndex));
+    const hasBookmark = appState.bookmarkedQuestions.has(currentQuestion.UniqueID);
+    dom.bookmarkBtn.classList.toggle('bookmarked', hasBookmark);
+
+    const shuffledAnswers = (appState.currentQuiz.isReviewMode || appState.currentQuiz.isSimulationMode) ? [...currentQuestion.answerOptions] : [...currentQuestion.answerOptions].sort(() => Math.random() - 0.5);
+
+    shuffledAnswers.forEach(answer => {
+        const button = document.createElement('button');
+        button.innerHTML = answer.text;
+        button.className = 'answer-btn w-full text-left p-4 rounded-lg bg-slate-100 hover:bg-slate-200 border-2 border-transparent';
+        button.dataset.correct = answer.isCorrect;
+        button.dataset.text = answer.text;
+        button.addEventListener('click', (e) => selectAnswer(e, answer));
+        const rationale = document.createElement('p');
+        rationale.className = 'rationale text-sm mt-2 p-2 rounded-md';
+        rationale.textContent = answer.rationale;
+        const container = document.createElement('div');
+        container.appendChild(button);
+        container.appendChild(rationale);
+        dom.answerButtons.appendChild(container);
+    });
+
+    const userAnswer = appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex];
+    if (userAnswer !== null) {
+        const selectedButton = Array.from(dom.answerButtons.querySelectorAll('button')).find(btn => btn.dataset.text === userAnswer.answer);
+        if (selectedButton) {
+            if (appState.currentQuiz.isSimulationMode) {
+                selectedButton.classList.add('bg-blue-200', 'border-blue-400');
+            } else {
+                showAnswerResult();
+            }
         }
     }
 
-    // --- EVENT LISTENERS ---
+    if (!appState.currentQuiz.isReviewMode && !appState.currentQuiz.isSimulationMode) {
+        startTimer();
+    } else if (appState.currentQuiz.isReviewMode) {
+        dom.timerDisplay.textContent = 'Review';
+    }
+
+    const hasNote = appState.userQuizNotes.some(note => note.QuizID === currentQuestion.UniqueID);
+    dom.quizNoteBtn.classList.toggle('has-note', hasNote);
+}
+
+function selectAnswer(e, selectedAnswer) {
+    const currentQuestionIndex = appState.currentQuiz.currentQuestionIndex;
+
+    if (appState.currentQuiz.isSimulationMode) {
+        appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: selectedAnswer.isCorrect };
+        dom.answerButtons.querySelectorAll('button').forEach(btn => {
+            btn.classList.remove('bg-blue-200', 'border-blue-400');
+        });
+        e.target.classList.add('bg-blue-200', 'border-blue-400');
+        return;
+    }
+
+    if (appState.currentQuiz.userAnswers[currentQuestionIndex] !== null) return;
+    clearInterval(appState.currentQuiz.timerInterval);
+    const currentQuestion = appState.currentQuiz.questions[currentQuestionIndex];
+    const isCorrect = selectedAnswer.isCorrect;
+    appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: isCorrect };
+
+    if (isCorrect) {
+        appState.currentQuiz.score++;
+        if (appState.currentQuiz.isPracticingMistakes) {
+            logCorrectedMistake(currentQuestion.UniqueID);
+        }
+    } else if (!appState.currentQuiz.isPracticingMistakes) {
+        logIncorrectAnswer(currentQuestion.UniqueID, selectedAnswer.text);
+    }
     
-    dom.loginForm.addEventListener('submit', handleLogin);
-    dom.logoutBtn.addEventListener('click', handleLogout);
-    dom.globalHomeBtn.addEventListener('click', () => {
-        if (appState.currentUser?.Role === 'Guest') {
-            ui.showScreen(dom.loginContainer);
-            appState.currentUser = null;
+    showAnswerResult();
+    updateScoreBar();
+}
+
+function showResults() {
+    clearInterval(appState.currentQuiz.timerInterval);
+    clearInterval(appState.currentQuiz.simulationTimerInterval);
+
+    dom.questionContainer.classList.add('hidden');
+    dom.controlsContainer.classList.add('hidden');
+    dom.resultsContainer.classList.remove('hidden');
+
+    dom.resultsTitle.textContent = appState.currentQuiz.isSimulationMode ? "Simulation Complete!" : "Quiz Complete!";
+    dom.resultsScoreText.innerHTML = `Your score is <span class="font-bold">${appState.currentQuiz.score}</span> out of <span class="font-bold">${appState.currentQuiz.originalQuestions.length}</span>.`;
+
+    const incorrectCount = appState.currentQuiz.originalUserAnswers.filter(a => a && !a.isCorrect).length;
+    dom.reviewIncorrectBtn.classList.toggle('hidden', incorrectCount === 0);
+    if (incorrectCount > 0) dom.reviewIncorrectBtn.textContent = `Review ${incorrectCount} Incorrect`;
+
+    if (!appState.currentQuiz.isReviewMode && !appState.currentQuiz.isPracticingMistakes) {
+        logUserActivity({
+            eventType: 'FinishQuiz',
+            quizTitle: dom.quizTitle.textContent,
+            score: appState.currentQuiz.score,
+            totalQuestions: appState.currentQuiz.originalQuestions.length
+        });
+        if (appState.currentQuiz.isSimulationMode) {
+            appState.currentQuiz.originalQuestions.forEach((q, index) => {
+                const answer = appState.currentQuiz.originalUserAnswers[index];
+                if (answer && !answer.isCorrect) logIncorrectAnswer(q.UniqueID, answer.answer);
+            });
+        }
+    }
+}
+
+export function handleNextQuestion() {
+    if (appState.currentQuiz.currentQuestionIndex < appState.currentQuiz.questions.length - 1) {
+        appState.currentQuiz.currentQuestionIndex++;
+        showQuestion();
+    } else {
+        showResults();
+    }
+}
+
+export function handlePreviousQuestion() {
+    if (appState.currentQuiz.currentQuestionIndex > 0) {
+        appState.currentQuiz.currentQuestionIndex--;
+        showQuestion();
+    }
+}
+
+function startTimer() {
+    if (appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex] !== null) {
+        dom.timerDisplay.textContent = 'Done';
+        return;
+    }
+    let timeLeft = appState.currentQuiz.timePerQuestion;
+    dom.timerDisplay.textContent = formatTime(timeLeft);
+    appState.currentQuiz.timerInterval = setInterval(() => {
+        timeLeft--;
+        dom.timerDisplay.textContent = formatTime(timeLeft);
+        if (timeLeft <= 0) {
+            clearInterval(appState.currentQuiz.timerInterval);
+            handleTimeUp();
+        }
+    }, 1000);
+}
+
+function startSimulationTimer(durationInSeconds) {
+    clearInterval(appState.currentQuiz.simulationTimerInterval);
+    let timeLeft = durationInSeconds;
+    dom.timerDisplay.textContent = formatTime(timeLeft);
+    appState.currentQuiz.simulationTimerInterval = setInterval(() => {
+        timeLeft--;
+        dom.timerDisplay.textContent = formatTime(timeLeft);
+        if (timeLeft <= 0) {
+            clearInterval(appState.currentQuiz.simulationTimerInterval);
+            showResults();
+        }
+    }, 1000);
+}
+
+function handleTimeUp() {
+    appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex] = { answer: 'No Answer', isCorrect: false };
+    showAnswerResult();
+    updateScoreBar();
+}
+
+function updateScoreBar() {
+    const total = appState.currentQuiz.questions.length;
+    if (total === 0) return;
+    const answered = appState.currentQuiz.userAnswers.filter(a => a !== null).length;
+    const correct = appState.currentQuiz.userAnswers.filter(a => a && a.isCorrect).length;
+    const incorrect = answered - correct;
+    dom.scoreProgressText.textContent = `Score: ${correct} / ${answered}`;
+    dom.scoreBarCorrect.style.width = `${(correct / total) * 100}%`;
+    dom.scoreBarIncorrect.style.width = `${(incorrect / total) * 100}%`;
+}
+
+function resetQuizState() {
+    clearInterval(appState.currentQuiz.timerInterval);
+    dom.answerButtons.innerHTML = '';
+    dom.questionImageContainer.innerHTML = '';
+    dom.hintText.classList.add('hidden');
+}
+
+function showAnswerResult() {
+    const userAnswer = appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex];
+    Array.from(dom.answerButtons.children).forEach(container => {
+        const button = container.querySelector('button');
+        const rationale = container.querySelector('.rationale');
+        button.disabled = true;
+
+        if (button.dataset.correct === 'true') {
+            button.classList.add('correct');
+            rationale.classList.add('bg-green-100', 'visible');
         } else {
-            showMainMenuScreen();
+            if (userAnswer && button.dataset.text === userAnswer.answer) {
+                button.classList.add('incorrect', 'user-choice');
+            }
+            rationale.classList.add('bg-red-100', 'visible');
         }
     });
-    dom.freeTestBtn.addEventListener('click', startFreeTest);
-    [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn].forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (appState.navigationHistory.length > 1) {
-                appState.navigationHistory.pop();
-                const previousScreen = appState.navigationHistory[appState.navigationHistory.length - 1];
-                if (typeof previousScreen === 'function') previousScreen();
-            } else {
-                showMainMenuScreen();
-            }
-        });
-    });
+    dom.hintBtn.classList.add('hidden');
+}
 
-    // Main Menu & Header
-    dom.lecturesBtn.addEventListener('click', () => { if (checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); appState.navigationHistory.push(() => ui.showScreen(dom.lecturesContainer)); } });
-    dom.qbankBtn.addEventListener('click', () => { if (checkPermission('MCQBank')) { ui.showScreen(dom.qbankContainer); appState.navigationHistory.push(() => ui.showScreen(dom.qbankContainer)); } });
-    dom.learningModeBtn.addEventListener('click', () => { if (checkPermission('LerningMode')) showLearningModeBrowseScreen(); });
-    dom.osceBtn.addEventListener('click', () => { if (checkPermission('OSCEBank')) { ui.showScreen(dom.osceContainer); appState.navigationHistory.push(() => ui.showScreen(dom.osceContainer)); } });
-    dom.libraryBtn.addEventListener('click', () => { if (checkPermission('Library')) { ui.renderBooks(); ui.showScreen(dom.libraryContainer); appState.navigationHistory.push(() => ui.showScreen(dom.libraryContainer)); } });
-    dom.studyPlannerBtn.addEventListener('click', () => { if (checkPermission('StudyPlanner')) showStudyPlannerScreen(); });
-    dom.userProfileHeaderBtn.addEventListener('click', () => showUserCardModal(false));
-    dom.editProfileBtn.addEventListener('click', () => toggleProfileEditMode(true));
-    dom.cancelEditProfileBtn.addEventListener('click', () => toggleProfileEditMode(false));
-    dom.saveProfileBtn.addEventListener('click', handleSaveProfile);
-    dom.radioBtn.addEventListener('click', () => dom.radioBannerContainer.classList.toggle('open'));
-    dom.radioCloseBtn.addEventListener('click', () => dom.radioBannerContainer.classList.remove('open'));
-    dom.announcementsBtn.addEventListener('click', ui.showAnnouncementsModal);
-    dom.messengerBtn.addEventListener('click', showMessengerModal);
-    dom.sendMessageBtn.addEventListener('click', handleSendMessageBtn);
-    dom.lectureSearchInput.addEventListener('keyup', (e) => renderLectures(e.target.value));
-    dom.leaderboardBtn.addEventListener('click', () => checkPermission('LeadersBoard') && showLeaderboardScreen());
-    dom.notesBtn.addEventListener('click', showNotesScreen);
-    dom.activityLogBtn.addEventListener('click', showActivityLog);
-    dom.logFilterAll.addEventListener('click', () => renderFilteredLog('all'));
-    dom.logFilterQuizzes.addEventListener('click', () => renderFilteredLog('quizzes'));
-    dom.logFilterLectures.addEventListener('click', () => renderFilteredLog('lectures'));
-    dom.notesFilterQuizzes.addEventListener('click', () => renderNotes('quizzes'));
-    dom.notesFilterLectures.addEventListener('click', () => renderNotes('lectures'));
-    dom.noteSaveBtn.addEventListener('click', handleSaveNote);
-    dom.noteCancelBtn.addEventListener('click', () => { dom.noteModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
-    dom.startMockBtn.addEventListener('click', handleMockExamStart);
-    dom.startSimulationBtn.addEventListener('click', handleStartSimulation);
-    dom.qbankSearchBtn.addEventListener('click', handleQBankSearch);
-    dom.qbankStartSearchQuizBtn.addEventListener('click', startSearchedQuiz);
-    dom.toggleCustomOptionsBtn.addEventListener('click', () => dom.customExamOptions.classList.toggle('visible'));
-    dom.sourceSelectMock.addEventListener('change', updateChapterFilter);
-    dom.selectAllSourcesMock.addEventListener('change', (e) => {
-        dom.sourceSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
-        updateChapterFilter();
-    });
-    dom.selectAllChaptersMock.addEventListener('change', (e) => {
-        dom.chapterSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
-    });
-    dom.practiceMistakesBtn.addEventListener('click', startIncorrectQuestionsQuiz);
-    dom.practiceBookmarkedBtn.addEventListener('click', startBookmarkedQuestionsQuiz);
-    dom.endQuizBtn.addEventListener('click', triggerEndQuiz);
-    dom.nextSkipBtn.addEventListener('click', handleNextQuestion);
-    dom.previousBtn.addEventListener('click', handlePreviousQuestion);
-    dom.startOsceSlayerBtn.addEventListener('click', startOsceSlayer);
-    dom.startCustomOsceBtn.addEventListener('click', startCustomOsce);
-    dom.endOsceQuizBtn.addEventListener('click', () => endOsceQuiz(false));
-    dom.osceNextBtn.addEventListener('click', handleOsceNext);
-    dom.oscePreviousBtn.addEventListener('click', handleOscePrevious);
-    dom.osceNavigatorBtn.addEventListener('click', showOsceNavigator);
-    dom.endLearningBtn.addEventListener('click', showLearningModeBrowseScreen);
-    dom.learningNextBtn.addEventListener('click', handleLearningNext);
-    dom.learningPreviousBtn.addEventListener('click', handleLearningPrevious);
-    dom.learningSearchBtn.addEventListener('click', handleLearningSearch);
+export function handleMockExamStart() {
+    const questionScope = document.querySelector('input[name="questionScope"]:checked')?.value || 'all';
+    dom.mockError.classList.add('hidden');
+    const requestedCount = parseInt(dom.mockQCountInput.value, 10);
+    if (isNaN(requestedCount) || requestedCount <= 0) {
+        dom.mockError.textContent = "Please enter a valid number of questions.";
+        dom.mockError.classList.remove('hidden');
+        return;
+    }
+    const customTime = parseInt(dom.customTimerInput.value, 10);
+    const selectedChapters = [...dom.chapterSelectMock.querySelectorAll('input:checked')].map(el => el.value);
+    const selectedSources = [...dom.sourceSelectMock.querySelectorAll('input:checked')].map(el => el.value);
 
-    // --- MODIFICATION: Updated Study Planner Event Listeners ---
-    dom.showCreatePlanModalBtn.addEventListener('click', () => {
-        dom.createPlanModal.classList.remove('hidden');
-        dom.modalBackdrop.classList.remove('hidden');
-    });
-    dom.cancelCreatePlanBtn.addEventListener('click', () => {
-        dom.createPlanModal.classList.add('hidden');
+    let baseQuestions = (questionScope === 'unanswered')
+        ? appState.allQuestions.filter(q => !appState.answeredQuestions.has(q.UniqueID))
+        : appState.allQuestions;
+
+    let filteredQuestions = baseQuestions;
+    if (selectedChapters.length > 0) filteredQuestions = filteredQuestions.filter(q => selectedChapters.includes(q.chapter));
+    if (selectedSources.length > 0) filteredQuestions = filteredQuestions.filter(q => selectedSources.includes(q.source));
+
+    if (filteredQuestions.length === 0 || requestedCount > filteredQuestions.length) {
+        dom.mockError.textContent = `Only ${filteredQuestions.length} questions available for this filter.`;
+        dom.mockError.classList.remove('hidden');
+        return;
+    }
+
+    const mockQuestions = [...filteredQuestions].sort(() => Math.random() - 0.5).slice(0, requestedCount);
+    const config = { timePerQuestion: (customTime > 0) ? customTime : DEFAULT_TIME_PER_QUESTION };
+    launchQuiz(mockQuestions, "Custom Mock Exam", config);
+}
+
+export function handleStartSimulation() {
+    dom.simulationError.classList.add('hidden');
+    if (appState.allQuestions.length < SIMULATION_Q_COUNT) {
+        dom.simulationError.textContent = `Not enough questions available. (Required: ${SIMULATION_Q_COUNT})`;
+        dom.simulationError.classList.remove('hidden');
+        return;
+    }
+    const simulationQuestions = [...appState.allQuestions].sort(() => Math.random() - 0.5).slice(0, SIMULATION_Q_COUNT);
+    const totalTimeSeconds = SIMULATION_TOTAL_TIME_MINUTES * 60;
+    const config = { isSimulation: true, totalTimeSeconds };
+    launchQuiz(simulationQuestions, "Exam Simulation", config);
+}
+
+export function startChapterQuiz(chapterName, questionsToUse) {
+    const shuffled = [...questionsToUse].sort(() => Math.random() - 0.5);
+    launchQuiz(shuffled, chapterName);
+}
+
+export function triggerEndQuiz() {
+    if (appState.currentQuiz.isReviewMode) {
+        showMainMenuScreen();
+        return;
+    }
+    ui.showConfirmationModal('End Quiz?', 'Are you sure you want to end this quiz?', () => {
         dom.modalBackdrop.classList.add('hidden');
+        showResults();
     });
-    dom.confirmCreatePlanBtn.addEventListener('click', handleCreatePlan);
-    dom.backToPlansDashboardBtn.addEventListener('click', () => {
-        dom.activePlanView.classList.add('hidden');
-        dom.plannerDashboard.classList.remove('hidden');
+}
+
+export function handleQBankSearch() {
+    const searchTerm = dom.qbankSearchInput.value.trim().toLowerCase();
+    dom.qbankSearchError.classList.add('hidden');
+    dom.qbankSearchResultsContainer.classList.add('hidden');
+
+    if (searchTerm.length < 3) {
+        dom.qbankSearchError.textContent = 'Please enter at least 3 characters.';
+        dom.qbankSearchError.classList.remove('hidden');
+        return;
+    }
+
+    const results = appState.allQuestions.filter(q => q.question.toLowerCase().includes(searchTerm) || q.answerOptions.some(opt => opt.text.toLowerCase().includes(searchTerm)));
+    appState.qbankSearchResults = results;
+
+    if (results.length === 0) {
+        dom.qbankSearchError.textContent = `No questions found for "${dom.qbankSearchInput.value}".`;
+        dom.qbankSearchError.classList.remove('hidden');
+    } else {
+        dom.qbankSearchResultsInfo.textContent = `Found ${results.length} questions.`;
+        dom.qbankSearchResultsContainer.classList.remove('hidden');
+    }
+}
+
+export function startSearchedQuiz() {
+    const requestedCount = parseInt(dom.qbankSearchQCount.value, 10);
+    const questionsToUse = appState.qbankSearchResults;
+    dom.qbankSearchError.classList.add('hidden');
+
+    if (!isNaN(requestedCount) && requestedCount > 0) {
+        if (requestedCount > questionsToUse.length) {
+            dom.qbankSearchError.textContent = `Only ${questionsToUse.length} questions found.`;
+            dom.qbankSearchError.classList.remove('hidden');
+            return;
+        }
+        const quizQuestions = [...questionsToUse].sort(() => Math.random() - 0.5).slice(0, requestedCount);
+        launchQuiz(quizQuestions, `Quiz for "${dom.qbankSearchInput.value}"`);
+    } else {
+        const shuffled = [...questionsToUse].sort(() => Math.random() - 0.5);
+        launchQuiz(shuffled, `Quiz for "${dom.qbankSearchInput.value}"`);
+    }
+}
+
+export function updateChapterFilter() {
+    const selectedSources = [...dom.sourceSelectMock.querySelectorAll('input:checked')].map(el => el.value);
+    
+    let relevantQuestions = selectedSources.length === 0 
+        ? appState.allQuestions
+        : appState.allQuestions.filter(q => selectedSources.includes(q.source || 'Uncategorized'));
+
+    const chapterCounts = {};
+    relevantQuestions.forEach(q => {
+        const chapter = q.chapter || 'Uncategorized';
+        chapterCounts[chapter] = (chapterCounts[chapter] || 0) + 1;
     });
 
-    // Modals
-    dom.modalCancelBtn.addEventListener('click', () => { dom.modalBackdrop.classList.add('hidden'); });
-    dom.modalConfirmBtn.addEventListener('click', () => { if (appState.modalConfirmAction) { appState.modalConfirmAction(); dom.modalBackdrop.classList.add('hidden');} });
-    dom.imageViewerCloseBtn.addEventListener('click', () => { dom.imageViewerModal.classList.add('hidden'); if(dom.userCardModal.classList.contains('hidden')) dom.modalBackdrop.classList.add('hidden');});
-    dom.announcementsCloseBtn.addEventListener('click', () => { dom.announcementsModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
-    dom.userCardCloseBtn.addEventListener('click', () => { dom.userCardModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
-    dom.messengerCloseBtn.addEventListener('click', () => {
-        dom.messengerModal.classList.add('hidden');
-        dom.modalBackdrop.classList.add('hidden');
-        if (appState.messengerPollInterval) clearInterval(appState.messengerPollInterval);
-    });
-    dom.osceNavigatorCloseBtn.addEventListener('click', () => { dom.osceNavigatorModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');});
+    populateFilterOptions(dom.chapterSelectMock, Object.keys(chapterCounts).sort(), 'mock-chapter', chapterCounts);
+}
 
-    initializeApp();
-});
+export async function startIncorrectQuestionsQuiz() {
+    dom.loader.classList.remove('hidden');
+    dom.loadingText.textContent = 'Loading your mistakes...';
+    dom.loadingText.classList.remove('hidden');
+    try {
+        const response = await fetch(`${API_URL}?request=getIncorrectQuestions&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
+        if (!response.ok) throw new Error('Failed to fetch your mistakes.');
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        if (data.questions.length === 0) {
+            ui.showConfirmationModal('All Clear!', 'You have no incorrect questions to practice. Well done!', () => dom.modalBackdrop.classList.add('hidden'));
+            return;
+        }
+        const mistakeQuestions = parseQuestions(data.questions);
+        launchQuiz(mistakeQuestions, "Practice Mistakes", { isMistakePractice: true });
+    } catch (error) {
+        dom.mockError.textContent = error.message;
+        dom.mockError.classList.remove('hidden');
+    } finally {
+        dom.loader.classList.add('hidden');
+        dom.loadingText.classList.add('hidden');
+    }
+}
+
+export function startBookmarkedQuestionsQuiz() {
+    const bookmarkedIds = Array.from(appState.bookmarkedQuestions);
+    if (bookmarkedIds.length === 0) {
+        ui.showConfirmationModal('No Bookmarks', 'You have not bookmarked any questions yet.', () => dom.modalBackdrop.classList.add('hidden'));
+        return;
+    }
+
+    const bookmarkedQuestions = appState.allQuestions.filter(q => bookmarkedIds.includes(q.UniqueID));
+    launchQuiz(bookmarkedQuestions, "Bookmarked Questions");
+}
+
+export function startFreeTest() {
+    if (appState.allFreeTestQuestions.length === 0) {
+        alert("Free test questions are not available, please contact support.");
+        return;
+    }
+    const shuffled = [...appState.allFreeTestQuestions].sort(() => 0.5 - Math.random());
+    const sampleQuestions = shuffled.slice(0, 10);
+    appState.currentUser = { Name: 'Guest', UniqueID: `guest_${Date.now()}`, Role: 'Guest' };
+    launchQuiz(sampleQuestions, "Free Sample Test");
+}
