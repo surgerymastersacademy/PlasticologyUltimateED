@@ -37,8 +37,10 @@ export async function showStudyPlannerScreen() {
 
     } catch (error) {
         console.error("Error loading study plans:", error);
-        dom.studyPlannerError.textContent = error.message;
-        dom.studyPlannerError.classList.remove('hidden');
+        // This assumes you have a general error display element in your planner container.
+        // If not, you might want to add one.
+        const plannerErrorDisplay = dom.studyPlannerContainer.querySelector('.error-message'); // You would need to add this element to your HTML and dom.js
+        if(plannerErrorDisplay) plannerErrorDisplay.textContent = error.message;
     } finally {
         dom.studyPlannerLoader.classList.add('hidden');
     }
@@ -206,6 +208,7 @@ export async function handleCreatePlan() {
     try {
         await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
         dom.modalBackdrop.classList.add('hidden');
+        dom.createPlanModal.classList.add('hidden');
         showStudyPlannerScreen(); // Refresh the planner screen
     } catch (error) {
         console.error("Error creating plan:", error);
@@ -220,7 +223,7 @@ export async function handleCreatePlan() {
 function addDashboardEventListeners() {
     document.querySelectorAll('.view-plan-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const planId = e.target.dataset.planId;
+            const planId = e.currentTarget.dataset.planId;
             appState.activeStudyPlan = appState.studyPlans.find(p => p.Plan_ID === planId);
             renderActivePlanView();
             dom.plannerDashboard.classList.add('hidden');
@@ -230,7 +233,7 @@ function addDashboardEventListeners() {
 
     document.querySelectorAll('.activate-plan-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-            const planId = e.target.dataset.planId;
+            const planId = e.currentTarget.dataset.planId;
             const payload = { eventType: 'activateStudyPlan', userId: appState.currentUser.UniqueID, planId: planId };
             try {
                 await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
@@ -248,9 +251,9 @@ function addDashboardEventListeners() {
 function addActivePlanEventListeners() {
     document.querySelectorAll('.task-checkbox').forEach(box => {
         box.addEventListener('change', async (e) => {
-            const dayIndex = parseInt(e.target.dataset.dayIndex);
-            const taskIndex = parseInt(e.target.dataset.taskIndex);
-            appState.activeStudyPlan.Study_Plan[dayIndex].tasks[taskIndex].completed = e.target.checked;
+            const dayIndex = parseInt(e.currentTarget.dataset.dayIndex);
+            const taskIndex = parseInt(e.currentTarget.dataset.taskIndex);
+            appState.activeStudyPlan.Study_Plan[dayIndex].tasks[taskIndex].completed = e.currentTarget.checked;
             const payload = {
                 eventType: 'updateStudyPlan',
                 planId: appState.activeStudyPlan.Plan_ID,
@@ -263,7 +266,7 @@ function addActivePlanEventListeners() {
 
     document.querySelectorAll('.start-planner-quiz-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const chapters = JSON.parse(e.target.dataset.chapters);
+            const chapters = JSON.parse(e.currentTarget.dataset.chapters);
             const questions = appState.allQuestions.filter(q => chapters.includes(q.chapter));
             if (questions.length > 0) {
                 launchQuiz(questions, `Quiz for: ${chapters.join(', ')}`);
