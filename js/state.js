@@ -1,30 +1,17 @@
-// js/state.js
+// js/state.js (FINAL CORRECTED VERSION)
 
-// This file holds the centralized state and global constants for the application.
+export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec'; // <-- Don't forget to put your NEW URL here!
 
-// --- URL FOR GOOGLE SHEETS ---
-// Make sure to update this link with the one you get after deploying the Google Apps Script
-export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
-
-// --- SIMULATION SETTINGS ---
-export const SIMULATION_Q_COUNT = 100; // The number of questions for the simulation
-export const SIMULATION_TOTAL_TIME_MINUTES = 120; // The total time in minutes for the simulation
+export const SIMULATION_Q_COUNT = 100;
+export const SIMULATION_TOTAL_TIME_MINUTES = 120;
 export const DEFAULT_TIME_PER_QUESTION = 45;
-
-// --- AVATAR SETTINGS ---
 export const AVATAR_BASE_URL = "https://api.dicebear.com/7.x/initials/svg?seed=";
-export const AVATAR_OPTIONS = [
-    "User", "Avatar", "Profile", "Person", "Guest", "Student", "Doctor", "Nurse",
-    "Medical", "Health", "Science", "Knowledge", "Book", "Study", "Exam", "Quiz",
-    "Success", "Champion", "Winner", "Learner"
-];
+export const AVATAR_OPTIONS = [ "User", "Avatar", "Profile", "Person", "Guest", "Student", "Doctor", "Nurse", "Medical", "Health", "Science", "Knowledge", "Book", "Study", "Exam", "Quiz", "Success", "Champion", "Winner", "Learner" ];
 
-
-// --- Centralized Application State ---
 export const appState = {
     // Content Data
-    allQuestions: [], // <-- بنك الأسئلة الرئيسي
-    allFreeTestQuestions: [], // <-- هذا هو السطر الجديد الذي تمت إضافته
+    allQuestions: [],
+    allFreeTestQuestions: [], // <-- MODIFICATION: ADDED THIS LINE
     allOsceCases: [],
     allOsceQuestions: [],
     groupedLectures: {},
@@ -32,12 +19,13 @@ export const appState = {
     allAnnouncements: [],
     allRoles: [],
     allChaptersNames: [],
-
+    
     // User Data
     currentUser: null,
     userCardData: null,
     viewedLectures: new Set(),
     bookmarkedQuestions: new Set(),
+    answeredQuestions: new Set(),
     fullActivityLog: [],
     userQuizNotes: [],
     userLectureNotes: [],
@@ -86,7 +74,4 @@ export const appState = {
         currentIndex: 0,
         title: ''
     },
-
 };
-
-
