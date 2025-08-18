@@ -279,20 +279,30 @@
             
              <p id="loading-text" class="text-slate-500 mt-2 text-center hidden">Loading questions...</p>
                         <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-tasks text-emerald-500 mr-3"></i>Create a Mock Exam</h3>
+                        
+                        <div class="mb-4">
+                            <h4 class="text-slate-700 text-sm font-bold mb-2">Question Scope</h4>
+                            <div class="flex gap-4">
+                                <div class="flex items-center">
+                                    <input type="radio" id="scope-all" name="questionScope" value="all" class="h-4 w-4" checked>
+                                    <label for="scope-all" class="ml-2 text-sm text-slate-600">All Questions</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="radio" id="scope-unanswered" name="questionScope" value="unanswered" class="h-4 w-4">
+                                    <label for="scope-unanswered" class="ml-2 text-sm text-slate-600">Unanswered Questions Only</label>
+                                </div>
+                            </div>
+                        </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 
-            <div class="relative">
+                            <div class="relative">
                                 <i class="fas fa-list-ol absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                                <input type="number" id="mock-q-count" class="shadow-sm appearance-none border rounded w-full py-2 pl-10 pr-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="# 
- of Qs" min="1">
+                                <input type="number" id="mock-q-count" class="shadow-sm appearance-none border rounded w-full py-2 pl-10 pr-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="# of Qs" min="1">
                             </div>
                             <div class="relative">
                                 <i class="fas fa-clock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-  
                                <input type="number" id="custom-timer-input" class="shadow-sm appearance-none border rounded w-full py-2 pl-10 pr-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Time/Q (sec)" min="5">
                             </div>
-                        
- </div>
+                        </div>
                         <button id="toggle-custom-options-btn" class="action-btn w-full mt-4 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-4 rounded-lg">
                             Customize (Chapters & Sources) <i class="fas fa-chevron-down ml-2 transition-transform"></i>
                         </button>
@@ -320,7 +330,6 @@
                                     </div>
                                 </fieldset>
                              </div>
-       
                  </div>
                         <button id="start-mock-btn" class="action-btn w-full mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg">
                             Start Mock Exam
