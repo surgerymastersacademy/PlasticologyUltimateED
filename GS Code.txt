@@ -1,29 +1,12 @@
 // ===============================================================
-// ================ خطوات النشر للحصول على الرابط الصحيح =============
-// ===============================================================
-/*
-1.  **حفظ المشروع:** اضغط على أيقونة الحفظ (شكل الديسك) لحفظ أي تغييرات.
-2.  **النشر (Deploy):**
-    * في أعلى يمين الشاشة، اضغط على الزر الأزرق "Deploy".
-    * اختر "New deployment".
-3.  **إعدادات النشر:**
-    * بجانب أيقونة الترس (Select type)، اختر "Web app".
-    * في خانة "Description"، يمكنك كتابة أي وصف (مثلاً "النسخة النهائية الكاملة").
-    * في خانة "Execute as"، اتركها "Me".
-    * **الأهم:** في خانة "Who has access"، غيرها من "Only myself" إلى **"Anyone"**.
-    * اضغط على زر "Deploy".
-4.  **نسخ الرابط النهائي:**
-    * انسخ "Web app URL" الجديد الذي ينتهي بـ `/exec` وضعه في ملف `js/state.js` في مشروعك.
-*/
-
-
-// ===============================================================
 // ================ CONFIGURATION (تكوين) ========================
 // ===============================================================
 var USERS_SHEET_NAME = "Users";
 var QUESTIONS_SHEET_NAME = "MCQ Bank";
+var FREE_TEST_QUESTIONS_SHEET_NAME = "FreeTestMCQs";
 var LECTURES_SHEET_NAME = "Lectures Topics";
 var QUIZ_LOG_SHEET_NAME = "QuizLogs";
+var ANSWERED_QUESTIONS_LOG_SHEET_NAME = "AnsweredQuestionsLog"; // <-- NEW SHEET NAME
 var LECTURE_LOG_SHEET_NAME = "LectureLogs";
 var QUIZ_NOTES_SHEET_NAME = "UserQuizNotes";
 var LECTURE_NOTES_SHEET_NAME = "UserLectureNotes";
@@ -37,8 +20,6 @@ var USERS_CARD_SHEET_NAME = "Users_Card";
 var MESSENGER_SHEET_NAME = "Messenger";
 var ROLES_SHEET_NAME = "Role";
 var STUDY_PLANNER_SHEET_NAME = "Study_Planner";
-// --- MODIFICATION 1: ADDED SHEET NAME FOR FREE TEST ---
-var FREE_TEST_QUESTIONS_SHEET_NAME = "FreeTestMCQs";
 
 
 // ===============================================================
@@ -89,12 +70,36 @@ function doPost(e) {
     var eventType = data.eventType || 'N/A';
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-    if (eventType === 'login') {
+    if (eventType === 'FinishQuiz') {
+      // Log the quiz result
+      var quizLogSheet = getOrCreateSheet(ss, QUIZ_LOG_SHEET_NAME, ["Timestamp", "UserID", "UserName", "EventType", "QuizTitle", "Score", "TotalQuestions", "Details"]);
+      quizLogSheet.appendRow([ new Date(), data.userId, data.userName, eventType, data.quizTitle, data.score, data.totalQuestions, data.details ]);
+      
+      // --- NEW: Log the answered questions ---
+      var answeredSheet = getOrCreateSheet(ss, ANSWERED_QUESTIONS_LOG_SHEET_NAME, ["UserID", "QuestionID"]);
+      var answeredData = sheetToJSON(answeredSheet);
+      var userExistingAnswers = new Set(answeredData.filter(function(r) { return r.UserID === data.userId; }).map(function(r) { return r.QuestionID; }));
+      
+      var questionsInQuiz = JSON.parse(data.details);
+      var newRows = [];
+      questionsInQuiz.forEach(function(q) {
+        if (!userExistingAnswers.has(q.qID)) {
+          newRows.push([data.userId, q.qID]);
+          userExistingAnswers.add(q.qID);
+        }
+      });
+
+      if (newRows.length > 0) {
+        answeredSheet.getRange(answeredSheet.getLastRow() + 1, 1, newRows.length, 2).setValues(newRows);
+      }
+    }
+    else if (eventType === 'login') {
       if (!data.username || !data.password) {
         return createJsonResponse({ success: false, message: "Username and password are required." });
       }
       return handleLogin(data.username, data.password);
     }
+    // ... (rest of doPost remains the same as the last version)
     else if (eventType === 'saveStudyPlan') {
         if (!data.userId || data.planData === undefined) return createErrorResponse("userId and planData are required for saveStudyPlan.");
         return handleSaveStudyPlan(ss, data.userId, data.planData);
@@ -107,10 +112,7 @@ function doPost(e) {
         if (!data.userId || !data.userName || !data.message) return createErrorResponse("User ID, User Name, and Message are required for sendMessage request.");
         return handleSendMessage(ss, data.userId, data.userName, data.message);
     }
-    else if (eventType === 'FinishQuiz') {
-      var quizLogSheet = getOrCreateSheet(ss, QUIZ_LOG_SHEET_NAME, ["Timestamp", "UserID", "UserName", "EventType", "QuizTitle", "Score", "TotalQuestions", "Details"]);
-      quizLogSheet.appendRow([ new Date(), data.userId || 'N/A', data.userName || 'N/A', eventType, data.quizTitle || 'N/A', data.score !== undefined ? data.score : 'N/A', data.totalQuestions !== undefined ? data.totalQuestions : 'N/A', data.details || '[]' ]);
-    } else if (eventType === 'FinishOSCEQuiz') { 
+    else if (eventType === 'FinishOSCEQuiz') { 
       var osceLogSheet = getOrCreateSheet(ss, OSCE_LOG_SHEET_NAME, ["Timestamp", "UserID", "UserName", "EventType", "OSCETitle", "Score", "TotalQuestions", "Details", "OSCELogID"]);
       var osceLogId = "OSCELOG_" + new Date().getTime(); 
       osceLogSheet.appendRow([ new Date(), data.userId || 'N/A', data.userName || 'N/A', eventType, data.osceTitle || 'N/A', data.score !== undefined ? data.score : 'N/A', data.totalQuestions !== undefined ? data.totalQuestions : 'N/A', data.details || '[]', osceLogId ]);
@@ -149,18 +151,7 @@ function doPost(e) {
 }
 
 
-// ===============================================================
-// ================ HANDLER FUNCTIONS (وظائف المعالجة) ===========
-// ===============================================================
-
-function handleLogin(username, password) {
-    var user = verifyUser(username, password);
-    if (user) { 
-      return createJsonResponse({ success: true, user: user }); 
-    } else { 
-      return createJsonResponse({ success: false, message: "Invalid username or password." }); 
-    }
-}
+// --- HANDLER FUNCTIONS ---
 
 function handleContentDataRequest() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -172,7 +163,6 @@ function handleContentDataRequest() {
     osceCases: sheetToJSON(ss.getSheetByName(OSCE_CASES_SHEET_NAME)),
     osceQuestions: sheetToJSON(ss.getSheetByName(OSCE_QUESTIONS_SHEET_NAME)),
     roles: sheetToJSON(ss.getSheetByName(ROLES_SHEET_NAME)),
-    // --- MODIFICATION 2: ADDED DATA SOURCE FOR FREE TEST ---
     freeTestQuestions: sheetToJSON(ss.getSheetByName(FREE_TEST_QUESTIONS_SHEET_NAME))
   };
   return createJsonResponse(data);
@@ -180,14 +170,29 @@ function handleContentDataRequest() {
 
 function handleUserDataRequest(userId) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  // --- NEW: Fetch the list of answered question IDs for the user ---
+  var answeredSheet = getOrCreateSheet(ss, ANSWERED_QUESTIONS_LOG_SHEET_NAME, ["UserID", "QuestionID"]);
+  var answeredData = sheetToJSON(answeredSheet);
+  var userAnsweredIds = answeredData.filter(function(r) { return r.UserID === userId; }).map(function(r) { return r.QuestionID; });
+
   var data = {
     logs: getLogsForUser(ss, userId),
     quizNotes: getNotesForUser(ss, QUIZ_NOTES_SHEET_NAME, userId),
-    lectureNotes: getNotesForUser(ss, LECTURE_NOTES_SHEET_NAME, userId)
+    lectureNotes: getNotesForUser(ss, LECTURE_NOTES_SHEET_NAME, userId),
+    answeredQuestions: userAnsweredIds // <-- NEW: Send this list to the frontend
   };
   return createJsonResponse(data);
 }
 
+// ... (Rest of the handler and helper functions from 'handleGetStudyPlan' to the end remain the same as the last version)
+function handleLogin(username, password) {
+    var user = verifyUser(username, password);
+    if (user) { 
+      return createJsonResponse({ success: true, user: user }); 
+    } else { 
+      return createJsonResponse({ success: false, message: "Invalid username or password." }); 
+    }
+}
 function handleGetStudyPlan(userId) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -204,7 +209,6 @@ function handleGetStudyPlan(userId) {
     return createErrorResponse("Failed to retrieve study plan: " + error.toString());
   }
 }
-
 function handleSaveStudyPlan(ss, userId, planData) {
   try {
     var plannerSheet = getOrCreateSheet(ss, STUDY_PLANNER_SHEET_NAME, ["User_ID", "Study_Plan"]);
@@ -229,13 +233,11 @@ function handleSaveStudyPlan(ss, userId, planData) {
     return createErrorResponse("Failed to save study plan: " + error.toString());
   }
 }
-
 function handleUserCardDataRequest(userId) {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var cardSheet = getOrCreateSheet(ss, USERS_CARD_SHEET_NAME, ["UniqueID", "Name", "Nickname", "ExamDate", "Age", "StudyType", "QuizScore", "User_Img"]);
     var cardData = sheetToJSON(cardSheet);
     var userData = cardData.find(function(row) { return row.UniqueID === userId; });
-
     if (!userData) {
         var usersSheet = ss.getSheetByName(USERS_SHEET_NAME);
         if (!usersSheet) return createErrorResponse("Users sheet not found.");
@@ -246,7 +248,6 @@ function handleUserCardDataRequest(userId) {
         cardSheet.appendRow(newRowData);
         userData = { UniqueID: userId, Name: mainUser.Name, Nickname: "", ExamDate: "", Age: "", StudyType: "", QuizScore: 0, User_Img: "" };
     }
-
     var quizLogSheet = ss.getSheetByName(QUIZ_LOG_SHEET_NAME);
     var totalScore = 0;
     if (quizLogSheet) {
@@ -257,7 +258,6 @@ function handleUserCardDataRequest(userId) {
             }
         });
     }
-    
     var values = cardSheet.getDataRange().getValues();
     var headers = values[0];
     var uniqueIdCol = headers.indexOf("UniqueID"), scoreCol = headers.indexOf("QuizScore");
@@ -270,7 +270,6 @@ function handleUserCardDataRequest(userId) {
     userData.QuizScore = totalScore;
     return createJsonResponse({ success: true, cardData: userData });
 }
-
 function handleUpdateUserCard(ss, data) {
     var cardSheet = ss.getSheetByName(USERS_CARD_SHEET_NAME);
     if (!cardSheet) return createErrorResponse("Users_Card sheet not found.");
@@ -288,7 +287,6 @@ function handleUpdateUserCard(ss, data) {
     }
     return createErrorResponse("User not found in Users_Card sheet for update.");
 }
-
 function handleReviewQuizRequest(logId, userId) {
     try {
         var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -321,7 +319,6 @@ function handleReviewQuizRequest(logId, userId) {
         return createErrorResponse("Failed to retrieve quiz for review: " + error.toString());
     }
 }
-
 function handleLeaderboardRequest(currentUserId) {
     try {
         var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -341,7 +338,6 @@ function handleLeaderboardRequest(currentUserId) {
         return createErrorResponse("Failed to retrieve leaderboard data: " + error.toString());
     }
 }
-
 function handleIncorrectQuestionsRequest(userId) {
     try {
         var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -359,7 +355,6 @@ function handleIncorrectQuestionsRequest(userId) {
         return createErrorResponse("Failed to retrieve incorrect questions: " + error.toString());
     }
 }
-
 function handleGetMessagesRequest(userId) {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var messengerSheet = getOrCreateSheet(ss, MESSENGER_SHEET_NAME, ["Timestamp", "UserID", "UserName", "UserMessage", "AdminReply"]);
@@ -368,17 +363,11 @@ function handleGetMessagesRequest(userId) {
     userMessages.sort(function(a, b) { return new Date(a.Timestamp) - new Date(b.Timestamp); });
     return createJsonResponse({ success: true, messages: userMessages });
 }
-
 function handleSendMessage(ss, userId, userName, message) {
     var messengerSheet = getOrCreateSheet(ss, MESSENGER_SHEET_NAME, ["Timestamp", "UserID", "UserName", "UserMessage", "AdminReply"]);
     messengerSheet.appendRow([new Date(), userId, userName, message, ""]);
     return createJsonResponse({ success: true, message: "Message sent successfully." });
 }
-
-// ===============================================================
-// ================ HELPER FUNCTIONS (الوظائف المساعدة) ===========
-// ===============================================================
-
 function verifyUser(username, password) {
     try {
         var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(USERS_SHEET_NAME);
@@ -408,7 +397,6 @@ function verifyUser(username, password) {
         return null;
     }
 }
-
 function getLogsForUser(ss, userId) {
   var quizSheet = ss.getSheetByName(QUIZ_LOG_SHEET_NAME);
   var lectureSheet = ss.getSheetByName(LECTURE_LOG_SHEET_NAME);
@@ -432,7 +420,6 @@ function getLogsForUser(ss, userId) {
   combinedLogs.sort(function(a, b) { return new Date(b.timestamp) - new Date(a.timestamp); });
   return combinedLogs;
 }
-
 function getNotesForUser(ss, sheetName, userId) {
     var notesSheet = ss.getSheetByName(sheetName);
     var userNotes = [];
@@ -444,7 +431,6 @@ function getNotesForUser(ss, sheetName, userId) {
     }
     return userNotes;
 }
-
 function upsertNote(sheet, data) {
   var uniqueId = data.uniqueId;
   var values = sheet.getDataRange().getValues();
@@ -471,7 +457,6 @@ function upsertNote(sheet, data) {
     sheet.appendRow(newRowData);
   }
 }
-
 function deleteNote(sheet, uniqueId) {
   var values = sheet.getDataRange().getValues();
   var uniqueIdColIndex = values[0].indexOf("UniqueID");
@@ -482,7 +467,6 @@ function deleteNote(sheet, uniqueId) {
     }
   }
 }
-
 function clearUserLogs(ss, sheetName, userId) {
     var sheet = ss.getSheetByName(sheetName);
     if (!sheet) return;
@@ -496,7 +480,6 @@ function clearUserLogs(ss, sheetName, userId) {
         }
     }
 }
-
 function upsertIncorrectQuestion(ss, data) {
     var sheet = getOrCreateSheet(ss, USER_INCORRECT_QUESTIONS_SHEET_NAME, ["UniqueID", "UserID", "QuestionID", "UserAnswer", "WrongCount", "CorrectTimestamp", "LastUpdate"]);
     var values = sheet.getDataRange().getValues();
@@ -518,7 +501,6 @@ function upsertIncorrectQuestion(ss, data) {
         sheet.appendRow([uniqueId, data.userId, data.questionId, data.userAnswer, 1, "", now]);
     }
 }
-
 function markIncorrectAsCorrect(ss, data) {
     var sheet = ss.getSheetByName(USER_INCORRECT_QUESTIONS_SHEET_NAME);
     if (!sheet) return;
@@ -535,7 +517,6 @@ function markIncorrectAsCorrect(ss, data) {
         }
     }
 }
-
 function getActiveAnnouncements(ss) {
   try {
     var sheet = ss.getSheetByName(ANNOUNCEMENTS_SHEET_NAME);
@@ -549,7 +530,6 @@ function getActiveAnnouncements(ss) {
     return [];
   }
 }
-
 function sheetToJSON(sheet) {
   if (!sheet) return [];
   try {
@@ -563,7 +543,6 @@ function sheetToJSON(sheet) {
     return [];
   }
 }
-
 function objectifyRow(row, headers) {
   var obj = {};
   headers.forEach(function(header, i) {
@@ -573,7 +552,6 @@ function objectifyRow(row, headers) {
   });
   return obj;
 }
-
 function getOrCreateSheet(spreadsheet, sheetName, headers) {
   var sheet = spreadsheet.getSheetByName(sheetName);
   if (!sheet) {
@@ -582,12 +560,10 @@ function getOrCreateSheet(spreadsheet, sheetName, headers) {
   }
   return sheet;
 }
-
 function createJsonResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
 }
-
 function createErrorResponse(message) {
   return ContentService.createTextOutput(JSON.stringify({ error: message }))
     .setMimeType(ContentService.MimeType.JSON);
