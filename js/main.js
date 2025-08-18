@@ -1,4 +1,4 @@
-// js/main.js (Corrected for Filters & Learning Mode Browse)
+// js/main.js (Corrected for Filters & Learning Mode & QBank Browse)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -6,14 +6,14 @@ import * as ui from './ui.js';
 import * as utils from './utils.js';
 import { fetchContentData, fetchUserData } from './api.js';
 import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
+// --- MODIFIED IMPORT ---
 import {
     launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz,
-    toggleBookmark, toggleFlag, showHint, showQuestionNavigator
+    toggleBookmark, toggleFlag, showHint, showQuestionNavigator, startQuizBrowse
 } from './features/quiz.js';
 import { renderLectures, saveUserProgress, fetchAndShowLastActivity } from './features/lectures.js';
 import { startOsceSlayer, startCustomOsce, endOsceQuiz, handleOsceNext, handleOscePrevious, showOsceNavigator } from './features/osce.js';
 import { showStudyPlannerScreen, handleCreatePlan } from './features/planner.js';
-// --- NEW ---
 import { showLearningModeBrowseScreen, handleLearningSearch, handleLearningNext, handleLearningPrevious, startLearningBrowse } from './features/learningMode.js';
 import { showActivityLog, renderFilteredLog } from './features/activityLog.js';
 import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.js';
@@ -39,7 +39,6 @@ export function openNoteModal(type, itemId, itemTitle) {
     dom.noteModal.classList.remove('hidden');
 }
 
-// --- NEW FUNCTION TO POPULATE FILTERS ---
 function populateAllFilters() {
     // For QBank (Exam Mode)
     const allSources = [...new Set(appState.allQuestions.map(q => q.source || 'Uncategorized'))].sort();
@@ -49,7 +48,7 @@ function populateAllFilters() {
         return acc;
     }, {});
     ui.populateFilterOptions(dom.sourceSelectMock, allSources, 'mock-source', sourceCounts);
-    updateChapterFilter(); // To initially populate chapters
+    updateChapterFilter();
 
     // For OSCE
     const osceChapters = [...new Set(appState.allOsceCases.map(c => c.Chapter || 'Uncategorized'))].sort();
@@ -89,7 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.allRoles = data.roles || [];
             appState.allChaptersNames = Object.keys(appState.groupedLectures);
 
-            // --- NEW --- Call the function to populate filters after data is loaded
             populateAllFilters();
             
             dom.loginSubmitBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Your Companion is Here!';
@@ -159,6 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.notesFilterLectures.addEventListener('click', () => renderNotes('lectures'));
     dom.noteSaveBtn.addEventListener('click', handleSaveNote);
     dom.noteCancelBtn.addEventListener('click', () => { dom.noteModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
+    
+    // QBank Listeners
     dom.startMockBtn.addEventListener('click', handleMockExamStart);
     dom.startSimulationBtn.addEventListener('click', handleStartSimulation);
     dom.qbankSearchBtn.addEventListener('click', handleQBankSearch);
@@ -174,10 +174,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     dom.practiceMistakesBtn.addEventListener('click', startIncorrectQuestionsQuiz);
     dom.practiceBookmarkedBtn.addEventListener('click', startBookmarkedQuestionsQuiz);
+    // --- NEW: Event Listeners for QBank Browse Buttons ---
+    dom.browseByChapterBtn.addEventListener('click', () => startQuizBrowse('chapter'));
+    dom.browseBySourceBtn.addEventListener('click', () => startQuizBrowse('source'));
+
+
+    // In-Quiz Listeners
     dom.endQuizBtn.addEventListener('click', triggerEndQuiz);
     dom.nextSkipBtn.addEventListener('click', handleNextQuestion);
     dom.previousBtn.addEventListener('click', handlePreviousQuestion);
-    
     dom.bookmarkBtn.addEventListener('click', toggleBookmark);
     dom.flagBtn.addEventListener('click', toggleFlag);
     dom.hintBtn.addEventListener('click', showHint);
@@ -189,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
+    // OSCE Listeners
     dom.startOsceSlayerBtn.addEventListener('click', startOsceSlayer);
     dom.startCustomOsceBtn.addEventListener('click', startCustomOsce);
     dom.endOsceQuizBtn.addEventListener('click', () => endOsceQuiz(false));
@@ -196,11 +202,11 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.oscePreviousBtn.addEventListener('click', handleOscePrevious);
     dom.osceNavigatorBtn.addEventListener('click', showOsceNavigator);
     
+    // Learning Mode Listeners
     dom.endLearningBtn.addEventListener('click', showLearningModeBrowseScreen);
     dom.learningNextBtn.addEventListener('click', handleLearningNext);
     dom.learningPreviousBtn.addEventListener('click', handleLearningPrevious);
     dom.learningSearchBtn.addEventListener('click', handleLearningSearch);
-    // --- NEW: Event Listeners for Learning Mode Browse Buttons ---
     dom.learningBrowseByChapterBtn.addEventListener('click', () => startLearningBrowse('chapter'));
     dom.learningBrowseBySourceBtn.addEventListener('click', () => startLearningBrowse('source'));
 
