@@ -1,4 +1,4 @@
-// js/dom.js
+// js/dom.js (FINAL AND COMPLETE VERSION)
 
 // This file contains references to all DOM elements used in the application.
 
@@ -230,16 +230,22 @@ export const studyPlannerBtn = document.getElementById('study-planner-btn');
 export const studyPlannerContainer = document.getElementById('study-planner-container');
 export const studyPlannerBackBtn = document.getElementById('study-planner-back-btn');
 export const studyPlannerLoader = document.getElementById('study-planner-loader');
-export const studyPlannerContent = document.getElementById('study-planner-content');
-export const studyPlannerInitialSetup = document.getElementById('study-planner-initial-setup');
-export const studyPlannerExamDateInput = document.getElementById('study-planner-exam-date-input');
-export const studyPlannerGenerateBtn = document.getElementById('study-planner-generate-btn');
-export const studyPlannerError = document.getElementById('study-planner-error');
-export const studyPlanDaysContainer = document.getElementById('study-plan-days-container');
-export const studyPlanAddCustomTaskBtn = document.getElementById('study-plan-add-custom-task-btn');
-export const studyPlanCustomTaskInput = document.getElementById('study-plan-custom-task-input');
-export const studyPlanCustomTaskDateInput = document.getElementById('study-plan-custom-task-date-input');
-export const studyPlanWeaknessesContainer = document.getElementById('study-plan-weaknesses-container');
+// --- NEW ELEMENTS FOR MULTI-PLANNER ---
+export const plannerDashboard = document.getElementById('planner-dashboard');
+export const studyPlansList = document.getElementById('study-plans-list');
+export const showCreatePlanModalBtn = document.getElementById('show-create-plan-modal-btn');
+export const activePlanView = document.getElementById('active-plan-view');
+export const activePlanName = document.getElementById('active-plan-name');
+export const backToPlansDashboardBtn = document.getElementById('back-to-plans-dashboard-btn');
+export const studyPlanSummary = document.getElementById('study-plan-summary');
 export const planDaysRemaining = document.getElementById('plan-days-remaining');
 export const planTasksToday = document.getElementById('plan-tasks-today');
 export const planProgressBar = document.getElementById('plan-progress-bar');
+export const studyPlanDaysContainer = document.getElementById('study-plan-days-container');
+export const createPlanModal = document.getElementById('create-plan-modal');
+export const newPlanName = document.getElementById('new-plan-name');
+export const newPlanStartDate = document.getElementById('new-plan-start-date');
+export const newPlanEndDate = document.getElementById('new-plan-end-date');
+export const createPlanError = document.getElementById('create-plan-error');
+export const cancelCreatePlanBtn = document.getElementById('cancel-create-plan-btn');
+export const confirmCreatePlanBtn = document.getElementById('confirm-create-plan-btn');
