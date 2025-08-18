@@ -1,4 +1,4 @@
-// js/features/quiz.js (FINAL VERSION - All buttons logic added)
+// js/features/quiz.js (FINAL VERSION - With Browse Functionality Added)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -9,7 +9,7 @@ import { showMainMenuScreen, openNoteModal } from '../main.js';
 import { populateFilterOptions } from '../ui.js';
 import { saveUserProgress } from './lectures.js';
 
-// --- NEW FUNCTIONS FOR IN-QUIZ BUTTONS ---
+// --- IN-QUIZ BUTTON FUNCTIONS ---
 
 export function toggleBookmark() {
     const question = appState.currentQuiz.questions[appState.currentQuiz.currentQuestionIndex];
@@ -22,7 +22,7 @@ export function toggleBookmark() {
         appState.bookmarkedQuestions.add(question.UniqueID);
         dom.bookmarkBtn.classList.add('bookmarked');
     }
-    saveUserProgress(); // This function saves bookmarks to localStorage
+    saveUserProgress();
 }
 
 export function toggleFlag() {
@@ -77,9 +77,7 @@ export function showQuestionNavigator() {
     dom.modalBackdrop.classList.remove('hidden');
 }
 
-// --- ALL OTHER FUNCTIONS FROM THE PREVIOUS VERSION ARE HERE AND COMPLETE ---
-// (launchQuiz, showQuestion, selectAnswer, showResults, etc.)
-// ... The rest of the file is identical to the last complete version you had ...
+
 export function launchQuiz(questions, title, config = {}) {
     const {
         timePerQuestion = DEFAULT_TIME_PER_QUESTION,
@@ -344,7 +342,6 @@ function showAnswerResult() {
 }
 
 export function handleMockExamStart() {
-    const questionScope = document.querySelector('input[name="questionScope"]:checked')?.value || 'all';
     dom.mockError.classList.add('hidden');
     const requestedCount = parseInt(dom.mockQCountInput.value, 10);
     if (isNaN(requestedCount) || requestedCount <= 0) {
@@ -356,16 +353,12 @@ export function handleMockExamStart() {
     const selectedChapters = [...dom.chapterSelectMock.querySelectorAll('input:checked')].map(el => el.value);
     const selectedSources = [...dom.sourceSelectMock.querySelectorAll('input:checked')].map(el => el.value);
 
-    let baseQuestions = (questionScope === 'unanswered')
-        ? appState.allQuestions.filter(q => !appState.answeredQuestions.has(q.UniqueID))
-        : appState.allQuestions;
-
-    let filteredQuestions = baseQuestions;
+    let filteredQuestions = appState.allQuestions;
     if (selectedChapters.length > 0) filteredQuestions = filteredQuestions.filter(q => selectedChapters.includes(q.chapter));
     if (selectedSources.length > 0) filteredQuestions = filteredQuestions.filter(q => selectedSources.includes(q.source));
 
     if (filteredQuestions.length === 0 || requestedCount > filteredQuestions.length) {
-        dom.mockError.textContent = `Only ${filteredQuestions.length} questions available for this filter.`;
+        dom.mockError.textContent = `Only ${filteredQuestions.length} questions available for this filter. Please broaden your criteria.`;
         dom.mockError.classList.remove('hidden');
         return;
     }
@@ -507,4 +500,45 @@ export function startFreeTest() {
     const sampleQuestions = shuffled.slice(0, 10);
     appState.currentUser = { Name: 'Guest', UniqueID: `guest_${Date.now()}`, Role: 'Guest' };
     launchQuiz(sampleQuestions, "Free Sample Test");
+}
+
+// --- NEW --- Function for QBank Browse by Chapter/Source
+export function startQuizBrowse(browseBy) {
+    const isChapter = browseBy === 'chapter';
+    const title = isChapter ? 'Browse by Chapter' : 'Browse by Source';
+    
+    const itemCounts = appState.allQuestions.reduce((acc, q) => {
+        const item = isChapter ? (q.chapter || 'Uncategorized') : (q.source || 'Uncategorized');
+        acc[item] = (acc[item] || 0) + 1;
+        return acc;
+    }, {});
+
+    const items = Object.keys(itemCounts).sort();
+
+    dom.listTitle.textContent = title;
+    dom.listItems.innerHTML = ''; 
+
+    if (items.length === 0) {
+        dom.listItems.innerHTML = `<p class="text-slate-500 col-span-full text-center">No ${browseBy}s found.</p>`;
+    } else {
+        items.forEach(item => {
+            const button = document.createElement('button');
+            button.className = 'action-btn p-4 bg-white rounded-lg shadow-sm text-center hover:bg-slate-50';
+            button.innerHTML = `
+                <h3 class="font-bold text-slate-800">${item}</h3>
+                <p class="text-sm text-slate-500">${itemCounts[item]} Questions</p>
+            `;
+            button.addEventListener('click', () => {
+                const questions = appState.allQuestions.filter(q => {
+                    const qItem = isChapter ? (q.chapter || 'Uncategorized') : (q.source || 'Uncategorized');
+                    return qItem === item;
+                });
+                launchQuiz(questions, item); // Launch quiz with all questions for that item
+            });
+            dom.listItems.appendChild(button);
+        });
+    }
+
+    ui.showScreen(dom.listContainer);
+    appState.navigationHistory.push(() => startQuizBrowse(browseBy));
 }
