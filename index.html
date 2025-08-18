@@ -31,7 +31,7 @@
                 <button id="radio-btn" class="text-white hover:text-slate-300 transition-colors" title="Plasticology Radio" aria-label="Plasticology Radio">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 
  24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 7.5 16.5-4.125M12 6.75c-2.708 0-5.363.224-7.948.655C2.999 7.58 2.25 8.507 2.25 9.574v9.176A2.25 2.25 0 0 0 4.5 21h15a2.25 2.25 0 0 0 2.25-2.25V9.574c0-1.067-.75-1.994-1.802-2.169A48.329 48.329 0 0 0 12 6.75Zm-1.683 6.443-.005.005-.006-.005.006-.005.005.005Zm-.005 2.127-.005-.006.005-.005.005.005-.005.005Zm-2.116-.006-.005.006-.006-.006.005-.005.006.005Zm-.005-2.116-.006-.005.006-.005.005.005-.005.005ZM9.255 10.5v.008h-.008V10.5h.008Zm3.249 1.88-.007.004-.003-.007.006-.003.004.006Zm-1.38 5.126-.003-.006.006-.004.004.007-.006.003Zm.007-6.501-.003.006-.007-.003.004-.007.006.004Zm1.370 5.129-.007-.004.004-.006.006.003-.004.007Zm.504-1.877h-.008v-.007h.008v.007ZM9.255 18v.008h-.008V18h.008Zm-3.246-1.87-.007.004L6 16.127l.006-.003.004.006Zm1.366-5.119-.004-.006.006-.004.004.007-.006.003ZM7.38 17.5l-.003.006-.007-.003.004-.007.006.004Zm-1.376-5.116L6 12.38l.003-.007.007.004-.004.007Zm-.5 1.873h-.008v-.007h.008v.007ZM17.25 12.75a.75.G75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Zm0 4.5a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 7.5 16.5-4.125M12 6.75c-2.708 0-5.363.224-7.948.655C2.999 7.58 2.25 8.507 2.25 9.574v9.176A2.25 2.25 0 0 0 4.5 21h15a2.25 2.25 0 0 0 2.25-2.25V9.574c0-1.067-.75-1.994-1.802-2.169A48.329 48.329 0 0 0 12 6.75Zm-1.683 6.443-.005.005-.006-.005.006-.005.005.005Zm-.005 2.127-.005-.006.005-.005.005.005-.005.005Zm-2.116-.006-.005.006-.006-.006.005-.005.006.005Zm-.005-2.116-.006-.005.006-.005.005.005-.005.005ZM9.255 10.5v.008h-.008V10.5h.008Zm3.249 1.88-.007.004-.003-.007.006-.003.004.006Zm-1.38 5.126-.003-.006.006-.004.004.007-.006.003Zm.007-6.501-.003.006-.007-.003.004-.007.006.004Zm1.370 5.129-.007-.004.004-.006.006.003-.004.007Zm.504-1.877h-.008v-.007h.008v.007ZM9.255 18v.008h-.008V18h.008Zm-3.246-1.87-.007.004L6 16.127l.006-.003.004.006Zm1.366-5.119-.004-.006.006-.004.004.007-.006.003ZM7.38 17.5l-.003.006-.007-.003.004-.007.006.004Zm-1.376-5.116L6 12.38l.003-.007.007.004-.004.007Zm-.5 1.873h-.008v-.007h.008v.007ZM17.25 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Zm0 4.5a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" />
                     </svg>
                 </button>
                 <button id="announcements-btn" class="text-white hover:text-slate-300 transition-colors text-2xl" title="Announcements" aria-label="Announcements">
@@ -73,62 +73,57 @@
         </div>
 
         <main id="main-content">
-            <div id="login-container" class="w-full max-w-md mx-auto">
-                
- <div class="p-8">
-                    <a href="https://www.surgerymastersacademy.com" target="_blank" title="Go to Main Website">
-                        <img id="login-logo" src="https://raw.githubusercontent.com/doctorbishoy/Plasticology-/main/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-20 mx-auto mb-4">
-                    </a>
-                    <h1 class="text-2xl md:text-3xl 
- font-bold text-center text-slate-800">Plasticology Ultimate Edition</h1>
-                    <p class="text-slate-600 font-semibold text-center mt-4">Together We Can</p>
-                    <p class="text-slate-500 text-center mt-2 mb-6">Please log in to continue.</p>
-                    <div id="login-loader" class="loader hidden"></div>
-                   
- <p id="login-loading-text" class="text-center text-slate-500 hidden">Loading data for guests...</p>
-                    <form id="login-form">
-                        <div class="mb-4">
-                            <label for="username" class="block text-slate-700 text-sm font-bold mb-2">Username</label>
             
-                 <input type="text" id="username" autocomplete="off" class="shadow appearance-none border rounded w-full py-2 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                        </div>
-                        <div class="mb-6">
+            <div id="login-container" class="w-full max-w-sm mx-auto">
+                <div class="login-card p-8 rounded-2xl shadow-xl">
                     
-         <label for="password" class="block text-slate-700 text-sm font-bold mb-2">Password</label>
-                            <input type="password" id="password" autocomplete="off" class="shadow appearance-none border rounded w-full py-2 px-3 text-slate-700 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    <img id="login-logo" src="https://raw.githubusercontent.com/doctorbishoy/Plasticology-/main/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-20 mx-auto mb-4">
+                    
+                    <div class="text-center mb-8">
+                        <h1 class="text-2xl font-bold text-slate-800">Welcome Back</h1>
+                        <p class="text-slate-500 mt-1">Please log in to your account.</p>
+                    </div>
+
+                    <div id="login-loader" class="loader hidden"></div>
+                    <p id="login-loading-text" class="text-center text-slate-500 hidden">Loading data for guests...</p>
+                    
+                    <form id="login-form" class="space-y-6">
+                        <div class="input-with-icon-container">
+                            <i class="fas fa-user input-icon"></i>
+                            <input type="text" id="username" autocomplete="off" class="input-with-icon shadow-sm appearance-none border rounded-lg w-full py-3 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Username" required>
                         </div>
-                  
-       <p id="login-error" class="text-red-500 text-xs italic mb-4 hidden">Invalid username or password.</p>
-                        <div class="flex flex-col gap-4">
-                            <button type="submit" id="login-submit-btn" class="action-btn w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline">
-                 
-                Log In
-                            </button>
-                            <div class="relative flex py-2 items-center">
                         
-         <div class="flex-grow border-t border-gray-300"></div>
-                                <span class="flex-shrink mx-4 text-gray-400 text-sm">OR</span>
-                                <div class="flex-grow border-t border-gray-300"></div>
-                  
-           </div>
-                            <button type="button" id="free-test-btn" class="action-btn w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline">
-                                <i class="fas fa-vial mr-2"></i> Try a Free Test
-          
-                   </button>
-                            <a href="https://www.youtube.com/playlist?list=PLVUDV5bqFz4jabLMYet03YmJknm8jA-wG" target="_blank" class="action-btn text-center w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline">
-                                <i class="fab fa-youtube mr-2"></i> Watch Sample Lectures
-  
-                           </a>
-                             <a href="https://t.me/DrBishoyAcademy" target="_blank" class="action-btn text-center w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline">
-                              
-   <i class="fab fa-telegram-plane mr-2"></i> Subscribe now for Ultimate Edition
-                            </a>
+                        <div class="input-with-icon-container">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input type="password" id="password" autocomplete="off" class="input-with-icon shadow-sm appearance-none border rounded-lg w-full py-3 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Password" required>
                         </div>
+                        
+                        <p id="login-error" class="text-red-500 text-xs italic !mt-2 hidden">Invalid username or password.</p>
+                        
+                        <button type="submit" id="login-submit-btn" class="action-btn w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline text-lg">
+                            Log In
+                        </button>
                     </form>
+
+                    <div class="relative flex py-5 items-center">
+                        <div class="flex-grow border-t border-gray-300"></div>
+                        <span class="flex-shrink mx-4 text-gray-400 text-sm">OR</span>
+                        <div class="flex-grow border-t border-gray-300"></div>
+                    </div>
+
+                    <div class="space-y-4 text-center">
+                        <button type="button" id="free-test-btn" class="w-full text-center font-medium text-blue-600 hover:text-blue-800 transition-colors">
+                            <i class="fas fa-vial fa-fw mr-2"></i>Try a Free Test
+                        </button>
+                        <a href="https://www.youtube.com/playlist?list=PLVUDV5bqFz4jabLMYet03YmJknm8jA-wG" target="_blank" class="block w-full text-center font-medium text-blue-600 hover:text-blue-800 transition-colors">
+                            <i class="fab fa-youtube fa-fw mr-2"></i>Watch Sample Lectures
+                        </a>
+                         <a href="https://t.me/DrBishoyAcademy" target="_blank" class="block w-full text-center font-medium text-green-600 hover:text-green-800 transition-colors mt-6">
+                            <i class="fab fa-telegram-plane fa-fw mr-2"></i>Subscribe for Ultimate Edition
+                        </a>
+                    </div>
                 </div>
-  
-           </div>
-            
+            </div>
             <div id="main-menu-container" class="w-full hidden">
                 <div class="p-6 md:p-8">
                     <div id="announcement-banner" class="hidden"></div>
@@ -293,6 +288,7 @@
                                 </div>
                             </div>
                         </div>
+
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div class="relative">
                                 <i class="fas fa-list-ol absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
