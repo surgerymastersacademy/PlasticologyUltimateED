@@ -1,4 +1,4 @@
-// js/features/planner.js (FINAL, COMPLETE, AND ENHANCED VERSION)
+// js/features/planner.js (FINAL, COMPLETE, AND CORRECTED DISPLAY LOGIC)
 
 import { appState, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -38,8 +38,7 @@ export async function showStudyPlannerScreen() {
     } catch (error) {
         console.error("Error loading study plans:", error);
         // This assumes you have a general error display element in your planner container.
-        // If not, you might want to add one.
-        const plannerErrorDisplay = dom.studyPlannerContainer.querySelector('.error-message'); // You would need to add this element to your HTML and dom.js
+        const plannerErrorDisplay = dom.studyPlannerError; 
         if(plannerErrorDisplay) plannerErrorDisplay.textContent = error.message;
     } finally {
         dom.studyPlannerLoader.classList.add('hidden');
@@ -59,6 +58,9 @@ function renderPlannerDashboard() {
             const isActive = String(plan.Plan_Status).toUpperCase() === 'TRUE';
             const planCard = document.createElement('div');
             planCard.className = `p-4 rounded-lg border-2 flex justify-between items-center ${isActive ? 'bg-blue-50 border-blue-400' : 'bg-white border-slate-200'}`;
+            
+            // --- THIS IS THE CORRECTED PART ---
+            // It now correctly displays the dates and status.
             planCard.innerHTML = `
                 <div>
                     <h4 class="font-bold text-lg text-slate-800">${plan.Plan_Name}</h4>
@@ -95,43 +97,47 @@ function renderActivePlanView() {
     dom.planDaysRemaining.textContent = daysRemaining >= 0 ? daysRemaining : 'Ended';
 
     let totalTasks = 0, completedTasks = 0;
-    plan.Study_Plan.forEach(day => {
-        day.tasks.forEach(task => {
-            totalTasks++;
-            if (task.completed) completedTasks++;
+    if (plan.Study_Plan) {
+        plan.Study_Plan.forEach(day => {
+            day.tasks.forEach(task => {
+                totalTasks++;
+                if (task.completed) completedTasks++;
+            });
         });
-    });
+    }
 
     const progress = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(0) : 0;
     dom.planProgressBar.style.width = `${progress}%`;
     dom.planProgressBar.textContent = `${progress}%`;
 
     const todayString = new Date().toISOString().split('T')[0];
-    const todayPlan = plan.Study_Plan.find(day => day.date === todayString);
+    const todayPlan = plan.Study_Plan ? plan.Study_Plan.find(day => day.date === todayString) : null;
     dom.planTasksToday.textContent = todayPlan ? todayPlan.tasks.filter(t => !t.completed).length : 0;
 
     dom.studyPlanDaysContainer.innerHTML = '';
-    plan.Study_Plan.forEach((day, dayIndex) => {
-        const dayDiv = document.createElement('div');
-        dayDiv.className = 'bg-white rounded-lg shadow-sm p-4';
-        const date = new Date(day.date);
-        const isToday = date.toISOString().split('T')[0] === todayString;
-        let dateDisplay = date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-        if (isToday) dateDisplay += ' (Today)';
+    if (plan.Study_Plan) {
+        plan.Study_Plan.forEach((day, dayIndex) => {
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'bg-white rounded-lg shadow-sm p-4';
+            const date = new Date(day.date);
+            const isToday = date.toISOString().split('T')[0] === todayString;
+            let dateDisplay = date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+            if (isToday) dateDisplay += ' (Today)';
 
-        let tasksHtml = day.tasks.map((task, taskIndex) => `
-            <li class="flex items-center justify-between p-2 rounded-md ${task.completed ? 'bg-green-100 text-slate-500 line-through' : 'bg-slate-50'}">
-                <div class="flex items-center">
-                    <input type="checkbox" class="task-checkbox h-4 w-4 mr-3" data-day-index="${dayIndex}" data-task-index="${taskIndex}" ${task.completed ? 'checked' : ''}>
-                    <span>${task.name}</span>
-                </div>
-                ${task.type === 'quiz' && !task.completed ? `<button class="start-planner-quiz-btn text-xs bg-blue-500 text-white py-1 px-2 rounded hover:bg-blue-600" data-chapters='${JSON.stringify(task.chapters)}'>Start Quiz</button>` : ''}
-            </li>
-        `).join('');
+            let tasksHtml = day.tasks.map((task, taskIndex) => `
+                <li class="flex items-center justify-between p-2 rounded-md ${task.completed ? 'bg-green-100 text-slate-500 line-through' : 'bg-slate-50'}">
+                    <div class="flex items-center">
+                        <input type="checkbox" class="task-checkbox h-4 w-4 mr-3" data-day-index="${dayIndex}" data-task-index="${taskIndex}" ${task.completed ? 'checked' : ''}>
+                        <span>${task.name}</span>
+                    </div>
+                    ${task.type === 'quiz' && !task.completed ? `<button class="start-planner-quiz-btn text-xs bg-blue-500 text-white py-1 px-2 rounded hover:bg-blue-600" data-chapters='${JSON.stringify(task.chapters)}'>Start Quiz</button>` : ''}
+                </li>
+            `).join('');
 
-        dayDiv.innerHTML = `<h4 class="font-bold text-lg mb-2 ${isToday ? 'text-blue-600': ''}">${dateDisplay}</h4><ul class="space-y-2">${tasksHtml}</ul>`;
-        dom.studyPlanDaysContainer.appendChild(dayDiv);
-    });
+            dayDiv.innerHTML = `<h4 class="font-bold text-lg mb-2 ${isToday ? 'text-blue-600': ''}">${dateDisplay}</h4><ul class="space-y-2">${tasksHtml}</ul>`;
+            dom.studyPlanDaysContainer.appendChild(dayDiv);
+        });
+    }
 
     addActivePlanEventListeners();
 }
@@ -142,7 +148,8 @@ function renderActivePlanView() {
 function generatePlanContent(startDateStr, endDateStr) {
     const startDate = new Date(startDateStr);
     const endDate = new Date(endDateStr);
-    const daysRemaining = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    endDate.setDate(endDate.getDate() + 1);
+    const daysRemaining = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
 
     if (daysRemaining <= 0) return null;
 
@@ -209,7 +216,7 @@ export async function handleCreatePlan() {
         await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
         dom.modalBackdrop.classList.add('hidden');
         dom.createPlanModal.classList.add('hidden');
-        showStudyPlannerScreen(); // Refresh the planner screen
+        showStudyPlannerScreen();
     } catch (error) {
         console.error("Error creating plan:", error);
         errorEl.textContent = 'An error occurred while saving the plan.';
@@ -237,7 +244,7 @@ function addDashboardEventListeners() {
             const payload = { eventType: 'activateStudyPlan', userId: appState.currentUser.UniqueID, planId: planId };
             try {
                 await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-                showStudyPlannerScreen(); // Refresh the whole view
+                showStudyPlannerScreen();
             } catch (error) {
                 console.error("Error activating plan:", error);
             }
