@@ -1,17 +1,29 @@
-// js/state.js (FINAL CORRECTED VERSION FOR MULTI-PLANNER)
+// js/state.js
 
-export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec'; // <-- Don't forget to put your NEW URL here!
+// This file holds the centralized state and global constants for the application.
 
-export const SIMULATION_Q_COUNT = 100;
-export const SIMULATION_TOTAL_TIME_MINUTES = 120;
+// --- URL FOR GOOGLE SHEETS ---
+// Make sure to update this link with the one you get after deploying the Google Apps Script
+export const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlVVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec';
+
+// --- SIMULATION SETTINGS ---
+export const SIMULATION_Q_COUNT = 100; // The number of questions for the simulation
+export const SIMULATION_TOTAL_TIME_MINUTES = 120; // The total time in minutes for the simulation
 export const DEFAULT_TIME_PER_QUESTION = 45;
-export const AVATAR_BASE_URL = "https://api.dicebear.com/7.x/initials/svg?seed=";
-export const AVATAR_OPTIONS = [ "User", "Avatar", "Profile", "Person", "Guest", "Student", "Doctor", "Nurse", "Medical", "Health", "Science", "Knowledge", "Book", "Study", "Exam", "Quiz", "Success", "Champion", "Winner", "Learner" ];
 
+// --- AVATAR SETTINGS ---
+export const AVATAR_BASE_URL = "https://api.dicebear.com/7.x/initials/svg?seed=";
+export const AVATAR_OPTIONS = [
+    "User", "Avatar", "Profile", "Person", "Guest", "Student", "Doctor", "Nurse",
+    "Medical", "Health", "Science", "Knowledge", "Book", "Study", "Exam", "Quiz",
+    "Success", "Champion", "Winner", "Learner"
+];
+
+
+// --- Centralized Application State ---
 export const appState = {
     // Content Data
     allQuestions: [],
-    allFreeTestQuestions: [],
     allOsceCases: [],
     allOsceQuestions: [],
     groupedLectures: {},
@@ -19,20 +31,18 @@ export const appState = {
     allAnnouncements: [],
     allRoles: [],
     allChaptersNames: [],
-    
+    allSourcesNames: [], // ADDED: To store unique source names for filtering
+
     // User Data
     currentUser: null,
     userCardData: null,
     viewedLectures: new Set(),
     bookmarkedQuestions: new Set(),
-    answeredQuestions: new Set(),
     fullActivityLog: [],
     userQuizNotes: [],
     userLectureNotes: [],
     userMessages: [],
-    // --- MODIFICATION: Updated planner state for multiple plans ---
-    studyPlans: [], // Will hold an array of all user's plans
-    activeStudyPlan: null, // Will hold the currently active plan object
+    studyPlannerData: null,
 
     // Navigation & UI State
     navigationHistory: [],
@@ -77,4 +87,3 @@ export const appState = {
         title: ''
     },
 };
-
