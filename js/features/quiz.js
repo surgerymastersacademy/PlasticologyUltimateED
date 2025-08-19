@@ -408,14 +408,43 @@ export function handleQBankSearch() {
         return;
     }
 
-    const results = appState.allQuestions.filter(q => q.question.toLowerCase().includes(searchTerm) || q.answerOptions.some(opt => opt.text.toLowerCase().includes(searchTerm)));
+    // --- MODIFIED: Expanded Search Logic ---
+    const results = appState.allQuestions.filter(q => {
+        const questionText = q.question.toLowerCase();
+        
+        // Combine all answer texts into a single string for searching
+        const answersText = q.answerOptions
+            .map(opt => opt.text.toLowerCase())
+            .join(' '); // Join with a space
+
+        // Return true if the search term is in the question OR in any of the answers
+        return questionText.includes(searchTerm) || answersText.includes(searchTerm);
+    });
+
     appState.qbankSearchResults = results;
 
+    // --- MODIFIED: Detailed Results Display ---
     if (results.length === 0) {
         dom.qbankSearchError.textContent = `No questions found for "${dom.qbankSearchInput.value}".`;
         dom.qbankSearchError.classList.remove('hidden');
     } else {
-        dom.qbankSearchResultsInfo.textContent = `Found ${results.length} questions.`;
+        // Calculate counts per source
+        const sourceCounts = results.reduce((acc, q) => {
+            const source = q.source || 'Uncategorized';
+            acc[source] = (acc[source] || 0) + 1;
+            return acc;
+        }, {});
+
+        // Build the results string
+        let resultsHtml = `<p class="font-bold text-lg mb-2">Found ${results.length} questions, distributed as follows:</p>`;
+        resultsHtml += '<ul class="list-disc list-inside text-left">';
+        for (const source in sourceCounts) {
+            resultsHtml += `<li><strong>${source}:</strong> ${sourceCounts[source]} Questions</li>`;
+        }
+        resultsHtml += '</ul>';
+
+        // Display the detailed results
+        dom.qbankSearchResultsInfo.innerHTML = resultsHtml; // Use innerHTML to render the list
         dom.qbankSearchResultsContainer.classList.remove('hidden');
     }
 }
