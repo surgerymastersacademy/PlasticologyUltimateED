@@ -8,7 +8,7 @@
     * اختر "New deployment".
 3.  **إعدادات النشر:**
     * بجانب أيقونة الترس (Select type)، اختر "Web app".
-    * في خانة "Description"، يمكنك كتابة أي وصف (مثلاً "إصلاح حفظ تقدم الخطة").
+    * في خانة "Description"، يمكنك كتابة أي وصف (مثلاً "إضافة خاصية حذف الخطة").
     * في خانة "Execute as"، اتركها "Me".
     * **الأهم:** في خانة "Who has access"، غيرها من "Only myself" إلى **"Anyone"**.
     * اضغط على زر "Deploy".
@@ -100,6 +100,9 @@ function doPost(e) {
     } else if (eventType === 'activateStudyPlan') {
         if (!data.userId || !data.planId) return createErrorResponse("userId and planId are required for activation.");
         return handleActivateStudyPlan(ss, data);
+    } else if (eventType === 'deleteStudyPlan') { // NEW event type
+        if (!data.planId) return createErrorResponse("planId is required for deletion.");
+        return handleDeleteStudyPlan(ss, data);
     }
     else if (eventType === 'FinishQuiz') {
       var quizLogSheet = getOrCreateSheet(ss, QUIZ_LOG_SHEET_NAME, ["Timestamp", "UserID", "UserName", "EventType", "QuizTitle", "Score", "TotalQuestions", "Details"]);
@@ -237,6 +240,34 @@ function handleUpdateStudyPlan(ss, data) {
     return createErrorResponse("Failed to update study plan: " + error.toString());
   }
 }
+
+// NEW: Function to handle deleting a study plan
+function handleDeleteStudyPlan(ss, data) {
+    try {
+      var plannerSheet = ss.getSheetByName(STUDY_PLANNER_SHEET_NAME);
+      if (!plannerSheet) return createErrorResponse("Study_Planner sheet not found.");
+
+      var values = plannerSheet.getDataRange().getValues();
+      var headers = values[0];
+      var planIdCol = headers.indexOf("Plan_ID");
+
+      if (planIdCol === -1) {
+        return createErrorResponse("Plan_ID column not found in Study_Planner sheet.");
+      }
+
+      for (var i = values.length - 1; i > 0; i--) {
+        if (String(values[i][planIdCol]).trim() === String(data.planId).trim()) {
+          plannerSheet.deleteRow(i + 1);
+          return createJsonResponse({ success: true, message: "Plan deleted successfully." });
+        }
+      }
+      return createErrorResponse("Plan ID not found for deletion.");
+    } catch (error) {
+      Logger.log("handleDeleteStudyPlan Error: " + error.toString());
+      return createErrorResponse("Failed to delete study plan: " + error.toString());
+    }
+}
+
 
 function handleGetAllUserPlans(userId) {
   try {
@@ -532,7 +563,7 @@ function getLogsForUser(ss, userId) {
     var quizData = sheetToJSON(quizSheet);
     quizData.forEach(function(rowObj) {
       if (rowObj.UserID === userId) {
-        combinedLogs.push({ logId: new Date(rowObj.Timestamp).toISOString(), timestamp: rowObj.Timestamp, eventType: rowObj.EventType, title: rowObj.QuizTitle, score: rowObj.Score, total: rowObj.TotalQuestions, isReviewable: rowObj.Details && rowObj.Details.length > 2 });
+        combinedLogs.push({ logId: new Date(rowObj.Timestamp).toISOString(), timestamp: rowObj.Timestamp, eventType: rowObj.EventType, title: rowObj.QuizTitle, score: rowObj.Score, total: rowObj.TotalQuestions, isReviewable: rowObj.Details && rowObj.Details.length > 2, Details: rowObj.Details });
       }
     });
   }
