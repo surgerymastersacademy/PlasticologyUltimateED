@@ -246,6 +246,9 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.osceNextBtn.addEventListener('click', handleOsceNext);
     dom.oscePreviousBtn.addEventListener('click', handleOscePrevious);
     dom.osceNavigatorBtn.addEventListener('click', showOsceNavigator);
+    // --- أضف هذا السطر هنا ---
+    dom.toggleOsceOptionsBtn.addEventListener('click', () => dom.customOsceOptions.classList.toggle('visible'));
+    // -------------------------
     document.getElementById('select-all-chapters-osce').addEventListener('change', (e) => {
         dom.chapterSelectOsce.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
     });
@@ -292,3 +295,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initializeApp();
 });
+
