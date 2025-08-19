@@ -1,4 +1,4 @@
-// js/main.js (Corrected for All Filters & Browse Modes)
+// js/main.js (FINAL VERSION - With Theme & Animation Toggles)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -70,6 +70,52 @@ function populateAllFilters() {
 // MAIN APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', () => {
 
+    // --- NEW: Settings Toggles ---
+    const toggleThemeBtn = document.getElementById('toggle-theme-btn');
+    const toggleAnimationBtn = document.getElementById('toggle-animation-btn');
+    const loginCanvas = document.getElementById('login-canvas');
+    const htmlEl = document.documentElement;
+
+    function initializeSettings() {
+        // Theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        htmlEl.className = savedTheme;
+        toggleThemeBtn.className = savedTheme;
+
+        // Animation
+        const savedAnimation = localStorage.getItem('animation') || 'on';
+        if (savedAnimation === 'off') {
+            loginCanvas.style.display = 'none';
+            htmlEl.classList.add('animation-off');
+        } else {
+            loginCanvas.style.display = 'block';
+            htmlEl.classList.remove('animation-off');
+        }
+    }
+
+    toggleThemeBtn.addEventListener('click', () => {
+        if (htmlEl.classList.contains('light')) {
+            htmlEl.className = htmlEl.className.replace('light', 'dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            htmlEl.className = htmlEl.className.replace('dark', 'light');
+            localStorage.setItem('theme', 'light');
+        }
+    });
+
+    toggleAnimationBtn.addEventListener('click', () => {
+        if (htmlEl.classList.contains('animation-off')) {
+            htmlEl.classList.remove('animation-off');
+            loginCanvas.style.display = 'block';
+            localStorage.setItem('animation', 'on');
+        } else {
+            htmlEl.classList.add('animation-off');
+            loginCanvas.style.display = 'none';
+            localStorage.setItem('animation', 'off');
+        }
+    });
+    // --- END: Settings Toggles ---
+
     async function initializeApp() {
         dom.loginSubmitBtn.disabled = true;
         dom.loginSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Your Companion is on His way...';
@@ -103,6 +149,8 @@ document.addEventListener('DOMContentLoaded', () => {
             dom.loginError.classList.remove('hidden');
         }
     }
+
+    initializeSettings();
 
     // --- EVENT LISTENERS ---
     
@@ -198,14 +246,12 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.osceNextBtn.addEventListener('click', handleOsceNext);
     dom.oscePreviousBtn.addEventListener('click', handleOscePrevious);
     dom.osceNavigatorBtn.addEventListener('click', showOsceNavigator);
-    // START: Added Event Listeners for OSCE Select All
     document.getElementById('select-all-chapters-osce').addEventListener('change', (e) => {
         dom.chapterSelectOsce.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
     });
     document.getElementById('select-all-sources-osce').addEventListener('change', (e) => {
         dom.sourceSelectOsce.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
     });
-    // END: Added Event Listeners for OSCE Select All
     
     // Learning Mode Listeners
     dom.endLearningBtn.addEventListener('click', showLearningModeBrowseScreen);
