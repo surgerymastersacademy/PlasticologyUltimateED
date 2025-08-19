@@ -1,4 +1,4 @@
-// js/main.js (FINAL VERSION - With Theme & Animation Toggles)
+// js/main.js (FINAL VERSION - With Performance Insights & All Features)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -17,6 +17,8 @@ import { showLearningModeBrowseScreen, handleLearningSearch, handleLearningNext,
 import { showActivityLog, renderFilteredLog } from './features/activityLog.js';
 import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.js';
 import { showLeaderboardScreen } from './features/leaderboard.js';
+import { analyzePerformanceByChapter } from './features/performance.js';
+
 
 // SHARED & EXPORTED FUNCTIONS
 export function showMainMenuScreen() {
@@ -70,7 +72,6 @@ function populateAllFilters() {
 // MAIN APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- NEW: Settings Toggles ---
     const toggleThemeBtn = document.getElementById('toggle-theme-btn');
     const toggleAnimationBtn = document.getElementById('toggle-animation-btn');
     const loginCanvas = document.getElementById('login-canvas');
@@ -114,7 +115,6 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('animation', 'off');
         }
     });
-    // --- END: Settings Toggles ---
 
     async function initializeApp() {
         dom.loginSubmitBtn.disabled = true;
