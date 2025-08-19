@@ -101,6 +101,7 @@ function renderPlannerDashboard() {
                 <div class="flex gap-2">
                     ${!isActive ? `<button class="activate-plan-btn action-btn bg-green-500 hover:bg-green-600 text-white text-sm font-bold py-1 px-3 rounded" data-plan-id="${plan.Plan_ID}">Activate</button>` : ''}
                     <button class="view-plan-btn action-btn bg-slate-500 hover:bg-slate-600 text-white text-sm font-bold py-1 px-3 rounded" data-plan-id="${plan.Plan_ID}">View</button>
+                    <button class="delete-plan-btn action-btn bg-red-500 hover:bg-red-600 text-white text-sm font-bold py-1 px-3 rounded" data-plan-id="${plan.Plan_ID}" title="Delete Plan"><i class="fas fa-trash"></i></button>
                 </div>
             `;
             plansList.appendChild(planCard);
@@ -307,7 +308,7 @@ export async function handleCreatePlan() {
 }
 
 /**
- * Adds event listeners for the dashboard view (view/activate buttons).
+ * Adds event listeners for the dashboard view (view/activate/delete buttons).
  */
 function addDashboardEventListeners() {
     document.querySelectorAll('.view-plan-btn').forEach(btn => {
@@ -330,6 +331,33 @@ function addDashboardEventListeners() {
             } catch (error) {
                 console.error("Error activating plan:", error);
             }
+        });
+    });
+
+    // NEW: Event listener for delete button
+    document.querySelectorAll('.delete-plan-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const planId = e.currentTarget.dataset.planId;
+            ui.showConfirmationModal(
+                'Delete Plan?',
+                'Are you sure you want to permanently delete this study plan? This action cannot be undone.',
+                async () => {
+                    const payload = {
+                        eventType: 'deleteStudyPlan',
+                        planId: planId
+                    };
+                    try {
+                        await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+                        if (appState.activeStudyPlan && appState.activeStudyPlan.Plan_ID === planId) {
+                            appState.activeStudyPlan = null;
+                        }
+                        showStudyPlannerScreen(); // Refresh the whole view
+                    } catch (error) {
+                        console.error("Error deleting plan:", error);
+                        alert("Failed to delete the plan. Please try again.");
+                    }
+                }
+            );
         });
     });
 }
