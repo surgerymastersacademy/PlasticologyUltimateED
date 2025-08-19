@@ -131,21 +131,22 @@ function renderActivePlanView() {
 
             let tasksHtml = day.tasks.map((task, taskIndex) => {
                 let taskContentHtml = '';
-                // Check if the task is a lecture and has a link
                 if (task.type === 'lecture' && task.link) {
                     taskContentHtml = `<a href="${task.link}" target="_blank" class="text-blue-600 hover:underline">${task.name}</a>`;
                 } else {
-                    // Otherwise, just display the name as text
                     taskContentHtml = `<span>${task.name}</span>`;
                 }
                 
+                // --- FIX: HTML-encode the JSON string for the data attribute ---
+                const keywordsData = JSON.stringify(task.keywords || []).replace(/"/g, '&quot;');
+
                 return `
                 <li class="flex items-center justify-between p-2 rounded-md ${task.completed ? 'bg-green-100 text-slate-500 line-through' : 'bg-slate-50'}">
                     <div class="flex items-center">
                         <input type="checkbox" class="task-checkbox h-4 w-4 mr-3" data-day-index="${dayIndex}" data-task-index="${taskIndex}" ${task.completed ? 'checked' : ''}>
                         ${taskContentHtml}
                     </div>
-                    ${task.type === 'quiz' && !task.completed ? `<button class="start-planner-quiz-btn text-xs bg-blue-500 text-white py-1 px-2 rounded hover:bg-blue-600" data-keywords='${JSON.stringify(task.keywords || [])}' data-is-comprehensive="${task.isComprehensive || false}">Start Quiz</button>` : ''}
+                    ${task.type === 'quiz' && !task.completed ? `<button class="start-planner-quiz-btn text-xs bg-blue-500 text-white py-1 px-2 rounded hover:bg-blue-600" data-keywords="${keywordsData}" data-is-comprehensive="${task.isComprehensive || false}">Start Quiz</button>` : ''}
                 </li>
             `}).join('');
 
@@ -164,7 +165,7 @@ function generatePlanContent(startDateStr, endDateStr) {
     const startDate = new Date(startDateStr);
     const endDate = new Date(endDateStr);
     
-    // Flatten all lectures from the grouped structure
+    // Flatten all lectures from the grouped structure, ensuring we keep all data
     const allLectures = Object.values(appState.groupedLectures).flatMap(chapter => chapter.topics);
     
     // Reserve last 2 days for comprehensive exams
@@ -182,12 +183,11 @@ function generatePlanContent(startDateStr, endDateStr) {
         
         const assignedLectures = allLectures.splice(0, lecturesPerDay);
         if (assignedLectures.length > 0) {
-            // Create individual tasks for each lecture
             assignedLectures.forEach(lec => {
                 dayPlan.tasks.push({
                     type: 'lecture',
                     name: lec.name,
-                    link: lec.link,
+                    link: lec.link, // Ensure link is included
                     completed: false
                 });
             });
@@ -218,7 +218,7 @@ function generatePlanContent(startDateStr, endDateStr) {
             tasks: [{
                 type: 'quiz',
                 name: `Comprehensive Mock Exam ${2 - i}`,
-                keywords: [], // Empty keywords means all questions
+                keywords: [],
                 isComprehensive: true,
                 completed: false
             }]
