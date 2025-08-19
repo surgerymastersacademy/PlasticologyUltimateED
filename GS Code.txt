@@ -8,7 +8,7 @@
     * اختر "New deployment".
 3.  **إعدادات النشر:**
     * بجانب أيقونة الترس (Select type)، اختر "Web app".
-    * في خانة "Description"، يمكنك كتابة أي وصف (مثلاً "إصلاح خطأ برمجي").
+    * في خانة "Description"، يمكنك كتابة أي وصف (مثلاً "إصلاح حفظ تقدم الخطة").
     * في خانة "Execute as"، اتركها "Me".
     * **الأهم:** في خانة "Who has access"، غيرها من "Only myself" إلى **"Anyone"**.
     * اضغط على زر "Deploy".
@@ -24,7 +24,7 @@ var USERS_SHEET_NAME = "Users";
 var QUESTIONS_SHEET_NAME = "MCQ Bank";
 var LECTURES_SHEET_NAME = "Lectures Topics";
 var QUIZ_LOG_SHEET_NAME = "QuizLogs";
-var LECTURE_LOG_SHEET_NAME = "LectureLogs"; // Corrected Line
+var LECTURE_LOG_SHEET_NAME = "LectureLogs";
 var QUIZ_NOTES_SHEET_NAME = "UserQuizNotes";
 var LECTURE_NOTES_SHEET_NAME = "UserLectureNotes";
 var BOOKS_SHEET_NAME = "MCQBooks";
@@ -177,9 +177,6 @@ function doPost(e) {
 // ================ HANDLER FUNCTIONS (وظائف المعالجة) ===========
 // ===============================================================
 
-/**
- * Deactivates all existing plans for a given user.
- */
 function deactivateAllUserPlans(ss, userId) {
     try {
         var plannerSheet = ss.getSheetByName(STUDY_PLANNER_SHEET_NAME);
@@ -196,7 +193,7 @@ function deactivateAllUserPlans(ss, userId) {
         }
 
         for (var i = 1; i < values.length; i++) {
-            if (values[i][userIdCol] === userId) {
+            if (String(values[i][userIdCol]).trim() === String(userId).trim()) {
                 plannerSheet.getRange(i + 1, statusCol + 1).setValue('FALSE');
             }
         }
@@ -205,6 +202,41 @@ function deactivateAllUserPlans(ss, userId) {
     }
 }
 
+function handleUpdateStudyPlan(ss, data) {
+  Logger.log("Attempting to update plan ID: " + data.planId);
+  try {
+    var plannerSheet = getOrCreateSheet(ss, STUDY_PLANNER_SHEET_NAME, ["User_ID", "Plan_Name", "Plan_StartDate", "Plan_EndDate", "Study_Plan_JSON", "Plan_ID", "Plan_TimeStamp", "Plan_Status"]);
+    var values = plannerSheet.getDataRange().getValues();
+    var headers = values[0];
+    var planIdCol = headers.indexOf("Plan_ID");
+    var planJsonCol = headers.indexOf("Study_Plan_JSON");
+
+    if (planIdCol === -1 || planJsonCol === -1) {
+        Logger.log("Could not find Plan_ID or Study_Plan_JSON columns.");
+        return createErrorResponse("Sheet is missing required columns.");
+    }
+
+    var rowFound = -1;
+    for (var i = 1; i < values.length; i++) {
+      if (String(values[i][planIdCol]).trim() === String(data.planId).trim()) {
+        rowFound = i + 1;
+        break;
+      }
+    }
+
+    if (rowFound !== -1) {
+      Logger.log("Found plan in row " + rowFound + ". Updating now.");
+      plannerSheet.getRange(rowFound, planJsonCol + 1).setValue(JSON.stringify(data.studyPlan));
+      return createJsonResponse({ success: true, message: "Study plan updated." });
+    } else {
+      Logger.log("Plan ID not found: " + data.planId);
+      return createErrorResponse("Plan ID not found.");
+    }
+  } catch (error) {
+    Logger.log("handleUpdateStudyPlan Error: " + error.toString());
+    return createErrorResponse("Failed to update study plan: " + error.toString());
+  }
+}
 
 function handleGetAllUserPlans(userId) {
   try {
@@ -253,34 +285,6 @@ function handleCreateStudyPlan(ss, data) {
     }
 }
 
-function handleUpdateStudyPlan(ss, data) {
-  try {
-    var plannerSheet = getOrCreateSheet(ss, STUDY_PLANNER_SHEET_NAME, ["User_ID", "Plan_Name", "Plan_StartDate", "Plan_EndDate", "Study_Plan_JSON", "Plan_ID", "Plan_TimeStamp", "Plan_Status"]);
-    var values = plannerSheet.getDataRange().getValues();
-    var headers = values[0];
-    var planIdCol = headers.indexOf("Plan_ID");
-    var planJsonCol = headers.indexOf("Study_Plan_JSON");
-
-    var rowFound = -1;
-    for (var i = 1; i < values.length; i++) {
-      if (values[i][planIdCol] === data.planId) {
-        rowFound = i + 1;
-        break;
-      }
-    }
-
-    if (rowFound !== -1) {
-      plannerSheet.getRange(rowFound, planJsonCol + 1).setValue(JSON.stringify(data.studyPlan));
-      return createJsonResponse({ success: true, message: "Study plan updated." });
-    } else {
-      return createErrorResponse("Plan ID not found.");
-    }
-  } catch (error) {
-    Logger.log("handleUpdateStudyPlan Error: " + error.toString());
-    return createErrorResponse("Failed to update study plan: " + error.toString());
-  }
-}
-
 function handleActivateStudyPlan(ss, data) {
     try {
         deactivateAllUserPlans(ss, data.userId);
@@ -291,7 +295,7 @@ function handleActivateStudyPlan(ss, data) {
         var statusCol = headers.indexOf("Plan_Status");
         var rowFound = -1;
         for (var i = 1; i < values.length; i++) {
-          if (values[i][planIdCol] === data.planId) {
+          if (String(values[i][planIdCol]).trim() === String(data.planId).trim()) {
             rowFound = i + 1;
             break;
           }
