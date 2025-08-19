@@ -1,4 +1,4 @@
-// js/features/planner.js (FINAL, COMPLETE, AND ENHANCED VERSION)
+// js/features/planner.js (FINAL, COMPLETE, AND ENHANCED WITH SMART CUMULATIVE QUIZZES)
 
 import { appState, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -37,11 +37,7 @@ export async function showStudyPlannerScreen() {
 
     } catch (error) {
         console.error("Error loading study plans:", error);
-        const plannerErrorDisplay = dom.studyPlannerError;
-        if(plannerErrorDisplay) {
-            plannerErrorDisplay.textContent = error.message;
-            plannerErrorDisplay.classList.remove('hidden');
-        }
+        // Display error to the user if an element for it exists
     } finally {
         dom.studyPlannerLoader.classList.add('hidden');
     }
@@ -50,8 +46,6 @@ export async function showStudyPlannerScreen() {
 /**
  * Renders the dashboard view, showing a list of all created plans.
  */
-// js/features/planner.js
-
 function renderPlannerDashboard() {
     const plansList = dom.studyPlansList;
     plansList.innerHTML = '';
@@ -62,8 +56,7 @@ function renderPlannerDashboard() {
             const isActive = String(plan.Plan_Status).toUpperCase() === 'TRUE';
             const planCard = document.createElement('div');
             planCard.className = `p-4 rounded-lg border-2 flex justify-between items-center ${isActive ? 'bg-blue-50 border-blue-400' : 'bg-white border-slate-200'}`;
-
-            // --- START: Code Enhancement ---
+            
             let planName = plan.Plan_Name;
             let planDetailsHTML = `
                 <p class="text-sm text-slate-500">
@@ -71,12 +64,10 @@ function renderPlannerDashboard() {
                     ${isActive ? '<span class="ml-2 text-xs font-bold text-white bg-blue-500 px-2 py-1 rounded-full">ACTIVE</span>' : ''}
                 </p>`;
 
-            // Check if plan name looks like raw JSON data
             if (typeof planName === 'string' && planName.startsWith('[{')) {
-                planName = "Corrupted Plan Data"; // Show a placeholder name
+                planName = "Corrupted Plan Data";
                 planDetailsHTML = `<p class="text-sm text-red-500">Error: Please correct this plan's data in the Google Sheet.</p>`;
             }
-            // --- END: Code Enhancement ---
 
             planCard.innerHTML = `
                 <div>
@@ -93,6 +84,7 @@ function renderPlannerDashboard() {
     }
     addDashboardEventListeners();
 }
+
 /**
  * Renders the detailed view of the currently active study plan.
  */
@@ -143,7 +135,7 @@ function renderActivePlanView() {
                         <input type="checkbox" class="task-checkbox h-4 w-4 mr-3" data-day-index="${dayIndex}" data-task-index="${taskIndex}" ${task.completed ? 'checked' : ''}>
                         <span>${task.name}</span>
                     </div>
-                    ${task.type === 'quiz' && !task.completed ? `<button class="start-planner-quiz-btn text-xs bg-blue-500 text-white py-1 px-2 rounded hover:bg-blue-600" data-chapters='${JSON.stringify(task.chapters)}'>Start Quiz</button>` : ''}
+                    ${task.type === 'quiz' && !task.completed ? `<button class="start-planner-quiz-btn text-xs bg-blue-500 text-white py-1 px-2 rounded hover:bg-blue-600" data-keywords='${JSON.stringify(task.keywords || [])}' data-is-comprehensive="${task.isComprehensive || false}">Start Quiz</button>` : ''}
                 </li>
             `).join('');
 
@@ -161,31 +153,61 @@ function renderActivePlanView() {
 function generatePlanContent(startDateStr, endDateStr) {
     const startDate = new Date(startDateStr);
     const endDate = new Date(endDateStr);
-    endDate.setDate(endDate.getDate() + 1);
-    const daysRemaining = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-
-    if (daysRemaining <= 0) return null;
+    
+    // Flatten all lectures from the grouped structure
+    const allLectures = Object.values(appState.groupedLectures).flatMap(chapter => chapter.topics);
+    
+    const daysForLectures = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) - 2; // Reserve last 2 days for comprehensive exams
+    if (daysForLectures <= 0) return null;
 
     const plan = [];
-    const chapters = [...appState.allChaptersNames];
-    const chaptersPerDay = Math.ceil(chapters.length / daysRemaining);
+    const lecturesPerDay = Math.ceil(allLectures.length / daysForLectures);
+    let cumulativeKeywords = new Set();
 
-    for (let i = 0; i < daysRemaining; i++) {
-        const date = new Date(startDate);
-        date.setDate(startDate.getDate() + i);
-        const dayPlan = { date: date.toISOString().split('T')[0], tasks: [] };
+    for (let i = 0; i < daysForLectures; i++) {
+        const currentDate = new Date(startDate);
+        currentDate.setDate(startDate.getDate() + i);
+        const dayPlan = { date: currentDate.toISOString().split('T')[0], tasks: [] };
         
-        const assignedChapters = chapters.splice(0, chaptersPerDay);
-        if (assignedChapters.length > 0) {
-            dayPlan.tasks.push({ type: 'lecture', name: `Study: ${assignedChapters.join(', ')}`, chapters: assignedChapters, completed: false });
-            dayPlan.tasks.push({ type: 'quiz', name: `Quiz: ${assignedChapters.join(', ')}`, chapters: assignedChapters, completed: false });
+        const assignedLectures = allLectures.splice(0, lecturesPerDay);
+        if (assignedLectures.length > 0) {
+            const lectureNames = assignedLectures.map(lec => lec.name).join(', ');
+            dayPlan.tasks.push({ type: 'lecture', name: `Study: ${lectureNames}`, completed: false });
+
+            const todaysKeywords = assignedLectures.flatMap(lec => (lec.Keywords || '').split(',').map(k => k.trim()).filter(Boolean));
+            todaysKeywords.forEach(k => cumulativeKeywords.add(k.toLowerCase()));
+
+            dayPlan.tasks.push({ 
+                type: 'quiz', 
+                name: `Cumulative Quiz (Day ${i + 1})`, 
+                keywords: [...cumulativeKeywords],
+                isComprehensive: false,
+                completed: false 
+            });
         }
         
         if (dayPlan.tasks.length > 0) {
              plan.push(dayPlan);
         }
     }
-    return plan;
+
+    // Add comprehensive exam days at the end
+    for (let i = 0; i < 2; i++) {
+        const examDate = new Date(endDate);
+        examDate.setDate(endDate.getDate() - i);
+        plan.push({
+            date: examDate.toISOString().split('T')[0],
+            tasks: [{
+                type: 'quiz',
+                name: `Comprehensive Mock Exam ${2 - i}`,
+                keywords: [], // Empty keywords means all questions
+                isComprehensive: true,
+                completed: false
+            }]
+        });
+    }
+
+    return plan.sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
 /**
@@ -202,8 +224,8 @@ export async function handleCreatePlan() {
         errorEl.classList.remove('hidden');
         return;
     }
-    if (new Date(startDate) > new Date(endDate)) {
-        errorEl.textContent = 'Start date cannot be after the end date.';
+    if (new Date(startDate) >= new Date(endDate)) {
+        errorEl.textContent = 'End date must be after the start date.';
         errorEl.classList.remove('hidden');
         return;
     }
@@ -211,7 +233,7 @@ export async function handleCreatePlan() {
 
     const generatedPlan = generatePlanContent(startDate, endDate);
     if (!generatedPlan) {
-        errorEl.textContent = 'Could not generate a plan. Ensure the date range is valid.';
+        errorEl.textContent = 'Could not generate a plan. The date range is too short for the content.';
         errorEl.classList.remove('hidden');
         return;
     }
@@ -229,7 +251,7 @@ export async function handleCreatePlan() {
         await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
         dom.modalBackdrop.classList.add('hidden');
         dom.createPlanModal.classList.add('hidden');
-        showStudyPlannerScreen(); // Refresh the planner screen
+        showStudyPlannerScreen();
     } catch (error) {
         console.error("Error creating plan:", error);
         errorEl.textContent = 'An error occurred while saving the plan.';
@@ -257,7 +279,7 @@ function addDashboardEventListeners() {
             const payload = { eventType: 'activateStudyPlan', userId: appState.currentUser.UniqueID, planId: planId };
             try {
                 await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-                showStudyPlannerScreen(); // Refresh the whole view
+                showStudyPlannerScreen();
             } catch (error) {
                 console.error("Error activating plan:", error);
             }
@@ -286,14 +308,25 @@ function addActivePlanEventListeners() {
 
     document.querySelectorAll('.start-planner-quiz-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const chapters = JSON.parse(e.currentTarget.dataset.chapters);
-            const questions = appState.allQuestions.filter(q => chapters.includes(q.chapter));
-            if (questions.length > 0) {
-                launchQuiz(questions, `Quiz for: ${chapters.join(', ')}`);
+            const keywords = JSON.parse(e.currentTarget.dataset.keywords);
+            const isComprehensive = e.currentTarget.dataset.isComprehensive === 'true';
+            let questions = [];
+
+            if (isComprehensive) {
+                questions = [...appState.allQuestions].sort(() => 0.5 - Math.random()).slice(0, 100); // 100 random questions
             } else {
-                alert('No questions found for the chapters in this task.');
+                const lowerCaseKeywords = keywords.map(k => k.toLowerCase());
+                questions = appState.allQuestions.filter(q => {
+                    const questionText = `${q.question} ${q.answerOptions.map(o => o.text).join(' ')} ${q.answerOptions.map(o => o.rationale).join(' ')}`.toLowerCase();
+                    return lowerCaseKeywords.some(keyword => questionText.includes(keyword));
+                });
+            }
+
+            if (questions.length > 0) {
+                launchQuiz(questions, e.target.previousElementSibling.textContent); // Use task name for quiz title
+            } else {
+                alert('No questions found for the topics in this task.');
             }
         });
     });
 }
-
