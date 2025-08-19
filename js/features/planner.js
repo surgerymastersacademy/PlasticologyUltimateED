@@ -129,15 +129,25 @@ function renderActivePlanView() {
             let dateDisplay = date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
             if (isToday) dateDisplay += ' (Today)';
 
-            let tasksHtml = day.tasks.map((task, taskIndex) => `
+            let tasksHtml = day.tasks.map((task, taskIndex) => {
+                let taskContentHtml = '';
+                // Check if the task is a lecture and has a link
+                if (task.type === 'lecture' && task.link) {
+                    taskContentHtml = `<a href="${task.link}" target="_blank" class="text-blue-600 hover:underline">${task.name}</a>`;
+                } else {
+                    // Otherwise, just display the name as text
+                    taskContentHtml = `<span>${task.name}</span>`;
+                }
+                
+                return `
                 <li class="flex items-center justify-between p-2 rounded-md ${task.completed ? 'bg-green-100 text-slate-500 line-through' : 'bg-slate-50'}">
                     <div class="flex items-center">
                         <input type="checkbox" class="task-checkbox h-4 w-4 mr-3" data-day-index="${dayIndex}" data-task-index="${taskIndex}" ${task.completed ? 'checked' : ''}>
-                        <span>${task.name}</span>
+                        ${taskContentHtml}
                     </div>
                     ${task.type === 'quiz' && !task.completed ? `<button class="start-planner-quiz-btn text-xs bg-blue-500 text-white py-1 px-2 rounded hover:bg-blue-600" data-keywords='${JSON.stringify(task.keywords || [])}' data-is-comprehensive="${task.isComprehensive || false}">Start Quiz</button>` : ''}
                 </li>
-            `).join('');
+            `}).join('');
 
             dayDiv.innerHTML = `<h4 class="font-bold text-lg mb-2 ${isToday ? 'text-blue-600': ''}">${dateDisplay}</h4><ul class="space-y-2">${tasksHtml}</ul>`;
             dom.studyPlanDaysContainer.appendChild(dayDiv);
@@ -154,11 +164,11 @@ function generatePlanContent(startDateStr, endDateStr) {
     const startDate = new Date(startDateStr);
     const endDate = new Date(endDateStr);
     
-    const allLectures = Object.values(appState.groupedLectures).flatMap(chapter => 
-        chapter.topics.map(topic => ({ ...topic, Chapter: chapter.name })) // Add chapter name to each lecture
-    );
+    // Flatten all lectures from the grouped structure
+    const allLectures = Object.values(appState.groupedLectures).flatMap(chapter => chapter.topics);
     
-    const daysForLectures = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) - 2;
+    // Reserve last 2 days for comprehensive exams
+    const daysForLectures = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) - 2; 
     if (daysForLectures <= 0) return null;
 
     const plan = [];
@@ -172,8 +182,15 @@ function generatePlanContent(startDateStr, endDateStr) {
         
         const assignedLectures = allLectures.splice(0, lecturesPerDay);
         if (assignedLectures.length > 0) {
-            const lectureNames = assignedLectures.map(lec => lec.name).join(', ');
-            dayPlan.tasks.push({ type: 'lecture', name: `Study: ${lectureNames}`, completed: false });
+            // Create individual tasks for each lecture
+            assignedLectures.forEach(lec => {
+                dayPlan.tasks.push({
+                    type: 'lecture',
+                    name: lec.name,
+                    link: lec.link,
+                    completed: false
+                });
+            });
 
             const todaysKeywords = assignedLectures.flatMap(lec => (lec.Keywords || '').split(',').map(k => k.trim().toLowerCase()).filter(Boolean));
             todaysKeywords.forEach(k => cumulativeKeywords.add(k));
@@ -192,6 +209,7 @@ function generatePlanContent(startDateStr, endDateStr) {
         }
     }
 
+    // Add comprehensive exam days at the end
     for (let i = 1; i >= 0; i--) {
         const examDate = new Date(endDate);
         examDate.setDate(endDate.getDate() - i);
@@ -200,7 +218,7 @@ function generatePlanContent(startDateStr, endDateStr) {
             tasks: [{
                 type: 'quiz',
                 name: `Comprehensive Mock Exam ${2 - i}`,
-                keywords: [],
+                keywords: [], // Empty keywords means all questions
                 isComprehensive: true,
                 completed: false
             }]
@@ -308,37 +326,30 @@ function addActivePlanEventListeners() {
 
     document.querySelectorAll('.start-planner-quiz-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            // --- START: CORRECTED LOGIC ---
             const keywords = JSON.parse(e.currentTarget.dataset.keywords);
             const isComprehensive = e.currentTarget.dataset.isComprehensive === 'true';
             let questions = [];
 
             if (isComprehensive) {
-                // For comprehensive exams, take 100 random questions from the entire bank
                 questions = [...appState.allQuestions].sort(() => 0.5 - Math.random()).slice(0, 100);
             } else {
-                // For cumulative quizzes, filter by keywords
                 const lowerCaseKeywords = keywords.map(k => k.toLowerCase());
                 questions = appState.allQuestions.filter(q => {
-                    // Create a searchable text block for each question
                     const questionText = `
                         ${q.question} 
                         ${q.answerOptions.map(o => o.text).join(' ')} 
                         ${q.answerOptions.map(o => o.rationale).join(' ')}
                     `.toLowerCase();
-                    // Check if any keyword is present in the text block
                     return lowerCaseKeywords.some(keyword => questionText.includes(keyword));
                 });
             }
 
             if (questions.length > 0) {
-                // Use the task's name for the quiz title
                 const quizTitle = e.target.closest('li').querySelector('span').textContent;
                 launchQuiz(questions, quizTitle);
             } else {
                 alert('No questions found for the topics in this task.');
             }
-            // --- END: CORRECTED LOGIC ---
         });
     });
 }
