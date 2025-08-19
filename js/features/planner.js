@@ -154,10 +154,11 @@ function generatePlanContent(startDateStr, endDateStr) {
     const startDate = new Date(startDateStr);
     const endDate = new Date(endDateStr);
     
-    // Flatten all lectures from the grouped structure
-    const allLectures = Object.values(appState.groupedLectures).flatMap(chapter => chapter.topics);
+    const allLectures = Object.values(appState.groupedLectures).flatMap(chapter => 
+        chapter.topics.map(topic => ({ ...topic, Chapter: chapter.name })) // Add chapter name to each lecture
+    );
     
-    const daysForLectures = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) - 2; // Reserve last 2 days for comprehensive exams
+    const daysForLectures = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) - 2;
     if (daysForLectures <= 0) return null;
 
     const plan = [];
@@ -174,8 +175,8 @@ function generatePlanContent(startDateStr, endDateStr) {
             const lectureNames = assignedLectures.map(lec => lec.name).join(', ');
             dayPlan.tasks.push({ type: 'lecture', name: `Study: ${lectureNames}`, completed: false });
 
-            const todaysKeywords = assignedLectures.flatMap(lec => (lec.Keywords || '').split(',').map(k => k.trim()).filter(Boolean));
-            todaysKeywords.forEach(k => cumulativeKeywords.add(k.toLowerCase()));
+            const todaysKeywords = assignedLectures.flatMap(lec => (lec.Keywords || '').split(',').map(k => k.trim().toLowerCase()).filter(Boolean));
+            todaysKeywords.forEach(k => cumulativeKeywords.add(k));
 
             dayPlan.tasks.push({ 
                 type: 'quiz', 
@@ -191,8 +192,7 @@ function generatePlanContent(startDateStr, endDateStr) {
         }
     }
 
-    // Add comprehensive exam days at the end
-    for (let i = 0; i < 2; i++) {
+    for (let i = 1; i >= 0; i--) {
         const examDate = new Date(endDate);
         examDate.setDate(endDate.getDate() - i);
         plan.push({
@@ -200,7 +200,7 @@ function generatePlanContent(startDateStr, endDateStr) {
             tasks: [{
                 type: 'quiz',
                 name: `Comprehensive Mock Exam ${2 - i}`,
-                keywords: [], // Empty keywords means all questions
+                keywords: [],
                 isComprehensive: true,
                 completed: false
             }]
@@ -308,25 +308,37 @@ function addActivePlanEventListeners() {
 
     document.querySelectorAll('.start-planner-quiz-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
+            // --- START: CORRECTED LOGIC ---
             const keywords = JSON.parse(e.currentTarget.dataset.keywords);
             const isComprehensive = e.currentTarget.dataset.isComprehensive === 'true';
             let questions = [];
 
             if (isComprehensive) {
-                questions = [...appState.allQuestions].sort(() => 0.5 - Math.random()).slice(0, 100); // 100 random questions
+                // For comprehensive exams, take 100 random questions from the entire bank
+                questions = [...appState.allQuestions].sort(() => 0.5 - Math.random()).slice(0, 100);
             } else {
+                // For cumulative quizzes, filter by keywords
                 const lowerCaseKeywords = keywords.map(k => k.toLowerCase());
                 questions = appState.allQuestions.filter(q => {
-                    const questionText = `${q.question} ${q.answerOptions.map(o => o.text).join(' ')} ${q.answerOptions.map(o => o.rationale).join(' ')}`.toLowerCase();
+                    // Create a searchable text block for each question
+                    const questionText = `
+                        ${q.question} 
+                        ${q.answerOptions.map(o => o.text).join(' ')} 
+                        ${q.answerOptions.map(o => o.rationale).join(' ')}
+                    `.toLowerCase();
+                    // Check if any keyword is present in the text block
                     return lowerCaseKeywords.some(keyword => questionText.includes(keyword));
                 });
             }
 
             if (questions.length > 0) {
-                launchQuiz(questions, e.target.previousElementSibling.textContent); // Use task name for quiz title
+                // Use the task's name for the quiz title
+                const quizTitle = e.target.closest('li').querySelector('span').textContent;
+                launchQuiz(questions, quizTitle);
             } else {
                 alert('No questions found for the topics in this task.');
             }
+            // --- END: CORRECTED LOGIC ---
         });
     });
 }
