@@ -1,10 +1,11 @@
-// js/features/planner.js (FINAL, COMPLETE, AND ENHANCED WITH SMART CUMULATIVE QUIZZES)
+// js/features/planner.js (FINAL, ADVANCED VERSION WITH LECTURE-BASED & CUMULATIVE QUIZZES)
 
 import { appState, API_URL } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
 import { calculateDaysLeft } from '../utils.js';
 import { launchQuiz } from './quiz.js';
+import { analyzePerformanceByChapter } from './performance.js';
 
 /**
  * Main function to show the study planner screen. It decides whether to show the dashboard or the active plan.
@@ -15,6 +16,7 @@ export async function showStudyPlannerScreen() {
     dom.studyPlannerLoader.classList.remove('hidden');
     dom.plannerDashboard.classList.add('hidden');
     dom.activePlanView.classList.add('hidden');
+    dom.performanceInsightsContainer.classList.add('hidden'); // Hide insights initially
 
     try {
         const response = await fetch(`${API_URL}?request=getAllUserPlans&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
@@ -24,8 +26,10 @@ export async function showStudyPlannerScreen() {
 
         appState.studyPlans = data.plans || [];
         appState.activeStudyPlan = appState.studyPlans.find(p => String(p.Plan_Status).toUpperCase() === 'TRUE') || null;
-
+        
+        renderPerformanceInsights(); // Attempt to render insights
         renderPlannerDashboard();
+
         if (appState.activeStudyPlan) {
             renderActivePlanView();
             dom.plannerDashboard.classList.add('hidden');
@@ -37,11 +41,31 @@ export async function showStudyPlannerScreen() {
 
     } catch (error) {
         console.error("Error loading study plans:", error);
-        // Display error to the user if an element for it exists
     } finally {
         dom.studyPlannerLoader.classList.add('hidden');
     }
 }
+
+/**
+ * Renders the performance insights section based on user's activity log.
+ */
+function renderPerformanceInsights() {
+    const performance = analyzePerformanceByChapter();
+    if (performance && (performance.strengths.length > 0 || performance.weaknesses.length > 0)) {
+        dom.strengthsList.innerHTML = performance.strengths.length > 0 
+            ? performance.strengths.map(s => `<li>${s}</li>`).join('') 
+            : '<li>Keep practicing to build your strengths!</li>';
+        
+        dom.weaknessesList.innerHTML = performance.weaknesses.length > 0 
+            ? performance.weaknesses.map(w => `<li>${w}</li>`).join('')
+            : '<li>No specific weaknesses found. Great job!</li>';
+
+        dom.performanceInsightsContainer.classList.remove('hidden');
+    } else {
+        dom.performanceInsightsContainer.classList.add('hidden');
+    }
+}
+
 
 /**
  * Renders the dashboard view, showing a list of all created plans.
@@ -90,11 +114,7 @@ function renderPlannerDashboard() {
  */
 function renderActivePlanView() {
     const plan = appState.activeStudyPlan;
-    if (!plan) {
-        dom.activePlanView.classList.add('hidden');
-        dom.plannerDashboard.classList.remove('hidden');
-        return;
-    }
+    if (!plan) return;
 
     dom.activePlanName.textContent = plan.Plan_Name;
     const endDate = new Date(plan.Plan_EndDate);
@@ -158,15 +178,19 @@ function renderActivePlanView() {
 }
 
 /**
- * Generates the daily tasks for a new plan based on date range and content.
+ * Generates the daily tasks for a new plan with the new smart quiz logic.
  */
 function generatePlanContent(startDateStr, endDateStr) {
     const startDate = new Date(startDateStr);
     const endDate = new Date(endDateStr);
+    const CUMULATIVE_QUIZ_INTERVAL = 3; // Add a cumulative quiz every 3 days
     
     const allLectures = Object.values(appState.groupedLectures).flatMap(chapter => chapter.topics);
     
-    const daysForLectures = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) - 2; 
+    const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    const daysForComprehensive = 2;
+    const daysForLectures = totalDays - daysForComprehensive;
+
     if (daysForLectures <= 0) return null;
 
     const plan = [];
@@ -181,24 +205,32 @@ function generatePlanContent(startDateStr, endDateStr) {
         const assignedLectures = allLectures.splice(0, lecturesPerDay);
         if (assignedLectures.length > 0) {
             assignedLectures.forEach(lec => {
-                dayPlan.tasks.push({
-                    type: 'lecture',
-                    name: lec.name,
-                    link: lec.link,
-                    completed: false
-                });
+                dayPlan.tasks.push({ type: 'lecture', name: lec.name, link: lec.link, completed: false });
             });
 
-            const todaysKeywords = assignedLectures.flatMap(lec => (lec.Keywords || '').split(',').map(k => k.trim().toLowerCase()).filter(Boolean));
+            const todaysKeywords = new Set(assignedLectures.flatMap(lec => (lec.Keywords || '').split(',').map(k => k.trim().toLowerCase()).filter(Boolean)));
+            
+            if (todaysKeywords.size > 0) {
+                dayPlan.tasks.push({ 
+                    type: 'quiz', 
+                    name: `Daily Quiz (Day ${i + 1})`, 
+                    keywords: [...todaysKeywords],
+                    isComprehensive: false,
+                    completed: false 
+                });
+            }
+
             todaysKeywords.forEach(k => cumulativeKeywords.add(k));
 
-            dayPlan.tasks.push({ 
-                type: 'quiz', 
-                name: `Cumulative Quiz (Day ${i + 1})`, 
-                keywords: [...cumulativeKeywords],
-                isComprehensive: false,
-                completed: false 
-            });
+            if ((i + 1) % CUMULATIVE_QUIZ_INTERVAL === 0 || i === daysForLectures - 1) {
+                 dayPlan.tasks.push({ 
+                    type: 'quiz', 
+                    name: `Cumulative Review`, 
+                    keywords: [...cumulativeKeywords],
+                    isComprehensive: false,
+                    completed: false 
+                });
+            }
         }
         
         if (dayPlan.tasks.length > 0) {
@@ -223,6 +255,7 @@ function generatePlanContent(startDateStr, endDateStr) {
 
     return plan.sort((a, b) => new Date(a.date) - new Date(b.date));
 }
+
 
 /**
  * Handles the creation of a new plan from the modal.
