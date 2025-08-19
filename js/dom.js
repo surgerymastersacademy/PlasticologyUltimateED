@@ -230,7 +230,6 @@ export const studyPlannerBtn = document.getElementById('study-planner-btn');
 export const studyPlannerContainer = document.getElementById('study-planner-container');
 export const studyPlannerBackBtn = document.getElementById('study-planner-back-btn');
 export const studyPlannerLoader = document.getElementById('study-planner-loader');
-// --- NEW ELEMENTS FOR MULTI-PLANNER ---
 export const plannerDashboard = document.getElementById('planner-dashboard');
 export const studyPlansList = document.getElementById('study-plans-list');
 export const showCreatePlanModalBtn = document.getElementById('show-create-plan-modal-btn');
@@ -249,3 +248,8 @@ export const newPlanEndDate = document.getElementById('new-plan-end-date');
 export const createPlanError = document.getElementById('create-plan-error');
 export const cancelCreatePlanBtn = document.getElementById('cancel-create-plan-btn');
 export const confirmCreatePlanBtn = document.getElementById('confirm-create-plan-btn');
+
+// --- NEW ELEMENTS FOR PERFORMANCE INSIGHTS ---
+export const performanceInsightsContainer = document.getElementById('performance-insights-container');
+export const strengthsList = document.getElementById('strengths-list');
+export const weaknessesList = document.getElementById('weaknesses-list');
