@@ -137,7 +137,6 @@ function renderActivePlanView() {
                     taskContentHtml = `<span>${task.name}</span>`;
                 }
                 
-                // --- FIX: HTML-encode the JSON string for the data attribute ---
                 const keywordsData = JSON.stringify(task.keywords || []).replace(/"/g, '&quot;');
 
                 return `
@@ -165,10 +164,8 @@ function generatePlanContent(startDateStr, endDateStr) {
     const startDate = new Date(startDateStr);
     const endDate = new Date(endDateStr);
     
-    // Flatten all lectures from the grouped structure, ensuring we keep all data
     const allLectures = Object.values(appState.groupedLectures).flatMap(chapter => chapter.topics);
     
-    // Reserve last 2 days for comprehensive exams
     const daysForLectures = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) - 2; 
     if (daysForLectures <= 0) return null;
 
@@ -187,7 +184,7 @@ function generatePlanContent(startDateStr, endDateStr) {
                 dayPlan.tasks.push({
                     type: 'lecture',
                     name: lec.name,
-                    link: lec.link, // Ensure link is included
+                    link: lec.link,
                     completed: false
                 });
             });
@@ -209,7 +206,6 @@ function generatePlanContent(startDateStr, endDateStr) {
         }
     }
 
-    // Add comprehensive exam days at the end
     for (let i = 1; i >= 0; i--) {
         const examDate = new Date(endDate);
         examDate.setDate(endDate.getDate() - i);
@@ -326,7 +322,8 @@ function addActivePlanEventListeners() {
 
     document.querySelectorAll('.start-planner-quiz-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const keywords = JSON.parse(e.currentTarget.dataset.keywords);
+            const keywordsString = e.currentTarget.dataset.keywords.replace(/&quot;/g, '"');
+            const keywords = JSON.parse(keywordsString);
             const isComprehensive = e.currentTarget.dataset.isComprehensive === 'true';
             let questions = [];
 
@@ -345,7 +342,7 @@ function addActivePlanEventListeners() {
             }
 
             if (questions.length > 0) {
-                const quizTitle = e.target.closest('li').querySelector('span').textContent;
+                const quizTitle = e.target.closest('li').querySelector('span, a').textContent;
                 launchQuiz(questions, quizTitle);
             } else {
                 alert('No questions found for the topics in this task.');
