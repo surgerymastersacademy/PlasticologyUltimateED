@@ -45,7 +45,8 @@ export function groupLecturesByChapter(lectureData) {
             chapters[chapterName].topics.push({
                 id: row.UniqueID,
                 name: row.LectureName,
-                link: row.LectureURL
+                link: row.LectureURL,
+                Keywords: row.Keywords // <-- THE FIX: Ensure Keywords are passed through
             });
         }
         if (row['Mock Name'] && row['Mock Link'] && !chapters[chapterName].mock) { // Ensure both name and link exist
