@@ -11,6 +11,10 @@
     --input-bg: #ffffff;
     --input-border: #d1d5db;
     --main-app-bg: white;
+    --question-text-color: #1e293b; /* Color for question text */
+    --answer-btn-bg: #f3f4f6; /* bg-slate-100 */
+    --answer-btn-text: #374151; /* text-gray-700 */
+    --answer-btn-hover-bg: #e5e7eb; /* hover:bg-slate-200 */
 }
 
 html.dark {
@@ -23,6 +27,10 @@ html.dark {
     --input-bg: #334155; /* slate-700 */
     --input-border: #475569; /* slate-600 */
     --main-app-bg: #1e293b; /* slate-800 */
+    --question-text-color: #f1f5f9; /* Color for question text in dark mode */
+    --answer-btn-bg: #334155; /* slate-700 */
+    --answer-btn-text: #f1f5f9; /* slate-100 */
+    --answer-btn-hover-bg: #475569; /* hover:bg-slate-600 */
 }
 
 
@@ -205,8 +213,8 @@ details[open] > summary .fa-chevron-down {
 /* --- NEW: Modern Login Page & Settings Enhancements --- */
 #settings-container {
     position: fixed;
-    top: 1.5rem;
-    right: 1.5rem;
+    top: 1rem;
+    right: 1rem;
     display: flex;
     gap: 0.5rem;
     background-color: var(--card-bg-color);
@@ -218,6 +226,17 @@ details[open] > summary .fa-chevron-down {
     -webkit-backdrop-filter: blur(10px);
     z-index: 100;
 }
+
+/* Mobile view fix for settings container */
+@media (max-width: 640px) {
+    #settings-container {
+        top: auto;
+        bottom: 1rem;
+        right: 1rem;
+        left: auto;
+    }
+}
+
 
 #settings-container button {
     width: 2.5rem;
@@ -239,8 +258,16 @@ details[open] > summary .fa-chevron-down {
     background-color: rgba(128, 128, 128, 0.1);
 }
 
-.light .moon-icon, .dark .sun-icon { display: none; }
-html:not(.animation-off) .animation-off-icon, .animation-off .animation-on-icon { display: none; }
+/* Corrected icon visibility */
+html.light .moon-icon { display: block; }
+html.light .sun-icon { display: none; }
+html.dark .sun-icon { display: block; }
+html.dark .moon-icon { display: none; }
+
+html:not(.animation-off) .animation-off-icon { display: block; }
+html:not(.animation-off) .animation-on-icon { display: none; }
+html.animation-off .animation-on-icon { display: block; }
+html.animation-off .animation-off-icon { display: none; }
 
 
 .login-card {
@@ -263,6 +290,46 @@ html:not(.animation-off) .animation-off-icon, .animation-off .animation-on-icon 
 .login-card .input-with-icon::placeholder {
     color: var(--text-color-secondary);
     transition: color 0.3s ease;
+}
+
+/* Dark Mode Quiz Question Fix */
+#question-text {
+    color: var(--question-text-color);
+}
+.answer-btn {
+    background-color: var(--answer-btn-bg);
+    color: var(--answer-btn-text);
+}
+.answer-btn:hover {
+    background-color: var(--answer-btn-hover-bg);
+}
+
+/* Performance Insights Accordion */
+.insights-details {
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0; /* slate-200 */
+}
+.insights-summary {
+    padding: 1rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    color: #334155; /* slate-700 */
+}
+.insights-summary::-webkit-details-marker {
+    display: none;
+}
+.insights-summary .fa-chevron-down {
+    transition: transform 0.3s ease;
+}
+.insights-details[open] > .insights-summary .fa-chevron-down {
+    transform: rotate(180deg);
+}
+.insights-content {
+    padding: 0 1rem 1rem 1rem;
+    border-top: 1px solid #e2e8f0;
 }
 
 
