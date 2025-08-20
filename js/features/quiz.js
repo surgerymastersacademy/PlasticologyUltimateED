@@ -1,4 +1,4 @@
-// js/features/quiz.js (FINAL CORRECTED VERSION - Fixes incorrect logging bug)
+// js/features/quiz.js (FINAL VERSION - With New UI Logic and Global Scope Filter)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -8,6 +8,20 @@ import { formatTime, parseQuestions } from '../utils.js';
 import { showMainMenuScreen, openNoteModal } from '../main.js';
 import { populateFilterOptions } from '../ui.js';
 import { saveUserProgress } from './lectures.js';
+
+// --- NEW HELPER FUNCTION ---
+/**
+ * Gets the base pool of questions based on the global scope filter.
+ * @returns {Array} An array of question objects.
+ */
+function getQuestionPool() {
+    const isUnansweredOnly = document.getElementById('scope-unanswered').checked;
+    if (isUnansweredOnly) {
+        return appState.allQuestions.filter(q => !appState.answeredQuestions.has(q.UniqueID));
+    }
+    return appState.allQuestions;
+}
+
 
 // --- IN-QUIZ BUTTON FUNCTIONS ---
 
@@ -259,7 +273,7 @@ function showResults() {
             attemptedQuestions: attemptedQuestions,
         });
 
-        // **BUG FIX:** Only log incorrect answers for Simulation Mode here.
+        // Only log incorrect answers for Simulation Mode here.
         // For regular quizzes, logging now happens immediately in `selectAnswer`.
         if (appState.currentQuiz.isSimulationMode) {
             appState.currentQuiz.originalQuestions.forEach((q, index) => {
@@ -374,15 +388,19 @@ export function handleMockExamStart() {
         return;
     }
     const customTime = parseInt(dom.customTimerInput.value, 10);
+    
+    // MODIFIED: Use the new helper function to get the base pool of questions
+    let questionPool = getQuestionPool();
+
     const selectedChapters = [...dom.chapterSelectMock.querySelectorAll('input:checked')].map(el => el.value);
     const selectedSources = [...dom.sourceSelectMock.querySelectorAll('input:checked')].map(el => el.value);
 
-    let filteredQuestions = appState.allQuestions;
+    let filteredQuestions = questionPool;
     if (selectedChapters.length > 0) filteredQuestions = filteredQuestions.filter(q => selectedChapters.includes(q.chapter));
     if (selectedSources.length > 0) filteredQuestions = filteredQuestions.filter(q => selectedSources.includes(q.source));
 
     if (filteredQuestions.length === 0 || requestedCount > filteredQuestions.length) {
-        dom.mockError.textContent = `Only ${filteredQuestions.length} questions available for this filter. Please broaden your criteria.`;
+        dom.mockError.textContent = `Only ${filteredQuestions.length} questions available for your combined filters. Please broaden your criteria.`;
         dom.mockError.classList.remove('hidden');
         return;
     }
@@ -394,6 +412,7 @@ export function handleMockExamStart() {
 
 export function handleStartSimulation() {
     dom.simulationError.classList.add('hidden');
+    // NOTE: Simulation mode ALWAYS uses all questions, ignoring the scope filter, as per real exam conditions.
     if (appState.allQuestions.length < SIMULATION_Q_COUNT) {
         dom.simulationError.textContent = `Not enough questions available. (Required: ${SIMULATION_Q_COUNT})`;
         dom.simulationError.classList.remove('hidden');
@@ -431,18 +450,22 @@ export function handleQBankSearch() {
         dom.qbankSearchError.classList.remove('hidden');
         return;
     }
+    
+    // MODIFIED: Use the new helper function to get the base pool of questions
+    const questionPool = getQuestionPool();
 
-    const results = appState.allQuestions.filter(q => {
+    const results = questionPool.filter(q => {
         const questionText = q.question.toLowerCase();
-        
         const answersText = q.answerOptions
             .map(opt => opt.text.toLowerCase())
             .join(' '); 
-
         return questionText.includes(searchTerm) || answersText.includes(searchTerm);
     });
 
     appState.qbankSearchResults = results;
+    
+    // Hide the main tab content and show the search results
+    dom.qbankMainContent.classList.add('hidden');
 
     if (results.length === 0) {
         dom.qbankSearchError.textContent = `No questions found for "${dom.qbankSearchInput.value}".`;
@@ -454,7 +477,7 @@ export function handleQBankSearch() {
             return acc;
         }, {});
 
-        let resultsHtml = `<p class="font-bold text-lg mb-2">Found ${results.length} questions, distributed as follows:</p>`;
+        let resultsHtml = `<p class="font-bold text-lg mb-2">Found ${results.length} questions for "${dom.qbankSearchInput.value}", distributed as follows:</p>`;
         resultsHtml += '<ul class="list-disc list-inside text-left">';
         for (const source in sourceCounts) {
             resultsHtml += `<li><strong>${source}:</strong> ${sourceCounts[source]} Questions</li>`;
@@ -486,11 +509,14 @@ export function startSearchedQuiz() {
 }
 
 export function updateChapterFilter() {
+    // MODIFIED: Use the new helper function to get the base pool of questions
+    const questionPool = getQuestionPool();
+
     const selectedSources = [...dom.sourceSelectMock.querySelectorAll('input:checked')].map(el => el.value);
     
     let relevantQuestions = selectedSources.length === 0 
-        ? appState.allQuestions
-        : appState.allQuestions.filter(q => selectedSources.includes(q.source || 'Uncategorized'));
+        ? questionPool
+        : questionPool.filter(q => selectedSources.includes(q.source || 'Uncategorized'));
 
     const chapterCounts = {};
     relevantQuestions.forEach(q => {
@@ -552,7 +578,10 @@ export function startQuizBrowse(browseBy) {
     const isChapter = browseBy === 'chapter';
     const title = isChapter ? 'Browse by Chapter' : 'Browse by Source';
     
-    const itemCounts = appState.allQuestions.reduce((acc, q) => {
+    // MODIFIED: Use the new helper function to get the base pool of questions
+    const questionPool = getQuestionPool();
+
+    const itemCounts = questionPool.reduce((acc, q) => {
         const item = isChapter ? (q.chapter || 'Uncategorized') : (q.source || 'Uncategorized');
         acc[item] = (acc[item] || 0) + 1;
         return acc;
@@ -564,7 +593,7 @@ export function startQuizBrowse(browseBy) {
     dom.listItems.innerHTML = ''; 
 
     if (items.length === 0) {
-        dom.listItems.innerHTML = `<p class="text-slate-500 col-span-full text-center">No ${browseBy}s found.</p>`;
+        dom.listItems.innerHTML = `<p class="text-slate-500 col-span-full text-center">No ${browseBy}s found for the selected scope.</p>`;
     } else {
         items.forEach(item => {
             const button = document.createElement('button');
@@ -574,7 +603,7 @@ export function startQuizBrowse(browseBy) {
                 <p class="text-sm text-slate-500">${itemCounts[item]} Questions</p>
             `;
             button.addEventListener('click', () => {
-                const questions = appState.allQuestions.filter(q => {
+                const questions = questionPool.filter(q => {
                     const qItem = isChapter ? (q.chapter || 'Uncategorized') : (q.source || 'Uncategorized');
                     return qItem === item;
                 });
