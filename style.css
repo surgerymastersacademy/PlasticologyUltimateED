@@ -353,3 +353,21 @@ html.animation-off .animation-off-icon { display: none; }
 .input-with-icon {
     padding-left: 2.5rem;
 }
+
+/* Styles for Q-Bank Tabs */
+.tab-btn {
+    color: #64748b; /* slate-500 */
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease-in-out;
+}
+
+.tab-btn:hover {
+    color: #334155; /* slate-700 */
+    border-bottom-color: #e2e8f0; /* slate-200 */
+}
+
+.tab-btn.active {
+    color: #4f46e5; /* indigo-600 */
+    border-bottom-color: #4f46e5; /* indigo-600 */
+    font-weight: 600;
+}
