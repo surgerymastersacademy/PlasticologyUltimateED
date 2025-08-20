@@ -1,4 +1,4 @@
-// js/features/quiz.js (FINAL VERSION - With New UI Logic and Global Scope Filter)
+// js/features/quiz.js (FINAL VERSION - With Hierarchical Browse by Source)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -9,7 +9,8 @@ import { showMainMenuScreen, openNoteModal } from '../main.js';
 import { populateFilterOptions } from '../ui.js';
 import { saveUserProgress } from './lectures.js';
 
-// --- NEW HELPER FUNCTION ---
+// --- HELPER FUNCTIONS ---
+
 /**
  * Gets the base pool of questions based on the global scope filter.
  * @returns {Array} An array of question objects.
@@ -20,6 +21,64 @@ function getQuestionPool() {
         return appState.allQuestions.filter(q => !appState.answeredQuestions.has(q.UniqueID));
     }
     return appState.allQuestions;
+}
+
+/**
+ * NEW: Shows the second level of browsing: chapters within a specific source.
+ * @param {string} sourceName The name of the source selected by the user.
+ */
+function showChaptersForSource(sourceName) {
+    const questionPool = getQuestionPool();
+    const sourceSpecificQuestions = questionPool.filter(q => (q.source || 'Uncategorized') === sourceName);
+
+    dom.listTitle.textContent = `Source: ${sourceName}`;
+    dom.listItems.innerHTML = ''; // Clear the list of sources
+
+    // Create a main button to start a quiz with ALL questions from this source
+    const allButton = document.createElement('button');
+    allButton.className = 'action-btn p-4 bg-blue-600 text-white rounded-lg shadow-md text-center hover:bg-blue-700 col-span-full';
+    allButton.innerHTML = `
+        <h3 class="font-bold text-lg">Start Quiz for All of ${sourceName}</h3>
+        <p class="text-sm font-light">${sourceSpecificQuestions.length} Questions</p>
+    `;
+    allButton.addEventListener('click', () => {
+        launchQuiz(sourceSpecificQuestions, sourceName);
+    });
+    dom.listItems.appendChild(allButton);
+
+    // Get unique chapters within this source's questions
+    const chapterCounts = sourceSpecificQuestions.reduce((acc, q) => {
+        const chapter = q.chapter || 'Uncategorized';
+        acc[chapter] = (acc[chapter] || 0) + 1;
+        return acc;
+    }, {});
+
+    const chapters = Object.keys(chapterCounts).sort();
+
+    if (chapters.length > 0) {
+        // Add a separator
+        const separator = document.createElement('div');
+        separator.className = 'col-span-full border-t my-4';
+        separator.innerHTML = `<p class="text-center text-slate-500 bg-slate-50 -mt-3 mx-auto w-48">Or Choose a Chapter</p>`;
+        dom.listItems.appendChild(separator);
+
+        chapters.forEach(chapter => {
+            const button = document.createElement('button');
+            button.className = 'action-btn p-4 bg-white rounded-lg shadow-sm text-center hover:bg-slate-50';
+            button.innerHTML = `
+                <h3 class="font-bold text-slate-800">${chapter}</h3>
+                <p class="text-sm text-slate-500">${chapterCounts[chapter]} Questions</p>
+            `;
+            button.addEventListener('click', () => {
+                const chapterAndSourceQuestions = sourceSpecificQuestions.filter(q => (q.chapter || 'Uncategorized') === chapter);
+                launchQuiz(chapterAndSourceQuestions, `${sourceName} - ${chapter}`);
+            });
+            dom.listItems.appendChild(button);
+        });
+    }
+
+    // We don't push to navigation history here, as the back button should go back to the source list.
+    // The previous history entry is already the source list screen.
 }
 
 
@@ -205,7 +264,6 @@ function showQuestion() {
 function selectAnswer(e, selectedAnswer) {
     const currentQuestionIndex = appState.currentQuiz.currentQuestionIndex;
 
-    // Do not proceed if an answer has already been submitted for this question
     if (appState.currentQuiz.userAnswers[currentQuestionIndex] !== null && !appState.currentQuiz.isSimulationMode) {
         return;
     }
@@ -214,7 +272,6 @@ function selectAnswer(e, selectedAnswer) {
     const isCorrect = selectedAnswer.isCorrect;
     appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: isCorrect };
 
-    // In simulation mode, just mark the choice and exit. Logging happens at the end.
     if (appState.currentQuiz.isSimulationMode) {
         dom.answerButtons.querySelectorAll('button').forEach(btn => {
             btn.classList.remove('bg-blue-200', 'border-blue-400');
@@ -223,7 +280,6 @@ function selectAnswer(e, selectedAnswer) {
         return;
     }
 
-    // For regular quizzes, stop the timer, score, and log immediately.
     clearInterval(appState.currentQuiz.timerInterval);
 
     if (isCorrect) {
@@ -232,7 +288,6 @@ function selectAnswer(e, selectedAnswer) {
             logCorrectedMistake(currentQuestion.UniqueID);
         }
     } else {
-        // Log as incorrect only if it's NOT a mistake-practice quiz (to avoid re-logging)
         if (!appState.currentQuiz.isPracticingMistakes) {
             logIncorrectAnswer(currentQuestion.UniqueID, selectedAnswer.text);
         }
@@ -256,7 +311,6 @@ function showResults() {
 
     dom.resultsTitle.textContent = appState.currentQuiz.isSimulationMode ? "Simulation Complete!" : "Quiz Complete!";
     
-    // Display score based on TOTAL questions to "penalize"
     dom.resultsScoreText.innerHTML = `Your score is <span class="font-bold">${appState.currentQuiz.score}</span> out of <span class="font-bold">${totalQuestions}</span>.`;
 
     const incorrectCount = appState.currentQuiz.originalUserAnswers.filter(a => a && !a.isCorrect).length;
@@ -264,7 +318,6 @@ function showResults() {
     if (incorrectCount > 0) dom.reviewIncorrectBtn.textContent = `Review ${incorrectCount} Incorrect`;
 
     if (!appState.currentQuiz.isReviewMode && !appState.currentQuiz.isPracticingMistakes) {
-        // Send BOTH total and attempted counts to the backend for rich data logging
         logUserActivity({
             eventType: 'FinishQuiz',
             quizTitle: dom.quizTitle.textContent,
@@ -273,12 +326,9 @@ function showResults() {
             attemptedQuestions: attemptedQuestions,
         });
 
-        // Only log incorrect answers for Simulation Mode here.
-        // For regular quizzes, logging now happens immediately in `selectAnswer`.
         if (appState.currentQuiz.isSimulationMode) {
             appState.currentQuiz.originalQuestions.forEach((q, index) => {
                 const answer = appState.currentQuiz.originalUserAnswers[index];
-                // CRITICAL: Only log if an answer was given AND it was incorrect.
                 if (answer && !answer.isCorrect) {
                     logIncorrectAnswer(q.UniqueID, answer.answer);
                 }
@@ -389,7 +439,6 @@ export function handleMockExamStart() {
     }
     const customTime = parseInt(dom.customTimerInput.value, 10);
     
-    // MODIFIED: Use the new helper function to get the base pool of questions
     let questionPool = getQuestionPool();
 
     const selectedChapters = [...dom.chapterSelectMock.querySelectorAll('input:checked')].map(el => el.value);
@@ -412,7 +461,6 @@ export function handleMockExamStart() {
 
 export function handleStartSimulation() {
     dom.simulationError.classList.add('hidden');
-    // NOTE: Simulation mode ALWAYS uses all questions, ignoring the scope filter, as per real exam conditions.
     if (appState.allQuestions.length < SIMULATION_Q_COUNT) {
         dom.simulationError.textContent = `Not enough questions available. (Required: ${SIMULATION_Q_COUNT})`;
         dom.simulationError.classList.remove('hidden');
@@ -451,7 +499,6 @@ export function handleQBankSearch() {
         return;
     }
     
-    // MODIFIED: Use the new helper function to get the base pool of questions
     const questionPool = getQuestionPool();
 
     const results = questionPool.filter(q => {
@@ -464,7 +511,6 @@ export function handleQBankSearch() {
 
     appState.qbankSearchResults = results;
     
-    // Hide the main tab content and show the search results
     dom.qbankMainContent.classList.add('hidden');
 
     if (results.length === 0) {
@@ -509,7 +555,6 @@ export function startSearchedQuiz() {
 }
 
 export function updateChapterFilter() {
-    // MODIFIED: Use the new helper function to get the base pool of questions
     const questionPool = getQuestionPool();
 
     const selectedSources = [...dom.sourceSelectMock.querySelectorAll('input:checked')].map(el => el.value);
@@ -578,7 +623,6 @@ export function startQuizBrowse(browseBy) {
     const isChapter = browseBy === 'chapter';
     const title = isChapter ? 'Browse by Chapter' : 'Browse by Source';
     
-    // MODIFIED: Use the new helper function to get the base pool of questions
     const questionPool = getQuestionPool();
 
     const itemCounts = questionPool.reduce((acc, q) => {
@@ -603,11 +647,13 @@ export function startQuizBrowse(browseBy) {
                 <p class="text-sm text-slate-500">${itemCounts[item]} Questions</p>
             `;
             button.addEventListener('click', () => {
-                const questions = questionPool.filter(q => {
-                    const qItem = isChapter ? (q.chapter || 'Uncategorized') : (q.source || 'Uncategorized');
-                    return qItem === item;
-                });
-                launchQuiz(questions, item);
+                if (isChapter) {
+                    const questions = questionPool.filter(q => (q.chapter || 'Uncategorized') === item);
+                    launchQuiz(questions, item);
+                } else {
+                    // This is the new logic for sources: go to the next level down
+                    showChaptersForSource(item);
+                }
             });
             dom.listItems.appendChild(button);
         });
