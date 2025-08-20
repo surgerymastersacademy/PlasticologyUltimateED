@@ -1,4 +1,4 @@
-// js/main.js (FINAL VERSION - With Performance Insights & All Features)
+// js/main.js (FINAL VERSION - With New Q-Bank UI Logic)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -205,11 +205,16 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.noteSaveBtn.addEventListener('click', handleSaveNote);
     dom.noteCancelBtn.addEventListener('click', () => { dom.noteModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
     
-    // QBank Listeners
+    // --- UPDATED QBank Listeners ---
     dom.startMockBtn.addEventListener('click', handleMockExamStart);
     dom.startSimulationBtn.addEventListener('click', handleStartSimulation);
     dom.qbankSearchBtn.addEventListener('click', handleQBankSearch);
     dom.qbankStartSearchQuizBtn.addEventListener('click', startSearchedQuiz);
+    dom.qbankClearSearchBtn.addEventListener('click', () => { // Logic for the new Clear Search button
+        dom.qbankSearchResultsContainer.classList.add('hidden');
+        dom.qbankMainContent.classList.remove('hidden');
+        dom.qbankSearchInput.value = '';
+    });
     dom.toggleCustomOptionsBtn.addEventListener('click', () => dom.customExamOptions.classList.toggle('visible'));
     dom.sourceSelectMock.addEventListener('change', updateChapterFilter);
     dom.selectAllSourcesMock.addEventListener('change', (e) => {
@@ -235,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         qbankPanels.forEach((panel, index) => {
             panel.classList.toggle('hidden', index !== activeIndex);
         });
-        // Always show the main tab content area unless search results are visible
+        // Always show the main tab content area and hide search results when switching tabs
         dom.qbankMainContent.classList.remove('hidden');
         dom.qbankSearchResultsContainer.classList.add('hidden');
     }
@@ -247,7 +252,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set default tab on initial load
     switchQBankTab(0);
     // --- END: QBank Tab Logic ---
-
 
     // In-Quiz Listeners
     dom.endQuizBtn.addEventListener('click', triggerEndQuiz);
@@ -267,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // OSCE Listeners
     dom.startOsceSlayerBtn.addEventListener('click', startOsceSlayer);
     dom.startCustomOsceBtn.addEventListener('click', startCustomOsce);
-    dom.toggleOsceOptionsBtn.addEventListener('click', () => dom.customOsceOptions.classList.toggle('visible')); // FIX for OSCE customize button
+    dom.toggleOsceOptionsBtn.addEventListener('click', () => dom.customOsceOptions.classList.toggle('visible')); 
     dom.endOsceQuizBtn.addEventListener('click', () => endOsceQuiz(false));
     dom.osceNextBtn.addEventListener('click', handleOsceNext);
     dom.oscePreviousBtn.addEventListener('click', handleOscePrevious);
