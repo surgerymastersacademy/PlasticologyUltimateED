@@ -245,6 +245,7 @@
                     </div>
                     
                     <div id="qbank-search-results-container" class="mt-6 hidden bg-white rounded-lg shadow-md p-6">
+                        <button id="qbank-clear-search-btn" class="mb-4 text-sm text-blue-600 hover:underline">← Back to All Options</button>
                         <p id="qbank-search-results-info" class="mb-4"></p>
                         <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
                             <input type="number" id="qbank-search-q-count" class="shadow-sm appearance-none border rounded w-full sm:w-1/3 py-2 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="# of Qs (optional)">
@@ -271,61 +272,73 @@
                         </div>
 
                         <div id="qbank-panel-create" class="qbank-panel">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="bg-white rounded-lg shadow-md p-6">
-                                    <div id="loader" class="loader hidden"></div>
-                                    <p id="loading-text" class="text-slate-500 mt-2 text-center hidden">Loading questions...</p>
-                                    <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-tasks text-emerald-500 mr-3"></i>Create a Mock Exam</h3>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                                        <div class="relative">
-                                            <i class="fas fa-list-ol absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                                            <input type="number" id="mock-q-count" class="shadow-sm appearance-none border rounded w-full py-2 pl-10 pr-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="# of Qs" min="1">
+                             <div class="space-y-4">
+        
+                                <details class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                                    <summary class="p-4 cursor-pointer hover:bg-slate-50 flex justify-between items-center">
+                                        <h3 class="text-xl font-bold text-slate-800 flex items-center"><i class="fas fa-tasks text-emerald-500 mr-3"></i>Create a Mock Exam</h3>
+                                        <i class="fas fa-chevron-down transition-transform duration-300 text-slate-500"></i>
+                                    </summary>
+                                    <div class="p-6 border-t border-slate-200 bg-slate-50">
+                                        <div id="loader" class="loader hidden"></div>
+                                        <p id="loading-text" class="text-slate-500 mt-2 text-center hidden">Loading questions...</p>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                            <div class="relative">
+                                                <i class="fas fa-list-ol absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                                <input type="number" id="mock-q-count" class="shadow-sm appearance-none border rounded w-full py-2 pl-10 pr-3 text-slate-700" placeholder="# of Qs" min="1">
+                                            </div>
+                                            <div class="relative">
+                                                <i class="fas fa-clock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                                <input type="number" id="custom-timer-input" class="shadow-sm appearance-none border rounded w-full py-2 pl-10 pr-3 text-slate-700" placeholder="Time/Q (sec)" min="5">
+                                            </div>
                                         </div>
-                                        <div class="relative">
-                                            <i class="fas fa-clock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                                           <input type="number" id="custom-timer-input" class="shadow-sm appearance-none border rounded w-full py-2 pl-10 pr-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Time/Q (sec)" min="5">
+                                        <button id="toggle-custom-options-btn" class="action-btn w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-4 rounded-lg">
+                                            Customize (Chapters & Sources) <i class="fas fa-chevron-down ml-2 transition-transform"></i>
+                                        </button>
+                                        <div id="custom-exam-options" class="custom-exam-options mt-4">
+                                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                 <fieldset>
+                                                    <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Sources (optional)</legend>
+                                                    <div class="flex items-center p-2 border-b">
+                                                        <input id="select-all-sources-mock" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600">
+                                                        <label for="select-all-sources-mock" class="ml-3 font-bold text-gray-700">Select All</label>
+                                                    </div>
+                                                    <div id="source-select-mock" class="filter-container space-y-2">
+                                                        <p class="text-slate-400">Loading sources...</p>
+                                                    </div>
+                                                </fieldset>
+                                                <fieldset>
+                                                    <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Chapters (optional)</legend>
+                                                    <div class="flex items-center p-2 border-b">
+                                                        <input id="select-all-chapters-mock" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600">
+                                                        <label for="select-all-chapters-mock" class="ml-3 font-bold text-gray-700">Select All</label>
+                                                    </div>
+                                                    <div id="chapter-select-mock" class="filter-container space-y-2">
+                                                        <p class="text-slate-400">Loading chapters...</p>
+                                                    </div>
+                                                </fieldset>
+                                             </div>
                                         </div>
+                                        <button id="start-mock-btn" class="action-btn w-full mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg">
+                                            Start Mock Exam
+                                        </button>
+                                        <p id="mock-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
                                     </div>
-                                    <button id="toggle-custom-options-btn" class="action-btn w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-4 rounded-lg">
-                                        Customize (Chapters & Sources) <i class="fas fa-chevron-down ml-2 transition-transform"></i>
-                                    </button>
-                                    <div id="custom-exam-options" class="custom-exam-options mt-4">
-                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                             <fieldset>
-                                                <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Sources (optional)</legend>
-                                                <div class="flex items-center p-2 border-b">
-                                                    <input id="select-all-sources-mock" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                                    <label for="select-all-sources-mock" class="ml-3 font-bold text-gray-700">Select All</label>
-                                                </div>
-                                                <div id="source-select-mock" class="filter-container space-y-2">
-                                                    <p class="text-slate-400">Loading sources...</p>
-                                                </div>
-                                            </fieldset>
-                                            <fieldset>
-                                                <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Chapters (optional)</legend>
-                                                <div class="flex items-center p-2 border-b">
-                                                    <input id="select-all-chapters-mock" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                                    <label for="select-all-chapters-mock" class="ml-3 font-bold text-gray-700">Select All</label>
-                                                </div>
-                                                <div id="chapter-select-mock" class="filter-container space-y-2">
-                                                    <p class="text-slate-400">Loading chapters...</p>
-                                                </div>
-                                            </fieldset>
-                                         </div>
+                                </details>
+
+                                <details class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                                    <summary class="p-4 cursor-pointer hover:bg-slate-50 flex justify-between items-center">
+                                        <h3 class="text-xl font-bold text-slate-800 flex items-center"><i class="fas fa-flag-checkered text-rose-500 mr-3"></i>Exam Simulation Mode</h3>
+                                        <i class="fas fa-chevron-down transition-transform duration-300 text-slate-500"></i>
+                                    </summary>
+                                    <div class="p-6 border-t border-slate-200 bg-slate-50">
+                                        <p class="text-slate-500 text-sm mb-4">Start a full exam simulation with a fixed timer and no immediate feedback, just like the real exam. Results will be shown only at the end.</p>
+                                        <button id="start-simulation-btn" class="action-btn w-full mt-2 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-4 rounded-lg">
+                                            Start Full Simulation
+                                        </button>
+                                        <p id="simulation-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
                                     </div>
-                                    <button id="start-mock-btn" class="action-btn w-full mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg">
-                                        Start Mock Exam
-                                    </button>
-                                    <p id="mock-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
-                                </div>
-                                <div class="bg-white rounded-lg shadow-md p-6">
-                                    <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-flag-checkered text-rose-500 mr-3"></i>Exam Simulation Mode</h3>
-                                    <p class="text-slate-500 text-sm mb-4">Start a full exam simulation with a fixed timer and no immediate feedback, just like the real exam. Results will be shown only at the end.</p>
-                                    <button id="start-simulation-btn" class="action-btn w-full mt-2 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-4 rounded-lg">
-                                        Start Full Simulation
-                                    </button>
-                                    <p id="simulation-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
-                                </div>
+                                </details>
                             </div>
                         </div>
 
