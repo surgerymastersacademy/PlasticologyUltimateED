@@ -215,11 +215,12 @@
                 <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
                     <button id="qbank-back-btn" class="text-slate-700 hover:text-blue-600 transition-colors" title="Back"><i class="fas fa-arrow-left"></i> Back</button>
                     <h2 class="text-xl md:text-2xl font-bold text-slate-800">Question Bank</h2>
-                    <div class="w-16"></div> </div>
-                <div id="qbank-controls" class="p-4 md:p-8 space-y-6">
-                    <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="w-16"></div> 
+                </div>
+                <div class="p-4 md:p-8">
+
+                    <div class="mb-6">
                         <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-search text-indigo-500 mr-3"></i>Search for a Topic</h3>
-                        <p class="text-slate-500 text-sm mb-4">Find questions related to a specific topic to start a quick quiz.</p>
                         <div class="flex flex-col sm:flex-row items-center gap-4">
                             <input type="text" id="qbank-search-input" class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g., Flaps, Burns...">
                             <button id="qbank-search-btn" class="action-btn w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">
@@ -227,100 +228,129 @@
                             </button>
                         </div>
                         <p id="qbank-search-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
-                        <div id="qbank-search-results-container" class="mt-6 hidden">
-                            <p id="qbank-search-results-info" class="text-center text-slate-600 font-semibold mb-4"></p>
-                            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                <input type="number" id="qbank-search-q-count" class="shadow-sm appearance-none border rounded w-full sm:w-1/3 py-2 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="# of Qs (optional)">
-                                <button id="qbank-start-search-quiz-btn" class="action-btn w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg">
-                                    Start Quiz
+                    </div>
+
+                    <div class="mb-6 p-4 bg-slate-50 border rounded-lg">
+                         <h4 class="text-slate-700 text-sm font-bold mb-2">Question Scope</h4>
+                         <div class="flex gap-4">
+                             <div class="flex items-center">
+                                 <input type="radio" id="scope-all" name="questionScope" value="all" class="h-4 w-4" checked>
+                                 <label for="scope-all" class="ml-2 text-sm text-slate-600">All Questions</label>
+                             </div>
+                             <div class="flex items-center">
+                                 <input type="radio" id="scope-unanswered" name="questionScope" value="unanswered" class="h-4 w-4">
+                                 <label for="scope-unanswered" class="ml-2 text-sm text-slate-600">Unanswered Questions Only</label>
+                             </div>
+                         </div>
+                    </div>
+                    
+                    <div id="qbank-search-results-container" class="mt-6 hidden bg-white rounded-lg shadow-md p-6">
+                        <p id="qbank-search-results-info" class="mb-4"></p>
+                        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                            <input type="number" id="qbank-search-q-count" class="shadow-sm appearance-none border rounded w-full sm:w-1/3 py-2 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="# of Qs (optional)">
+                            <button id="qbank-start-search-quiz-btn" class="action-btn w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg">
+                                Start Quiz
+                            </button>
+                        </div>
+                    </div>
+
+
+                    <div id="qbank-main-content">
+                        <div class="border-b border-gray-200 mb-4">
+                            <nav class="flex space-x-4" aria-label="Tabs">
+                                <button id="qbank-tab-create" class="tab-btn px-3 py-2 font-medium text-sm rounded-t-lg">
+                                    Create Exam
                                 </button>
-                            </div>
+                                <button id="qbank-tab-practice" class="tab-btn px-3 py-2 font-medium text-sm rounded-t-lg">
+                                    Practice & Review
+                                </button>
+                                <button id="qbank-tab-browse" class="tab-btn px-3 py-2 font-medium text-sm rounded-t-lg">
+                                    Browse Questions
+                                </button>
+                            </nav>
                         </div>
-                    </div>
 
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <div id="loader" class="loader hidden"></div>
-                        <p id="loading-text" class="text-slate-500 mt-2 text-center hidden">Loading questions...</p>
-                        <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-tasks text-emerald-500 mr-3"></i>Create a Mock Exam</h3>
-                        <div class="mb-4">
-                            <h4 class="text-slate-700 text-sm font-bold mb-2">Question Scope</h4>
-                            <div class="flex gap-4">
-                                <div class="flex items-center">
-                                    <input type="radio" id="scope-all" name="questionScope" value="all" class="h-4 w-4" checked>
-                                    <label for="scope-all" class="ml-2 text-sm text-slate-600">All Questions</label>
+                        <div id="qbank-panel-create" class="qbank-panel">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-white rounded-lg shadow-md p-6">
+                                    <div id="loader" class="loader hidden"></div>
+                                    <p id="loading-text" class="text-slate-500 mt-2 text-center hidden">Loading questions...</p>
+                                    <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-tasks text-emerald-500 mr-3"></i>Create a Mock Exam</h3>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                        <div class="relative">
+                                            <i class="fas fa-list-ol absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                            <input type="number" id="mock-q-count" class="shadow-sm appearance-none border rounded w-full py-2 pl-10 pr-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="# of Qs" min="1">
+                                        </div>
+                                        <div class="relative">
+                                            <i class="fas fa-clock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                           <input type="number" id="custom-timer-input" class="shadow-sm appearance-none border rounded w-full py-2 pl-10 pr-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Time/Q (sec)" min="5">
+                                        </div>
+                                    </div>
+                                    <button id="toggle-custom-options-btn" class="action-btn w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-4 rounded-lg">
+                                        Customize (Chapters & Sources) <i class="fas fa-chevron-down ml-2 transition-transform"></i>
+                                    </button>
+                                    <div id="custom-exam-options" class="custom-exam-options mt-4">
+                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                             <fieldset>
+                                                <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Sources (optional)</legend>
+                                                <div class="flex items-center p-2 border-b">
+                                                    <input id="select-all-sources-mock" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                                    <label for="select-all-sources-mock" class="ml-3 font-bold text-gray-700">Select All</label>
+                                                </div>
+                                                <div id="source-select-mock" class="filter-container space-y-2">
+                                                    <p class="text-slate-400">Loading sources...</p>
+                                                </div>
+                                            </fieldset>
+                                            <fieldset>
+                                                <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Chapters (optional)</legend>
+                                                <div class="flex items-center p-2 border-b">
+                                                    <input id="select-all-chapters-mock" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                                    <label for="select-all-chapters-mock" class="ml-3 font-bold text-gray-700">Select All</label>
+                                                </div>
+                                                <div id="chapter-select-mock" class="filter-container space-y-2">
+                                                    <p class="text-slate-400">Loading chapters...</p>
+                                                </div>
+                                            </fieldset>
+                                         </div>
+                                    </div>
+                                    <button id="start-mock-btn" class="action-btn w-full mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg">
+                                        Start Mock Exam
+                                    </button>
+                                    <p id="mock-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
                                 </div>
-                                <div class="flex items-center">
-                                    <input type="radio" id="scope-unanswered" name="questionScope" value="unanswered" class="h-4 w-4">
-                                    <label for="scope-unanswered" class="ml-2 text-sm text-slate-600">Unanswered Questions Only</label>
+                                <div class="bg-white rounded-lg shadow-md p-6">
+                                    <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-flag-checkered text-rose-500 mr-3"></i>Exam Simulation Mode</h3>
+                                    <p class="text-slate-500 text-sm mb-4">Start a full exam simulation with a fixed timer and no immediate feedback, just like the real exam. Results will be shown only at the end.</p>
+                                    <button id="start-simulation-btn" class="action-btn w-full mt-2 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-4 rounded-lg">
+                                        Start Full Simulation
+                                    </button>
+                                    <p id="simulation-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
                                 </div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div class="relative">
-                                <i class="fas fa-list-ol absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                                <input type="number" id="mock-q-count" class="shadow-sm appearance-none border rounded w-full py-2 pl-10 pr-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="# of Qs" min="1">
-                            </div>
-                            <div class="relative">
-                                <i class="fas fa-clock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                               <input type="number" id="custom-timer-input" class="shadow-sm appearance-none border rounded w-full py-2 pl-10 pr-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Time/Q (sec)" min="5">
+
+                        <div id="qbank-panel-practice" class="qbank-panel hidden">
+                           <div class="bg-white rounded-lg shadow-md p-6">
+                                <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-book-open-reader text-purple-500 mr-3"></i>Practice & Review</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <button id="practice-mistakes-btn" class="action-btn w-full bg-orange-100 hover:bg-orange-200 text-orange-800 font-bold py-3 px-6 rounded-lg">Practice Mistakes</button>
+                                    <button id="practice-bookmarked-btn" class="action-btn w-full bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold py-3 px-6 rounded-lg">Practice Bookmarked</button>
+                                </div>
                             </div>
                         </div>
-                        <button id="toggle-custom-options-btn" class="action-btn w-full mt-4 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-4 rounded-lg">
-                            Customize (Chapters & Sources) <i class="fas fa-chevron-down ml-2 transition-transform"></i>
-                        </button>
-                       <div id="custom-exam-options" class="custom-exam-options mt-4">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-        <fieldset>
-            <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Sources (optional)</legend>
-            <div class="flex items-center p-2 border-b">
-                <input id="select-all-sources-mock" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                <label for="select-all-sources-mock" class="ml-3 font-bold text-gray-700">Select All</label>
-            </div>
-            <div id="source-select-mock" class="filter-container space-y-2">
-                <p class="text-slate-400">Loading sources...</p>
-            </div>
-        </fieldset>
-        
-        <fieldset>
-            <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Chapters (optional)</legend>
-            <div class="flex items-center p-2 border-b">
-                <input id="select-all-chapters-mock" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                <label for="select-all-chapters-mock" class="ml-3 font-bold text-gray-700">Select All</label>
-            </div>
-            <div id="chapter-select-mock" class="filter-container space-y-2">
-                <p class="text-slate-400">Loading chapters...</p>
-            </div>
-        </fieldset>
-
-    </div>
-</div>
-                        <button id="start-mock-btn" class="action-btn w-full mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg">
-                            Start Mock Exam
-                        </button>
-                        <p id="mock-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
-                    </div>
-
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-flag-checkered text-rose-500 mr-3"></i>Exam Simulation Mode</h3>
-                        <p class="text-slate-500 text-sm mb-4">Start a full exam simulation with a fixed timer and no immediate feedback, just like the real exam. Results will be shown only at the end.</p>
-                        <button id="start-simulation-btn" class="action-btn w-full mt-2 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-4 rounded-lg">
-                            Start Full Simulation
-                        </button>
-                        <p id="simulation-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
-                    </div>
-
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-book-open-reader text-purple-500 mr-3"></i>Browse & Practice</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <button id="browse-by-chapter-btn" class="action-btn w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 px-6 rounded-lg">Browse by Chapter</button>
-                            <button id="browse-by-source-btn" class="action-btn w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 px-6 rounded-lg">Browse by Source</button>
-                            <button id="practice-mistakes-btn" class="action-btn w-full bg-orange-100 hover:bg-orange-200 text-orange-800 font-bold py-3 px-6 rounded-lg">Practice Mistakes</button>
-                            <button id="practice-bookmarked-btn" class="action-btn w-full bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold py-3 px-6 rounded-lg">Practice Bookmarked</button>
+                        <div id="qbank-panel-browse" class="qbank-panel hidden">
+                           <div class="bg-white rounded-lg shadow-md p-6">
+                                <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-stream text-cyan-500 mr-3"></i>Browse Questions</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <button id="browse-by-chapter-btn" class="action-btn w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 px-6 rounded-lg">Browse by Chapter</button>
+                                    <button id="browse-by-source-btn" class="action-btn w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 px-6 rounded-lg">Browse by Source</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+                </div>
             
             <div id="osce-container" class="w-full hidden">
                 <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
@@ -620,6 +650,7 @@
                             </div>
                         </div>
                     </details>
+
                     <div id="planner-dashboard">
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="text-2xl font-bold text-slate-800">Your Study Plans</h3>
@@ -802,4 +833,3 @@
     <script src="js/login-animation.js"></script>
 </body>
 </html>
-
