@@ -224,6 +224,31 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.browseByChapterBtn.addEventListener('click', () => startQuizBrowse('chapter'));
     dom.browseBySourceBtn.addEventListener('click', () => startQuizBrowse('source'));
 
+    // --- NEW: QBank Tab Logic ---
+    const qbankTabs = [dom.qbankTabCreate, dom.qbankTabPractice, dom.qbankTabBrowse];
+    const qbankPanels = [dom.qbankPanelCreate, dom.qbankPanelPractice, dom.qbankPanelBrowse];
+
+    function switchQBankTab(activeIndex) {
+        qbankTabs.forEach((tab, index) => {
+            tab.classList.toggle('active', index === activeIndex);
+        });
+        qbankPanels.forEach((panel, index) => {
+            panel.classList.toggle('hidden', index !== activeIndex);
+        });
+        // Always show the main tab content area unless search results are visible
+        dom.qbankMainContent.classList.remove('hidden');
+        dom.qbankSearchResultsContainer.classList.add('hidden');
+    }
+
+    qbankTabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => switchQBankTab(index));
+    });
+
+    // Set default tab on initial load
+    switchQBankTab(0);
+    // --- END: QBank Tab Logic ---
+
+
     // In-Quiz Listeners
     dom.endQuizBtn.addEventListener('click', triggerEndQuiz);
     dom.nextSkipBtn.addEventListener('click', handleNextQuestion);
@@ -242,13 +267,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // OSCE Listeners
     dom.startOsceSlayerBtn.addEventListener('click', startOsceSlayer);
     dom.startCustomOsceBtn.addEventListener('click', startCustomOsce);
+    dom.toggleOsceOptionsBtn.addEventListener('click', () => dom.customOsceOptions.classList.toggle('visible')); // FIX for OSCE customize button
     dom.endOsceQuizBtn.addEventListener('click', () => endOsceQuiz(false));
     dom.osceNextBtn.addEventListener('click', handleOsceNext);
     dom.oscePreviousBtn.addEventListener('click', handleOscePrevious);
     dom.osceNavigatorBtn.addEventListener('click', showOsceNavigator);
-    // --- أضف هذا السطر هنا ---
-    dom.toggleOsceOptionsBtn.addEventListener('click', () => dom.customOsceOptions.classList.toggle('visible'));
-    // -------------------------
     document.getElementById('select-all-chapters-osce').addEventListener('change', (e) => {
         dom.chapterSelectOsce.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
     });
@@ -280,9 +303,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Modals
-    dom.modalCancelBtn.addEventListener('click', () => { dom.modalBackdrop.classList.add('hidden'); });
-    dom.modalConfirmBtn.addEventListener('click', () => { if (appState.modalConfirmAction) { appState.modalConfirmAction(); dom.modalBackdrop.classList.add('hidden');} });
-    dom.imageViewerCloseBtn.addEventListener('click', () => { dom.imageViewerModal.classList.add('hidden'); if(dom.userCardModal.classList.contains('hidden') && dom.createPlanModal.classList.contains('hidden')) dom.modalBackdrop.classList.add('hidden');});
+    dom.modalCancelBtn.addEventListener('click', () => { dom.confirmationModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
+    dom.modalConfirmBtn.addEventListener('click', () => { if (appState.modalConfirmAction) { appState.modalConfirmAction(); dom.confirmationModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');} });
+    dom.imageViewerCloseBtn.addEventListener('click', () => { dom.imageViewerModal.classList.add('hidden'); if(dom.userCardModal.classList.contains('hidden') && dom.createPlanModal.classList.contains('hidden') && dom.announcementsModal.classList.contains('hidden') && dom.messengerModal.classList.contains('hidden')) dom.modalBackdrop.classList.add('hidden');});
     dom.announcementsCloseBtn.addEventListener('click', () => { dom.announcementsModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
     dom.userCardCloseBtn.addEventListener('click', () => { dom.userCardModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
     dom.messengerCloseBtn.addEventListener('click', () => {
@@ -292,7 +315,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     dom.navigatorCloseBtn.addEventListener('click', () => { dom.questionNavigatorModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');});
     dom.osceNavigatorCloseBtn.addEventListener('click', () => { dom.osceNavigatorModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');});
+    dom.clearLogCancelBtn.addEventListener('click', () => { dom.clearLogModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
+    dom.clearLogBtn.addEventListener('click', () => { dom.clearLogModal.classList.remove('hidden'); dom.modalBackdrop.classList.remove('hidden'); });
+
 
     initializeApp();
 });
-
