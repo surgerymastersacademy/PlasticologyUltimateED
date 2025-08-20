@@ -1,4 +1,4 @@
-// js/features/quiz.js (FINAL VERSION - With Browse Functionality Added)
+// js/features/quiz.js (FINAL VERSION - With "Penalized" Scoring and Progress Protection)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -227,24 +227,34 @@ function showResults() {
     dom.controlsContainer.classList.add('hidden');
     dom.resultsContainer.classList.remove('hidden');
 
+    const totalQuestions = appState.currentQuiz.originalQuestions.length;
+    const attemptedQuestions = appState.currentQuiz.originalUserAnswers.filter(a => a !== null).length;
+
     dom.resultsTitle.textContent = appState.currentQuiz.isSimulationMode ? "Simulation Complete!" : "Quiz Complete!";
-    dom.resultsScoreText.innerHTML = `Your score is <span class="font-bold">${appState.currentQuiz.score}</span> out of <span class="font-bold">${appState.currentQuiz.originalQuestions.length}</span>.`;
+    
+    // **FINAL LOGIC:** Display score based on TOTAL questions to "penalize"
+    dom.resultsScoreText.innerHTML = `Your score is <span class="font-bold">${appState.currentQuiz.score}</span> out of <span class="font-bold">${totalQuestions}</span>.`;
 
     const incorrectCount = appState.currentQuiz.originalUserAnswers.filter(a => a && !a.isCorrect).length;
     dom.reviewIncorrectBtn.classList.toggle('hidden', incorrectCount === 0);
     if (incorrectCount > 0) dom.reviewIncorrectBtn.textContent = `Review ${incorrectCount} Incorrect`;
 
     if (!appState.currentQuiz.isReviewMode && !appState.currentQuiz.isPracticingMistakes) {
+        // Send BOTH total and attempted counts to the backend for rich data logging
         logUserActivity({
             eventType: 'FinishQuiz',
             quizTitle: dom.quizTitle.textContent,
             score: appState.currentQuiz.score,
-            totalQuestions: appState.currentQuiz.originalQuestions.length
+            totalQuestions: totalQuestions,
+            attemptedQuestions: attemptedQuestions, // Send the new count
         });
+
         if (appState.currentQuiz.isSimulationMode) {
             appState.currentQuiz.originalQuestions.forEach((q, index) => {
                 const answer = appState.currentQuiz.originalUserAnswers[index];
-                if (answer && !answer.isCorrect) logIncorrectAnswer(q.UniqueID, answer.answer);
+                if (answer && !answer.isCorrect) {
+                    logIncorrectAnswer(q.UniqueID, answer.answer);
+                }
             });
         }
     }
@@ -408,34 +418,28 @@ export function handleQBankSearch() {
         return;
     }
 
-    // --- MODIFIED: Expanded Search Logic ---
     const results = appState.allQuestions.filter(q => {
         const questionText = q.question.toLowerCase();
         
-        // Combine all answer texts into a single string for searching
         const answersText = q.answerOptions
             .map(opt => opt.text.toLowerCase())
-            .join(' '); // Join with a space
+            .join(' '); 
 
-        // Return true if the search term is in the question OR in any of the answers
         return questionText.includes(searchTerm) || answersText.includes(searchTerm);
     });
 
     appState.qbankSearchResults = results;
 
-    // --- MODIFIED: Detailed Results Display ---
     if (results.length === 0) {
         dom.qbankSearchError.textContent = `No questions found for "${dom.qbankSearchInput.value}".`;
         dom.qbankSearchError.classList.remove('hidden');
     } else {
-        // Calculate counts per source
         const sourceCounts = results.reduce((acc, q) => {
             const source = q.source || 'Uncategorized';
             acc[source] = (acc[source] || 0) + 1;
             return acc;
         }, {});
 
-        // Build the results string
         let resultsHtml = `<p class="font-bold text-lg mb-2">Found ${results.length} questions, distributed as follows:</p>`;
         resultsHtml += '<ul class="list-disc list-inside text-left">';
         for (const source in sourceCounts) {
@@ -443,8 +447,7 @@ export function handleQBankSearch() {
         }
         resultsHtml += '</ul>';
 
-        // Display the detailed results
-        dom.qbankSearchResultsInfo.innerHTML = resultsHtml; // Use innerHTML to render the list
+        dom.qbankSearchResultsInfo.innerHTML = resultsHtml;
         dom.qbankSearchResultsContainer.classList.remove('hidden');
     }
 }
@@ -455,7 +458,7 @@ export function startSearchedQuiz() {
     dom.qbankSearchError.classList.add('hidden');
 
     if (!isNaN(requestedCount) && requestedCount > 0) {
-        if (requestedCount > questionsToUse.length) {
+        if (requestedCount > requestedCount > questionsToUse.length) {
             dom.qbankSearchError.textContent = `Only ${questionsToUse.length} questions found.`;
             dom.qbankSearchError.classList.remove('hidden');
             return;
@@ -531,7 +534,6 @@ export function startFreeTest() {
     launchQuiz(sampleQuestions, "Free Sample Test");
 }
 
-// --- NEW --- Function for QBank Browse by Chapter/Source
 export function startQuizBrowse(browseBy) {
     const isChapter = browseBy === 'chapter';
     const title = isChapter ? 'Browse by Chapter' : 'Browse by Source';
@@ -562,7 +564,7 @@ export function startQuizBrowse(browseBy) {
                     const qItem = isChapter ? (q.chapter || 'Uncategorized') : (q.source || 'Uncategorized');
                     return qItem === item;
                 });
-                launchQuiz(questions, item); // Launch quiz with all questions for that item
+                launchQuiz(questions, item);
             });
             dom.listItems.appendChild(button);
         });
