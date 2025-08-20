@@ -248,8 +248,15 @@ export const newPlanEndDate = document.getElementById('new-plan-end-date');
 export const createPlanError = document.getElementById('create-plan-error');
 export const cancelCreatePlanBtn = document.getElementById('cancel-create-plan-btn');
 export const confirmCreatePlanBtn = document.getElementById('confirm-create-plan-btn');
-
-// --- NEW ELEMENTS FOR PERFORMANCE INSIGHTS ---
 export const performanceInsightsContainer = document.getElementById('performance-insights-container');
 export const strengthsList = document.getElementById('strengths-list');
 export const weaknessesList = document.getElementById('weaknesses-list');
+
+// --- NEW ELEMENTS FOR Q-BANK TABS ---
+export const qbankTabCreate = document.getElementById('qbank-tab-create');
+export const qbankTabPractice = document.getElementById('qbank-tab-practice');
+export const qbankTabBrowse = document.getElementById('qbank-tab-browse');
+export const qbankPanelCreate = document.getElementById('qbank-panel-create');
+export const qbankPanelPractice = document.getElementById('qbank-panel-practice');
+export const qbankPanelBrowse = document.getElementById('qbank-panel-browse');
+export const qbankMainContent = document.getElementById('qbank-main-content');
