@@ -1,4 +1,4 @@
-// js/features/quiz.js (FINAL VERSION - With "Penalized" Scoring and Progress Protection)
+// js/features/quiz.js (FINAL CORRECTED VERSION - Fixes incorrect logging bug)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -191,8 +191,17 @@ function showQuestion() {
 function selectAnswer(e, selectedAnswer) {
     const currentQuestionIndex = appState.currentQuiz.currentQuestionIndex;
 
+    // Do not proceed if an answer has already been submitted for this question
+    if (appState.currentQuiz.userAnswers[currentQuestionIndex] !== null && !appState.currentQuiz.isSimulationMode) {
+        return;
+    }
+
+    const currentQuestion = appState.currentQuiz.questions[currentQuestionIndex];
+    const isCorrect = selectedAnswer.isCorrect;
+    appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: isCorrect };
+
+    // In simulation mode, just mark the choice and exit. Logging happens at the end.
     if (appState.currentQuiz.isSimulationMode) {
-        appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: selectedAnswer.isCorrect };
         dom.answerButtons.querySelectorAll('button').forEach(btn => {
             btn.classList.remove('bg-blue-200', 'border-blue-400');
         });
@@ -200,24 +209,25 @@ function selectAnswer(e, selectedAnswer) {
         return;
     }
 
-    if (appState.currentQuiz.userAnswers[currentQuestionIndex] !== null) return;
+    // For regular quizzes, stop the timer, score, and log immediately.
     clearInterval(appState.currentQuiz.timerInterval);
-    const currentQuestion = appState.currentQuiz.questions[currentQuestionIndex];
-    const isCorrect = selectedAnswer.isCorrect;
-    appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: isCorrect };
 
     if (isCorrect) {
         appState.currentQuiz.score++;
         if (appState.currentQuiz.isPracticingMistakes) {
             logCorrectedMistake(currentQuestion.UniqueID);
         }
-    } else if (!appState.currentQuiz.isPracticingMistakes) {
-        logIncorrectAnswer(currentQuestion.UniqueID, selectedAnswer.text);
+    } else {
+        // Log as incorrect only if it's NOT a mistake-practice quiz (to avoid re-logging)
+        if (!appState.currentQuiz.isPracticingMistakes) {
+            logIncorrectAnswer(currentQuestion.UniqueID, selectedAnswer.text);
+        }
     }
     
     showAnswerResult();
     updateScoreBar();
 }
+
 
 function showResults() {
     clearInterval(appState.currentQuiz.timerInterval);
@@ -232,7 +242,7 @@ function showResults() {
 
     dom.resultsTitle.textContent = appState.currentQuiz.isSimulationMode ? "Simulation Complete!" : "Quiz Complete!";
     
-    // **FINAL LOGIC:** Display score based on TOTAL questions to "penalize"
+    // Display score based on TOTAL questions to "penalize"
     dom.resultsScoreText.innerHTML = `Your score is <span class="font-bold">${appState.currentQuiz.score}</span> out of <span class="font-bold">${totalQuestions}</span>.`;
 
     const incorrectCount = appState.currentQuiz.originalUserAnswers.filter(a => a && !a.isCorrect).length;
@@ -246,12 +256,15 @@ function showResults() {
             quizTitle: dom.quizTitle.textContent,
             score: appState.currentQuiz.score,
             totalQuestions: totalQuestions,
-            attemptedQuestions: attemptedQuestions, // Send the new count
+            attemptedQuestions: attemptedQuestions,
         });
 
+        // **BUG FIX:** Only log incorrect answers for Simulation Mode here.
+        // For regular quizzes, logging now happens immediately in `selectAnswer`.
         if (appState.currentQuiz.isSimulationMode) {
             appState.currentQuiz.originalQuestions.forEach((q, index) => {
                 const answer = appState.currentQuiz.originalUserAnswers[index];
+                // CRITICAL: Only log if an answer was given AND it was incorrect.
                 if (answer && !answer.isCorrect) {
                     logIncorrectAnswer(q.UniqueID, answer.answer);
                 }
@@ -259,6 +272,7 @@ function showResults() {
         }
     }
 }
+
 
 export function handleNextQuestion() {
     if (appState.currentQuiz.currentQuestionIndex < appState.currentQuiz.questions.length - 1) {
@@ -458,7 +472,7 @@ export function startSearchedQuiz() {
     dom.qbankSearchError.classList.add('hidden');
 
     if (!isNaN(requestedCount) && requestedCount > 0) {
-        if (requestedCount > requestedCount > questionsToUse.length) {
+        if (requestedCount > questionsToUse.length) {
             dom.qbankSearchError.textContent = `Only ${questionsToUse.length} questions found.`;
             dom.qbankSearchError.classList.remove('hidden');
             return;
