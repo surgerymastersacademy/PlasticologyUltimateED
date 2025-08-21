@@ -1,4 +1,4 @@
-// js/features/quiz.js (FINAL CORRECTED VERSION - Fixes Simulation Mode score calculation bug)
+// js/features/quiz.js (FINAL & FULLY INTEGRATED VERSION)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
