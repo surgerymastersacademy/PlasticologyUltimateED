@@ -1,4 +1,4 @@
-// js/main.js (FINAL VERSION - With Dual Location features)
+// js/main.js (FINAL VERSION - With Simulation Review Logic)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -8,7 +8,7 @@ import { fetchContentData, fetchUserData } from './api.js';
 import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
 import {
     launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz,
-    toggleBookmark, toggleFlag, showHint, showQuestionNavigator, startQuizBrowse, restartCurrentQuiz, reviewIncorrectAnswers
+    toggleBookmark, toggleFlag, showHint, showQuestionNavigator, startQuizBrowse, restartCurrentQuiz, reviewIncorrectAnswers, startSimulationReview
 } from './features/quiz.js';
 import { renderLectures, saveUserProgress, fetchAndShowLastActivity } from './features/lectures.js';
 import { startOsceSlayer, startCustomOsce, endOsceQuiz, handleOsceNext, handleOscePrevious, showOsceNavigator } from './features/osce.js';
@@ -269,6 +269,10 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.resultsHomeBtn.addEventListener('click', showMainMenuScreen);
     dom.restartBtn.addEventListener('click', () => restartCurrentQuiz());
     dom.reviewIncorrectBtn.addEventListener('click', () => reviewIncorrectAnswers());
+    // NEW: Connect the new simulation review button
+    const reviewSimulationBtn = document.getElementById('review-simulation-btn');
+    if(reviewSimulationBtn) reviewSimulationBtn.addEventListener('click', () => startSimulationReview());
+
 
     // OSCE Listeners
     dom.startOsceSlayerBtn.addEventListener('click', startOsceSlayer);
@@ -293,7 +297,6 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.learningBrowseByChapterBtn.addEventListener('click', () => startLearningBrowse('chapter'));
     dom.learningBrowseBySourceBtn.addEventListener('click', () => startLearningBrowse('source'));
     
-    // --- UPDATED Event Listeners for new buttons ---
     const learningMistakesBtn = document.getElementById('learning-mistakes-btn');
     if(learningMistakesBtn) learningMistakesBtn.addEventListener('click', startLearningMistakes);
 
