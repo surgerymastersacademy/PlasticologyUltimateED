@@ -1,4 +1,4 @@
-// js/main.js (FINAL STABLE VERSION)
+// js/main.js (FINAL VERSION - With Result Screen Button Logic)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -8,7 +8,7 @@ import { fetchContentData, fetchUserData } from './api.js';
 import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
 import {
     launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz,
-    toggleBookmark, toggleFlag, showHint, showQuestionNavigator, startQuizBrowse, 
+    toggleBookmark, toggleFlag, showHint, showQuestionNavigator, startQuizBrowse,
     restartCurrentQuiz, reviewIncorrectAnswers
 } from './features/quiz.js';
 import { renderLectures, saveUserProgress, fetchAndShowLastActivity } from './features/lectures.js';
