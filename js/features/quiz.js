@@ -1,4 +1,4 @@
-// js/features/quiz.js (FINAL & FULLY INTEGRATED VERSION)
+// js/features/quiz.js (FINAL VERSION - With new result screen functions and simulation progress bar)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -66,6 +66,35 @@ function showChaptersForSource(sourceName) {
         });
     }
 }
+
+// --- NEW FUNCTIONS FOR RESULT SCREEN BUTTONS ---
+/**
+ * Restarts the quiz that was just completed.
+ */
+export function restartCurrentQuiz() {
+    const config = {
+        timePerQuestion: appState.currentQuiz.timePerQuestion,
+        isSimulation: appState.currentQuiz.isSimulationMode,
+        totalTimeSeconds: appState.currentQuiz.isSimulationMode ? SIMULATION_TOTAL_TIME_MINUTES * 60 : 0
+    };
+    // We use originalQuestions to restart the exact same quiz
+    launchQuiz(appState.currentQuiz.originalQuestions, dom.quizTitle.textContent.replace('Review Incorrect: ', ''), config);
+}
+
+/**
+ * Creates a new quiz containing only the incorrect answers from the last session.
+ */
+export function reviewIncorrectAnswers() {
+    const incorrectQuestions = [];
+    appState.currentQuiz.originalUserAnswers.forEach((answer, index) => {
+        if (answer && !answer.isCorrect) {
+            incorrectQuestions.push(appState.currentQuiz.originalQuestions[index]);
+        }
+    });
+    // Launch a new quiz with only the incorrect questions
+    launchQuiz(incorrectQuestions, `Review Incorrect: ${dom.quizTitle.textContent}`);
+}
+
 
 // --- IN-QUIZ BUTTON FUNCTIONS ---
 
@@ -256,33 +285,26 @@ function selectAnswer(e, selectedAnswer) {
     const currentQuestion = appState.currentQuiz.questions[currentQuestionIndex];
     const isCorrect = selectedAnswer.isCorrect;
 
-    // Logic for Simulation Mode (Allows changing answers)
     if (appState.currentQuiz.isSimulationMode) {
         appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: isCorrect };
         
-        // Visually update which button is selected
         dom.answerButtons.querySelectorAll('button').forEach(btn => {
             btn.classList.remove('bg-blue-200', 'border-blue-400');
         });
         e.target.classList.add('bg-blue-200', 'border-blue-400');
-        return; // Exit the function
+        updateScoreBar(); // Update the blue progress bar in simulation
+        return;
     }
 
-    // Logic for Normal Quiz Modes (Does NOT allow changing answers)
     if (appState.currentQuiz.userAnswers[currentQuestionIndex] !== null) {
-        return; // If an answer is already locked in, do nothing
+        return;
     }
 
-    // Lock in the answer
     appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: isCorrect };
     clearInterval(appState.currentQuiz.timerInterval);
 
-    // Update score and log mistakes immediately
     if (isCorrect) {
         appState.currentQuiz.score++;
-        if (appState.currentQuiz.isPracticingMistakes) {
-            logCorrectedMistake(currentQuestion.UniqueID);
-        }
     } else if (!appState.currentQuiz.isPracticingMistakes) {
         logIncorrectAnswer(currentQuestion.UniqueID, selectedAnswer.text);
     }
@@ -303,7 +325,6 @@ function showResults() {
     const totalQuestions = appState.currentQuiz.originalQuestions.length;
     const attemptedQuestions = appState.currentQuiz.originalUserAnswers.filter(a => a !== null).length;
 
-    // --- BUG FIX: Recalculate the final score for simulation mode here ---
     if (appState.currentQuiz.isSimulationMode) {
         let finalScore = 0;
         appState.currentQuiz.originalUserAnswers.forEach(answer => {
@@ -313,7 +334,6 @@ function showResults() {
         });
         appState.currentQuiz.score = finalScore;
     }
-    // --------------------------------------------------------------------
 
     dom.resultsTitle.textContent = appState.currentQuiz.isSimulationMode ? "Simulation Complete!" : "Quiz Complete!";
     
@@ -400,12 +420,25 @@ function handleTimeUp() {
 function updateScoreBar() {
     const total = appState.currentQuiz.questions.length;
     if (total === 0) return;
+
     const answered = appState.currentQuiz.userAnswers.filter(a => a !== null).length;
-    const correct = appState.currentQuiz.userAnswers.filter(a => a && a.isCorrect).length;
-    const incorrect = answered - correct;
-    dom.scoreProgressText.textContent = `Score: ${correct} / ${answered}`;
-    dom.scoreBarCorrect.style.width = `${(correct / total) * 100}%`;
-    dom.scoreBarIncorrect.style.width = `${(incorrect / total) * 100}%`;
+
+    // --- UPDATED LOGIC FOR SIMULATION MODE ---
+    if (appState.currentQuiz.isSimulationMode) {
+        dom.scoreProgressText.textContent = `Answered: ${answered} / ${total}`;
+        dom.scoreBarCorrect.style.width = '0%';
+        dom.scoreBarIncorrect.style.width = '0%';
+        dom.scoreBarAnswered.classList.remove('hidden');
+        dom.scoreBarAnswered.style.width = `${(answered / total) * 100}%`;
+    } else {
+        // This is the original logic for normal quizzes
+        const correct = appState.currentQuiz.userAnswers.filter(a => a && a.isCorrect).length;
+        const incorrect = answered - correct;
+        dom.scoreProgressText.textContent = `Score: ${correct} / ${answered}`;
+        dom.scoreBarCorrect.style.width = `${(correct / total) * 100}%`;
+        dom.scoreBarIncorrect.style.width = `${(incorrect / total) * 100}%`;
+        dom.scoreBarAnswered.classList.add('hidden');
+    }
 }
 
 function resetQuizState() {
