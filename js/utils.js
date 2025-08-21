@@ -15,6 +15,9 @@ export function parseQuestions(data) {
         if (row.IncorrectAnswer1 && String(row.IncorrectAnswer1).trim() !== '') answerOptions.push({ text: String(row.IncorrectAnswer1), isCorrect: false, rationale: row.IncorrectRationale1 || '' });
         if (row.IncorrectAnswer2 && String(row.IncorrectAnswer2).trim() !== '') answerOptions.push({ text: String(row.IncorrectAnswer2), isCorrect: false, rationale: row.IncorrectRationale2 || '' });
         if (row.IncorrectAnswer3 && String(row.IncorrectAnswer3).trim() !== '') answerOptions.push({ text: String(row.IncorrectAnswer3), isCorrect: false, rationale: row.IncorrectRationale3 || '' });
+        // --- ADDED THIS LINE TO SUPPORT THE 5TH OPTION ---
+        if (row.IncorrectAnswer4 && String(row.IncorrectAnswer4).trim() !== '') answerOptions.push({ text: String(row.IncorrectAnswer4), isCorrect: false, rationale: row.IncorrectRationale4 || '' });
+        
         return {
             UniqueID: row.UniqueID,
             chapter: (row.Chapter && String(row.Chapter).trim()) ? row.Chapter : 'Uncategorized',
@@ -46,7 +49,7 @@ export function groupLecturesByChapter(lectureData) {
                 id: row.UniqueID,
                 name: row.LectureName,
                 link: row.LectureURL,
-                Keywords: row.Keywords // <-- THE FIX: Ensure Keywords are passed through
+                Keywords: row.Keywords
             });
         }
         if (row['Mock Name'] && row['Mock Link'] && !chapters[chapterName].mock) { // Ensure both name and link exist
