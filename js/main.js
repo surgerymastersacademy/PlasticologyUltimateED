@@ -1,4 +1,4 @@
-// js/main.js (FINAL VERSION - With Result Screen Button Logic)
+// js/main.js (FINAL VERSION - With Dual Location features)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -13,7 +13,7 @@ import {
 import { renderLectures, saveUserProgress, fetchAndShowLastActivity } from './features/lectures.js';
 import { startOsceSlayer, startCustomOsce, endOsceQuiz, handleOsceNext, handleOscePrevious, showOsceNavigator } from './features/osce.js';
 import { showStudyPlannerScreen, handleCreatePlan } from './features/planner.js';
-import { showLearningModeBrowseScreen, handleLearningSearch, handleLearningNext, handleLearningPrevious, startLearningBrowse } from './features/learningMode.js';
+import { showLearningModeBrowseScreen, handleLearningSearch, handleLearningNext, handleLearningPrevious, startLearningBrowse, startLearningMistakes, startLearningBookmarked } from './features/learningMode.js';
 import { showActivityLog, renderFilteredLog } from './features/activityLog.js';
 import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.js';
 import { showLeaderboardScreen } from './features/leaderboard.js';
@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // --- NEW: Result Screen Button Listeners ---
+    // Result Screen Button Listeners
     dom.resultsHomeBtn.addEventListener('click', showMainMenuScreen);
     dom.restartBtn.addEventListener('click', () => restartCurrentQuiz());
     dom.reviewIncorrectBtn.addEventListener('click', () => reviewIncorrectAnswers());
@@ -291,6 +291,15 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.learningSearchBtn.addEventListener('click', handleLearningSearch);
     dom.learningBrowseByChapterBtn.addEventListener('click', () => startLearningBrowse('chapter'));
     dom.learningBrowseBySourceBtn.addEventListener('click', () => startLearningBrowse('source'));
+    
+    // --- NEW Event Listeners for new buttons ---
+    // Note: The buttons now need unique IDs in index.html
+    const learningMistakesBtn = document.getElementById('learning-mistakes-btn');
+    if(learningMistakesBtn) learningMistakesBtn.addEventListener('click', startLearningMistakes);
+
+    const learningBookmarkedBtn = document.getElementById('learning-bookmarked-btn');
+    if(learningBookmarkedBtn) learningBookmarkedBtn.addEventListener('click', startLearningBookmarked);
+
 
     // Study Planner Event Listeners
     dom.showCreatePlanModalBtn.addEventListener('click', () => {
