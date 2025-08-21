@@ -1,4 +1,4 @@
-// js/features/quiz.js (FINAL VERSION - With Hierarchical Browse by Source)
+// js/features/quiz.js (FINAL VERSION - With 5-Choice UI and Hierarchical Browse)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -24,7 +24,7 @@ function getQuestionPool() {
 }
 
 /**
- * NEW: Shows the second level of browsing: chapters within a specific source.
+ * Shows the second level of browsing: chapters within a specific source.
  * @param {string} sourceName The name of the source selected by the user.
  */
 function showChaptersForSource(sourceName) {
@@ -76,9 +76,6 @@ function showChaptersForSource(sourceName) {
             dom.listItems.appendChild(button);
         });
     }
-
-    // We don't push to navigation history here, as the back button should go back to the source list.
-    // The previous history entry is already the source list screen.
 }
 
 
@@ -220,6 +217,15 @@ function showQuestion() {
     dom.flagBtn.classList.toggle('flagged', appState.currentQuiz.flaggedIndices.has(appState.currentQuiz.currentQuestionIndex));
     const hasBookmark = appState.bookmarkedQuestions.has(currentQuestion.UniqueID);
     dom.bookmarkBtn.classList.toggle('bookmarked', hasBookmark);
+    
+    // --- UI IMPROVEMENT FOR 5+ OPTIONS ---
+    // If there are 5 or more options, switch to a single-column layout for better aesthetics
+    if (currentQuestion.answerOptions.length >= 5) {
+        dom.answerButtons.className = 'grid grid-cols-1 gap-4';
+    } else {
+        dom.answerButtons.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+    }
+    // ------------------------------------
 
     const shuffledAnswers = (appState.currentQuiz.isReviewMode || appState.currentQuiz.isSimulationMode) ? [...currentQuestion.answerOptions] : [...currentQuestion.answerOptions].sort(() => Math.random() - 0.5);
 
@@ -264,6 +270,7 @@ function showQuestion() {
 function selectAnswer(e, selectedAnswer) {
     const currentQuestionIndex = appState.currentQuiz.currentQuestionIndex;
 
+    // Do not proceed if an answer has already been submitted for this question
     if (appState.currentQuiz.userAnswers[currentQuestionIndex] !== null && !appState.currentQuiz.isSimulationMode) {
         return;
     }
@@ -272,6 +279,7 @@ function selectAnswer(e, selectedAnswer) {
     const isCorrect = selectedAnswer.isCorrect;
     appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: isCorrect };
 
+    // In simulation mode, just mark the choice and exit. Logging happens at the end.
     if (appState.currentQuiz.isSimulationMode) {
         dom.answerButtons.querySelectorAll('button').forEach(btn => {
             btn.classList.remove('bg-blue-200', 'border-blue-400');
@@ -280,6 +288,7 @@ function selectAnswer(e, selectedAnswer) {
         return;
     }
 
+    // For regular quizzes, stop the timer, score, and log immediately.
     clearInterval(appState.currentQuiz.timerInterval);
 
     if (isCorrect) {
@@ -288,6 +297,7 @@ function selectAnswer(e, selectedAnswer) {
             logCorrectedMistake(currentQuestion.UniqueID);
         }
     } else {
+        // Log as incorrect only if it's NOT a mistake-practice quiz (to avoid re-logging)
         if (!appState.currentQuiz.isPracticingMistakes) {
             logIncorrectAnswer(currentQuestion.UniqueID, selectedAnswer.text);
         }
@@ -311,6 +321,7 @@ function showResults() {
 
     dom.resultsTitle.textContent = appState.currentQuiz.isSimulationMode ? "Simulation Complete!" : "Quiz Complete!";
     
+    // Display score based on TOTAL questions to "penalize"
     dom.resultsScoreText.innerHTML = `Your score is <span class="font-bold">${appState.currentQuiz.score}</span> out of <span class="font-bold">${totalQuestions}</span>.`;
 
     const incorrectCount = appState.currentQuiz.originalUserAnswers.filter(a => a && !a.isCorrect).length;
@@ -318,6 +329,7 @@ function showResults() {
     if (incorrectCount > 0) dom.reviewIncorrectBtn.textContent = `Review ${incorrectCount} Incorrect`;
 
     if (!appState.currentQuiz.isReviewMode && !appState.currentQuiz.isPracticingMistakes) {
+        // Send BOTH total and attempted counts to the backend for rich data logging
         logUserActivity({
             eventType: 'FinishQuiz',
             quizTitle: dom.quizTitle.textContent,
@@ -326,9 +338,12 @@ function showResults() {
             attemptedQuestions: attemptedQuestions,
         });
 
+        // Only log incorrect answers for Simulation Mode here.
+        // For regular quizzes, logging now happens immediately in `selectAnswer`.
         if (appState.currentQuiz.isSimulationMode) {
             appState.currentQuiz.originalQuestions.forEach((q, index) => {
                 const answer = appState.currentQuiz.originalUserAnswers[index];
+                // CRITICAL: Only log if an answer was given AND it was incorrect.
                 if (answer && !answer.isCorrect) {
                     logIncorrectAnswer(q.UniqueID, answer.answer);
                 }
