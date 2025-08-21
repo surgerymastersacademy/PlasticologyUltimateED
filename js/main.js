@@ -1,4 +1,4 @@
-// js/main.js (FINAL VERSION - With ALL functions imported and correct listeners)
+// js/main.js (FINAL STABLE VERSION)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -9,7 +9,7 @@ import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMe
 import {
     launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz,
     toggleBookmark, toggleFlag, showHint, showQuestionNavigator, startQuizBrowse, 
-    restartCurrentQuiz, reviewIncorrectAnswers // <<< ADDED MISSING IMPORTS
+    restartCurrentQuiz, reviewIncorrectAnswers
 } from './features/quiz.js';
 import { renderLectures, saveUserProgress, fetchAndShowLastActivity } from './features/lectures.js';
 import { startOsceSlayer, startCustomOsce, endOsceQuiz, handleOsceNext, handleOscePrevious, showOsceNavigator } from './features/osce.js';
