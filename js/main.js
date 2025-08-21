@@ -8,8 +8,7 @@ import { fetchContentData, fetchUserData } from './api.js';
 import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
 import {
     launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz,
-    toggleBookmark, toggleFlag, showHint, showQuestionNavigator, startQuizBrowse,
-    restartCurrentQuiz, reviewIncorrectAnswers
+    toggleBookmark, toggleFlag, showHint, showQuestionNavigator, startQuizBrowse, restartCurrentQuiz, reviewIncorrectAnswers
 } from './features/quiz.js';
 import { renderLectures, saveUserProgress, fetchAndShowLastActivity } from './features/lectures.js';
 import { startOsceSlayer, startCustomOsce, endOsceQuiz, handleOsceNext, handleOscePrevious, showOsceNavigator } from './features/osce.js';
@@ -250,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     switchQBankTab(0);
 
-    // In-Quiz & Result Screen Listeners
+    // In-Quiz Listeners
     dom.endQuizBtn.addEventListener('click', triggerEndQuiz);
     dom.nextSkipBtn.addEventListener('click', handleNextQuestion);
     dom.previousBtn.addEventListener('click', handlePreviousQuestion);
@@ -264,10 +263,12 @@ document.addEventListener('DOMContentLoaded', () => {
             openNoteModal('quiz', question.UniqueID, question.question);
         }
     });
+    
+    // --- NEW: Result Screen Button Listeners ---
     dom.resultsHomeBtn.addEventListener('click', showMainMenuScreen);
     dom.restartBtn.addEventListener('click', () => restartCurrentQuiz());
     dom.reviewIncorrectBtn.addEventListener('click', () => reviewIncorrectAnswers());
-    
+
     // OSCE Listeners
     dom.startOsceSlayerBtn.addEventListener('click', startOsceSlayer);
     dom.startCustomOsceBtn.addEventListener('click', startCustomOsce);

@@ -1,4 +1,4 @@
-// js/features/quiz.js (FINAL STABLE VERSION - Fixes result buttons and simulation progress bar)
+// js/features/quiz.js (FINAL VERSION - With new result screen functions and simulation progress bar)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -67,7 +67,6 @@ function showChaptersForSource(sourceName) {
     }
 }
 
-
 // --- NEW FUNCTIONS FOR RESULT SCREEN BUTTONS ---
 /**
  * Restarts the quiz that was just completed.
@@ -92,10 +91,8 @@ export function reviewIncorrectAnswers() {
             incorrectQuestions.push(appState.currentQuiz.originalQuestions[index]);
         }
     });
-    if (incorrectQuestions.length > 0) {
-        // Launch a new quiz with only the incorrect questions
-        launchQuiz(incorrectQuestions, `Review: ${dom.quizTitle.textContent}`);
-    }
+    // Launch a new quiz with only the incorrect questions
+    launchQuiz(incorrectQuestions, `Review Incorrect: ${dom.quizTitle.textContent}`);
 }
 
 
@@ -198,7 +195,7 @@ export function launchQuiz(questions, title, config = {}) {
     dom.resultsContainer.classList.add('hidden');
     dom.questionContainer.classList.remove('hidden');
     dom.controlsContainer.classList.remove('hidden');
-    dom.quizTitle.textContent = title;
+    dom.quizTitle.textContent = isReview ? `Review: ${title}` : title;
     dom.totalQuestionsSpan.textContent = questions.length;
 
     if (isSimulation) {
@@ -431,9 +428,7 @@ function updateScoreBar() {
         dom.scoreProgressText.textContent = `Answered: ${answered} / ${total}`;
         dom.scoreBarCorrect.style.width = '0%';
         dom.scoreBarIncorrect.style.width = '0%';
-        dom.scoreBarCorrect.classList.add('hidden'); // Hide correct bar
-        dom.scoreBarIncorrect.classList.add('hidden'); // Hide incorrect bar
-        dom.scoreBarAnswered.classList.remove('hidden'); // Show answered bar
+        dom.scoreBarAnswered.classList.remove('hidden');
         dom.scoreBarAnswered.style.width = `${(answered / total) * 100}%`;
     } else {
         // This is the original logic for normal quizzes
@@ -442,8 +437,6 @@ function updateScoreBar() {
         dom.scoreProgressText.textContent = `Score: ${correct} / ${answered}`;
         dom.scoreBarCorrect.style.width = `${(correct / total) * 100}%`;
         dom.scoreBarIncorrect.style.width = `${(incorrect / total) * 100}%`;
-        dom.scoreBarCorrect.classList.remove('hidden');
-        dom.scoreBarIncorrect.classList.remove('hidden');
         dom.scoreBarAnswered.classList.add('hidden');
     }
 }

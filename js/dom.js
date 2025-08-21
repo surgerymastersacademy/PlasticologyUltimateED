@@ -1,4 +1,4 @@
-// js/dom.js (FINAL AND COMPLETE VERSION with all elements)
+// js/dom.js (FINAL AND COMPLETE VERSION)
 
 // This file contains references to all DOM elements used in the application.
 
@@ -103,7 +103,7 @@ export const endQuizBtn = document.getElementById('end-quiz-btn');
 export const scoreProgressText = document.getElementById('score-progress-text');
 export const scoreBarCorrect = document.getElementById('score-bar-correct');
 export const scoreBarIncorrect = document.getElementById('score-bar-incorrect');
-export const scoreBarAnswered = document.getElementById('score-bar-answered');
+export const scoreBarAnswered = document.getElementById('score-bar-answered'); // New
 export const resultsContainer = document.getElementById('results-container');
 export const resultsTitle = document.getElementById('results-title');
 export const resultsScoreText = document.getElementById('results-score-text');
@@ -197,7 +197,7 @@ export const qbankSearchError = document.getElementById('qbank-search-error');
 export const qbankSearchResultsContainer = document.getElementById('qbank-search-results-container');
 export const qbankSearchResultsInfo = document.getElementById('qbank-search-results-info');
 export const qbankStartSearchQuizBtn = document.getElementById('qbank-start-search-quiz-btn');
-export const qbankClearSearchBtn = document.getElementById('qbank-clear-search-btn');
+export const qbankClearSearchBtn = document.getElementById('qbank-clear-search-btn'); // New
 export const selectAllSourcesMock = document.getElementById('select-all-sources-mock');
 export const selectAllChaptersMock = document.getElementById('select-all-chapters-mock');
 export const practiceBookmarkedBtn = document.getElementById('practice-bookmarked-btn');
