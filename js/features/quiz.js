@@ -1,4 +1,4 @@
-// js/features/quiz.js (FINAL VERSION - With 5-Choice UI and Hierarchical Browse)
+// js/features/quiz.js (FINAL CORRECTED VERSION - Fixes Simulation Mode bug and allows answer changing)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -11,10 +11,6 @@ import { saveUserProgress } from './lectures.js';
 
 // --- HELPER FUNCTIONS ---
 
-/**
- * Gets the base pool of questions based on the global scope filter.
- * @returns {Array} An array of question objects.
- */
 function getQuestionPool() {
     const isUnansweredOnly = document.getElementById('scope-unanswered').checked;
     if (isUnansweredOnly) {
@@ -23,18 +19,13 @@ function getQuestionPool() {
     return appState.allQuestions;
 }
 
-/**
- * Shows the second level of browsing: chapters within a specific source.
- * @param {string} sourceName The name of the source selected by the user.
- */
 function showChaptersForSource(sourceName) {
     const questionPool = getQuestionPool();
     const sourceSpecificQuestions = questionPool.filter(q => (q.source || 'Uncategorized') === sourceName);
 
     dom.listTitle.textContent = `Source: ${sourceName}`;
-    dom.listItems.innerHTML = ''; // Clear the list of sources
+    dom.listItems.innerHTML = '';
 
-    // Create a main button to start a quiz with ALL questions from this source
     const allButton = document.createElement('button');
     allButton.className = 'action-btn p-4 bg-blue-600 text-white rounded-lg shadow-md text-center hover:bg-blue-700 col-span-full';
     allButton.innerHTML = `
@@ -46,7 +37,6 @@ function showChaptersForSource(sourceName) {
     });
     dom.listItems.appendChild(allButton);
 
-    // Get unique chapters within this source's questions
     const chapterCounts = sourceSpecificQuestions.reduce((acc, q) => {
         const chapter = q.chapter || 'Uncategorized';
         acc[chapter] = (acc[chapter] || 0) + 1;
@@ -56,7 +46,6 @@ function showChaptersForSource(sourceName) {
     const chapters = Object.keys(chapterCounts).sort();
 
     if (chapters.length > 0) {
-        // Add a separator
         const separator = document.createElement('div');
         separator.className = 'col-span-full border-t my-4';
         separator.innerHTML = `<p class="text-center text-slate-500 bg-slate-50 -mt-3 mx-auto w-48">Or Choose a Chapter</p>`;
@@ -77,7 +66,6 @@ function showChaptersForSource(sourceName) {
         });
     }
 }
-
 
 // --- IN-QUIZ BUTTON FUNCTIONS ---
 
@@ -146,7 +134,6 @@ export function showQuestionNavigator() {
     dom.questionNavigatorModal.classList.remove('hidden');
     dom.modalBackdrop.classList.remove('hidden');
 }
-
 
 export function launchQuiz(questions, title, config = {}) {
     const {
@@ -218,14 +205,11 @@ function showQuestion() {
     const hasBookmark = appState.bookmarkedQuestions.has(currentQuestion.UniqueID);
     dom.bookmarkBtn.classList.toggle('bookmarked', hasBookmark);
     
-    // --- UI IMPROVEMENT FOR 5+ OPTIONS ---
-    // If there are 5 or more options, switch to a single-column layout for better aesthetics
     if (currentQuestion.answerOptions.length >= 5) {
         dom.answerButtons.className = 'grid grid-cols-1 gap-4';
     } else {
         dom.answerButtons.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
     }
-    // ------------------------------------
 
     const shuffledAnswers = (appState.currentQuiz.isReviewMode || appState.currentQuiz.isSimulationMode) ? [...currentQuestion.answerOptions] : [...currentQuestion.answerOptions].sort(() => Math.random() - 0.5);
 
@@ -267,40 +251,41 @@ function showQuestion() {
     dom.quizNoteBtn.classList.toggle('has-note', hasNote);
 }
 
+// --- REFACTORED AND CORRECTED selectAnswer FUNCTION ---
 function selectAnswer(e, selectedAnswer) {
     const currentQuestionIndex = appState.currentQuiz.currentQuestionIndex;
-
-    // Do not proceed if an answer has already been submitted for this question
-    if (appState.currentQuiz.userAnswers[currentQuestionIndex] !== null && !appState.currentQuiz.isSimulationMode) {
-        return;
-    }
-
     const currentQuestion = appState.currentQuiz.questions[currentQuestionIndex];
     const isCorrect = selectedAnswer.isCorrect;
-    appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: isCorrect };
 
-    // In simulation mode, just mark the choice and exit. Logging happens at the end.
+    // Logic for Simulation Mode (Allows changing answers)
     if (appState.currentQuiz.isSimulationMode) {
+        appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: isCorrect };
+        
+        // Visually update which button is selected
         dom.answerButtons.querySelectorAll('button').forEach(btn => {
             btn.classList.remove('bg-blue-200', 'border-blue-400');
         });
         e.target.classList.add('bg-blue-200', 'border-blue-400');
-        return;
+        return; // Exit the function
     }
 
-    // For regular quizzes, stop the timer, score, and log immediately.
+    // Logic for Normal Quiz Modes (Does NOT allow changing answers)
+    if (appState.currentQuiz.userAnswers[currentQuestionIndex] !== null) {
+        return; // If an answer is already locked in, do nothing
+    }
+
+    // Lock in the answer
+    appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: isCorrect };
     clearInterval(appState.currentQuiz.timerInterval);
 
+    // Update score and log mistakes immediately
     if (isCorrect) {
         appState.currentQuiz.score++;
         if (appState.currentQuiz.isPracticingMistakes) {
             logCorrectedMistake(currentQuestion.UniqueID);
         }
-    } else {
-        // Log as incorrect only if it's NOT a mistake-practice quiz (to avoid re-logging)
-        if (!appState.currentQuiz.isPracticingMistakes) {
-            logIncorrectAnswer(currentQuestion.UniqueID, selectedAnswer.text);
-        }
+    } else if (!appState.currentQuiz.isPracticingMistakes) {
+        logIncorrectAnswer(currentQuestion.UniqueID, selectedAnswer.text);
     }
     
     showAnswerResult();
@@ -319,9 +304,19 @@ function showResults() {
     const totalQuestions = appState.currentQuiz.originalQuestions.length;
     const attemptedQuestions = appState.currentQuiz.originalUserAnswers.filter(a => a !== null).length;
 
+    // Recalculate the final score for simulation mode here
+    if (appState.currentQuiz.isSimulationMode) {
+        let finalScore = 0;
+        appState.currentQuiz.originalUserAnswers.forEach(answer => {
+            if (answer && answer.isCorrect) {
+                finalScore++;
+            }
+        });
+        appState.currentQuiz.score = finalScore;
+    }
+
     dom.resultsTitle.textContent = appState.currentQuiz.isSimulationMode ? "Simulation Complete!" : "Quiz Complete!";
     
-    // Display score based on TOTAL questions to "penalize"
     dom.resultsScoreText.innerHTML = `Your score is <span class="font-bold">${appState.currentQuiz.score}</span> out of <span class="font-bold">${totalQuestions}</span>.`;
 
     const incorrectCount = appState.currentQuiz.originalUserAnswers.filter(a => a && !a.isCorrect).length;
@@ -329,7 +324,6 @@ function showResults() {
     if (incorrectCount > 0) dom.reviewIncorrectBtn.textContent = `Review ${incorrectCount} Incorrect`;
 
     if (!appState.currentQuiz.isReviewMode && !appState.currentQuiz.isPracticingMistakes) {
-        // Send BOTH total and attempted counts to the backend for rich data logging
         logUserActivity({
             eventType: 'FinishQuiz',
             quizTitle: dom.quizTitle.textContent,
@@ -338,12 +332,9 @@ function showResults() {
             attemptedQuestions: attemptedQuestions,
         });
 
-        // Only log incorrect answers for Simulation Mode here.
-        // For regular quizzes, logging now happens immediately in `selectAnswer`.
         if (appState.currentQuiz.isSimulationMode) {
             appState.currentQuiz.originalQuestions.forEach((q, index) => {
                 const answer = appState.currentQuiz.originalUserAnswers[index];
-                // CRITICAL: Only log if an answer was given AND it was incorrect.
                 if (answer && !answer.isCorrect) {
                     logIncorrectAnswer(q.UniqueID, answer.answer);
                 }
@@ -666,7 +657,6 @@ export function startQuizBrowse(browseBy) {
                     const questions = questionPool.filter(q => (q.chapter || 'Uncategorized') === item);
                     launchQuiz(questions, item);
                 } else {
-                    // This is the new logic for sources: go to the next level down
                     showChaptersForSource(item);
                 }
             });
