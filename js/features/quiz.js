@@ -1,4 +1,4 @@
-// js/features/quiz.js (FINAL VERSION - With new result screen functions and simulation progressbar)
+// js/features/quiz.js (FINAL VERSION - With new result screen functions and simulation progress bar)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -66,6 +66,7 @@ function showChaptersForSource(sourceName) {
         });
     }
 }
+
 
 // --- NEW FUNCTIONS FOR RESULT SCREEN BUTTONS ---
 /**
@@ -700,4 +701,3 @@ export function startQuizBrowse(browseBy) {
     ui.showScreen(dom.listContainer);
     appState.navigationHistory.push(() => startQuizBrowse(browseBy));
 }
-
