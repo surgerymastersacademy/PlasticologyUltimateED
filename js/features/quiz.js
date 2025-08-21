@@ -349,9 +349,10 @@ function showResults() {
     // UPDATED: Logic to show the correct review button
     const incorrectCount = appState.currentQuiz.originalUserAnswers.filter(a => a && !a.isCorrect).length;
     const isSimulation = appState.currentQuiz.isSimulationMode;
+    const reviewSimulationBtn = document.getElementById('review-simulation-btn');
 
     dom.reviewIncorrectBtn.classList.toggle('hidden', isSimulation || incorrectCount === 0);
-    dom.reviewSimulationBtn.classList.toggle('hidden', !isSimulation);
+    if (reviewSimulationBtn) reviewSimulationBtn.classList.toggle('hidden', !isSimulation);
     dom.restartBtn.classList.toggle('hidden', isSimulation);
 
     if (!isSimulation && incorrectCount > 0) {
@@ -385,7 +386,7 @@ export function handleNextQuestion() {
         appState.currentQuiz.currentQuestionIndex++;
         showQuestion();
     } else {
-        showResults();
+        triggerEndQuiz(); // MODIFIED: Call triggerEndQuiz instead of showResults directly
     }
 }
 
