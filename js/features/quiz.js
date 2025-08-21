@@ -1,11 +1,11 @@
-// js/features/quiz.js (FINAL VERSION - With new result screen functions and simulation progress bar)
+// js/features/quiz.js (FINAL VERSION - With Simulation Review Mode)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
 import { logUserActivity, logIncorrectAnswer, logCorrectedMistake } from '../api.js';
 import { formatTime, parseQuestions } from '../utils.js';
-import { showMainMenuScreen, openNoteModal } from '../main.js';
+import { showMainMenuScreen } from '../main.js';
 import { populateFilterOptions } from '../ui.js';
 import { saveUserProgress } from './lectures.js';
 
@@ -67,23 +67,17 @@ function showChaptersForSource(sourceName) {
     }
 }
 
-// --- NEW FUNCTIONS FOR RESULT SCREEN BUTTONS ---
-/**
- * Restarts the quiz that was just completed.
- */
+// --- RESULT SCREEN & REVIEW FUNCTIONS ---
+
 export function restartCurrentQuiz() {
     const config = {
         timePerQuestion: appState.currentQuiz.timePerQuestion,
         isSimulation: appState.currentQuiz.isSimulationMode,
         totalTimeSeconds: appState.currentQuiz.isSimulationMode ? SIMULATION_TOTAL_TIME_MINUTES * 60 : 0
     };
-    // We use originalQuestions to restart the exact same quiz
     launchQuiz(appState.currentQuiz.originalQuestions, dom.quizTitle.textContent.replace('Review Incorrect: ', ''), config);
 }
 
-/**
- * Creates a new quiz containing only the incorrect answers from the last session.
- */
 export function reviewIncorrectAnswers() {
     const incorrectQuestions = [];
     appState.currentQuiz.originalUserAnswers.forEach((answer, index) => {
@@ -91,8 +85,19 @@ export function reviewIncorrectAnswers() {
             incorrectQuestions.push(appState.currentQuiz.originalQuestions[index]);
         }
     });
-    // Launch a new quiz with only the incorrect questions
     launchQuiz(incorrectQuestions, `Review Incorrect: ${dom.quizTitle.textContent}`);
+}
+
+/**
+ * NEW: Launches the dedicated review mode for a completed simulation.
+ */
+export function startSimulationReview() {
+    const config = {
+        isReview: true,
+        isSimulationReview: true, // New flag for the special review mode
+        pastAnswers: appState.currentQuiz.originalUserAnswers
+    };
+    launchQuiz(appState.currentQuiz.originalQuestions, `Review: ${dom.quizTitle.textContent}`, config);
 }
 
 
@@ -141,7 +146,7 @@ export function showQuestionNavigator() {
         button.textContent = index + 1;
         button.className = 'navigator-btn w-10 h-10 rounded-md font-semibold flex items-center justify-center relative';
         const answer = appState.currentQuiz.userAnswers[index];
-        if (answer === null) {
+        if (answer === null || answer.answer === 'No Answer') {
             button.classList.add('unanswered');
         } else if (answer.isCorrect) {
             button.classList.add('correct');
@@ -164,17 +169,26 @@ export function showQuestionNavigator() {
     dom.modalBackdrop.classList.remove('hidden');
 }
 
+// --- CORE QUIZ LOGIC ---
+
 export function launchQuiz(questions, title, config = {}) {
     const {
         timePerQuestion = DEFAULT_TIME_PER_QUESTION,
         isReview = false,
         isMistakePractice = false,
         isSimulation = false,
+        isSimulationReview = false, // Added new flag
         totalTimeSeconds = 0,
         pastAnswers = null
     } = config;
 
-    appState.currentQuiz = { ...appState.currentQuiz, isReviewMode: isReview, isPracticingMistakes: isMistakePractice, isSimulationMode: isSimulation };
+    appState.currentQuiz = { 
+        ...appState.currentQuiz, 
+        isReviewMode: isReview, 
+        isPracticingMistakes: isMistakePractice, 
+        isSimulationMode: isSimulation,
+        isSimulationReview: isSimulationReview // Store the new flag
+    };
 
     ui.showScreen(dom.quizContainer);
     appState.currentQuiz.currentQuestionIndex = 0;
@@ -186,6 +200,7 @@ export function launchQuiz(questions, title, config = {}) {
         appState.currentQuiz.userAnswers = new Array(questions.length).fill(null);
         appState.currentQuiz.originalUserAnswers = appState.currentQuiz.userAnswers;
     } else {
+        // For both regular review and simulation review, we use past data
         appState.currentQuiz.originalQuestions = [...questions]; 
         appState.currentQuiz.userAnswers = pastAnswers;
         appState.currentQuiz.originalUserAnswers = pastAnswers;
@@ -195,12 +210,12 @@ export function launchQuiz(questions, title, config = {}) {
     dom.resultsContainer.classList.add('hidden');
     dom.questionContainer.classList.remove('hidden');
     dom.controlsContainer.classList.remove('hidden');
-    dom.quizTitle.textContent = isReview ? `Review: ${title}` : title;
+    dom.quizTitle.textContent = title;
     dom.totalQuestionsSpan.textContent = questions.length;
 
     if (isSimulation) {
         startSimulationTimer(totalTimeSeconds);
-    } else {
+    } else if (!isReview) {
         appState.currentQuiz.timePerQuestion = timePerQuestion;
     }
 
@@ -210,9 +225,10 @@ export function launchQuiz(questions, title, config = {}) {
 
 function showQuestion() {
     resetQuizState();
-    const currentQuestion = appState.currentQuiz.questions[appState.currentQuiz.currentQuestionIndex];
+    const quizState = appState.currentQuiz;
+    const currentQuestion = quizState.questions[quizState.currentQuestionIndex];
 
-    dom.hintBtn.style.display = appState.currentQuiz.isSimulationMode ? 'none' : 'block';
+    dom.hintBtn.style.display = (quizState.isSimulationMode || quizState.isSimulationReview) ? 'none' : 'block';
 
     if (currentQuestion.ImageURL) {
         const img = document.createElement('img');
@@ -223,24 +239,19 @@ function showQuestion() {
     }
 
     dom.questionText.textContent = currentQuestion.question;
-    dom.progressText.textContent = `Question ${appState.currentQuiz.currentQuestionIndex + 1} of ${appState.currentQuiz.questions.length}`;
+    dom.progressText.textContent = `Question ${quizState.currentQuestionIndex + 1} of ${quizState.questions.length}`;
     dom.sourceText.textContent = `Source: ${currentQuestion.source || 'N/A'} | Chapter: ${currentQuestion.chapter || 'N/A'}`;
-    dom.previousBtn.disabled = appState.currentQuiz.currentQuestionIndex === 0;
+    dom.previousBtn.disabled = quizState.currentQuestionIndex === 0;
 
-    const isLastQuestion = appState.currentQuiz.currentQuestionIndex === appState.currentQuiz.questions.length - 1;
-    dom.nextSkipBtn.textContent = isLastQuestion ? 'Finish' : 'Next';
+    const isLastQuestion = quizState.currentQuestionIndex === quizState.questions.length - 1;
+    dom.nextSkipBtn.textContent = (isLastQuestion && !quizState.isReviewMode) ? 'Finish' : 'Next';
 
-    dom.flagBtn.classList.toggle('flagged', appState.currentQuiz.flaggedIndices.has(appState.currentQuiz.currentQuestionIndex));
-    const hasBookmark = appState.bookmarkedQuestions.has(currentQuestion.UniqueID);
-    dom.bookmarkBtn.classList.toggle('bookmarked', hasBookmark);
+    dom.flagBtn.classList.toggle('flagged', quizState.flaggedIndices.has(quizState.currentQuestionIndex));
+    dom.bookmarkBtn.classList.toggle('bookmarked', appState.bookmarkedQuestions.has(currentQuestion.UniqueID));
     
-    if (currentQuestion.answerOptions.length >= 5) {
-        dom.answerButtons.className = 'grid grid-cols-1 gap-4';
-    } else {
-        dom.answerButtons.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
-    }
+    dom.answerButtons.className = currentQuestion.answerOptions.length >= 5 ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 md:grid-cols-2 gap-4';
 
-    const shuffledAnswers = (appState.currentQuiz.isReviewMode || appState.currentQuiz.isSimulationMode) ? [...currentQuestion.answerOptions] : [...currentQuestion.answerOptions].sort(() => Math.random() - 0.5);
+    const shuffledAnswers = (quizState.isReviewMode || quizState.isSimulationMode) ? [...currentQuestion.answerOptions] : [...currentQuestion.answerOptions].sort(() => Math.random() - 0.5);
 
     shuffledAnswers.forEach(answer => {
         const button = document.createElement('button');
@@ -258,22 +269,22 @@ function showQuestion() {
         dom.answerButtons.appendChild(container);
     });
 
-    const userAnswer = appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex];
+    const userAnswer = quizState.userAnswers[quizState.currentQuestionIndex];
     if (userAnswer !== null) {
-        const selectedButton = Array.from(dom.answerButtons.querySelectorAll('button')).find(btn => btn.dataset.text === userAnswer.answer);
-        if (selectedButton) {
-            if (appState.currentQuiz.isSimulationMode) {
-                selectedButton.classList.add('bg-blue-200', 'border-blue-400');
-            } else {
-                showAnswerResult();
-            }
+        if (quizState.isSimulationReview) {
+            showSimulationReviewResult(); // NEW: Show full review result
+        } else if (quizState.isSimulationMode) {
+            const selectedButton = Array.from(dom.answerButtons.querySelectorAll('button')).find(btn => btn.dataset.text === userAnswer.answer);
+            if (selectedButton) selectedButton.classList.add('bg-blue-200', 'border-blue-400');
+        } else {
+            showAnswerResult();
         }
     }
 
-    if (!appState.currentQuiz.isReviewMode && !appState.currentQuiz.isSimulationMode) {
-        startTimer();
-    } else if (appState.currentQuiz.isReviewMode) {
+    if (quizState.isReviewMode) {
         dom.timerDisplay.textContent = 'Review';
+    } else if (!quizState.isSimulationMode) {
+        startTimer();
     }
 
     const hasNote = appState.userQuizNotes.some(note => note.QuizID === currentQuestion.UniqueID);
@@ -281,6 +292,8 @@ function showQuestion() {
 }
 
 function selectAnswer(e, selectedAnswer) {
+    if (appState.currentQuiz.isReviewMode) return; // Disable selection in any review mode
+
     const currentQuestionIndex = appState.currentQuiz.currentQuestionIndex;
     const currentQuestion = appState.currentQuiz.questions[currentQuestionIndex];
     const isCorrect = selectedAnswer.isCorrect;
@@ -288,23 +301,20 @@ function selectAnswer(e, selectedAnswer) {
     if (appState.currentQuiz.isSimulationMode) {
         appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: isCorrect };
         
-        dom.answerButtons.querySelectorAll('button').forEach(btn => {
-            btn.classList.remove('bg-blue-200', 'border-blue-400');
-        });
+        dom.answerButtons.querySelectorAll('button').forEach(btn => btn.classList.remove('bg-blue-200', 'border-blue-400'));
         e.target.classList.add('bg-blue-200', 'border-blue-400');
-        updateScoreBar(); // Update the blue progress bar in simulation
+        updateScoreBar();
         return;
     }
 
-    if (appState.currentQuiz.userAnswers[currentQuestionIndex] !== null) {
-        return;
-    }
+    if (appState.currentQuiz.userAnswers[currentQuestionIndex] !== null) return;
 
     appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: isCorrect };
     clearInterval(appState.currentQuiz.timerInterval);
 
     if (isCorrect) {
         appState.currentQuiz.score++;
+        if(appState.currentQuiz.isPracticingMistakes) logCorrectedMistake(currentQuestion.UniqueID);
     } else if (!appState.currentQuiz.isPracticingMistakes) {
         logIncorrectAnswer(currentQuestion.UniqueID, selectedAnswer.text);
     }
@@ -323,36 +333,42 @@ function showResults() {
     dom.resultsContainer.classList.remove('hidden');
 
     const totalQuestions = appState.currentQuiz.originalQuestions.length;
-    const attemptedQuestions = appState.currentQuiz.originalUserAnswers.filter(a => a !== null).length;
+    let finalScore = appState.currentQuiz.score;
 
     if (appState.currentQuiz.isSimulationMode) {
-        let finalScore = 0;
+        finalScore = 0;
         appState.currentQuiz.originalUserAnswers.forEach(answer => {
-            if (answer && answer.isCorrect) {
-                finalScore++;
-            }
+            if (answer && answer.isCorrect) finalScore++;
         });
         appState.currentQuiz.score = finalScore;
     }
 
     dom.resultsTitle.textContent = appState.currentQuiz.isSimulationMode ? "Simulation Complete!" : "Quiz Complete!";
-    
-    dom.resultsScoreText.innerHTML = `Your score is <span class="font-bold">${appState.currentQuiz.score}</span> out of <span class="font-bold">${totalQuestions}</span>.`;
+    dom.resultsScoreText.innerHTML = `Your score is <span class="font-bold">${finalScore}</span> out of <span class="font-bold">${totalQuestions}</span>.`;
 
+    // UPDATED: Logic to show the correct review button
     const incorrectCount = appState.currentQuiz.originalUserAnswers.filter(a => a && !a.isCorrect).length;
-    dom.reviewIncorrectBtn.classList.toggle('hidden', incorrectCount === 0);
-    if (incorrectCount > 0) dom.reviewIncorrectBtn.textContent = `Review ${incorrectCount} Incorrect`;
+    const isSimulation = appState.currentQuiz.isSimulationMode;
+
+    dom.reviewIncorrectBtn.classList.toggle('hidden', isSimulation || incorrectCount === 0);
+    dom.reviewSimulationBtn.classList.toggle('hidden', !isSimulation);
+    dom.restartBtn.classList.toggle('hidden', isSimulation);
+
+    if (!isSimulation && incorrectCount > 0) {
+        dom.reviewIncorrectBtn.textContent = `Review ${incorrectCount} Incorrect`;
+    }
 
     if (!appState.currentQuiz.isReviewMode && !appState.currentQuiz.isPracticingMistakes) {
+        const attemptedQuestions = appState.currentQuiz.originalUserAnswers.filter(a => a !== null).length;
         logUserActivity({
             eventType: 'FinishQuiz',
             quizTitle: dom.quizTitle.textContent,
-            score: appState.currentQuiz.score,
+            score: finalScore,
             totalQuestions: totalQuestions,
             attemptedQuestions: attemptedQuestions,
         });
 
-        if (appState.currentQuiz.isSimulationMode) {
+        if (isSimulation) {
             appState.currentQuiz.originalQuestions.forEach((q, index) => {
                 const answer = appState.currentQuiz.originalUserAnswers[index];
                 if (answer && !answer.isCorrect) {
@@ -421,17 +437,15 @@ function updateScoreBar() {
     const total = appState.currentQuiz.questions.length;
     if (total === 0) return;
 
-    const answered = appState.currentQuiz.userAnswers.filter(a => a !== null).length;
-
-    // --- UPDATED LOGIC FOR SIMULATION MODE ---
     if (appState.currentQuiz.isSimulationMode) {
+        const answered = appState.currentQuiz.userAnswers.filter(a => a !== null).length;
         dom.scoreProgressText.textContent = `Answered: ${answered} / ${total}`;
         dom.scoreBarCorrect.style.width = '0%';
         dom.scoreBarIncorrect.style.width = '0%';
         dom.scoreBarAnswered.classList.remove('hidden');
         dom.scoreBarAnswered.style.width = `${(answered / total) * 100}%`;
     } else {
-        // This is the original logic for normal quizzes
+        const answered = appState.currentQuiz.userAnswers.filter(a => a !== null).length;
         const correct = appState.currentQuiz.userAnswers.filter(a => a && a.isCorrect).length;
         const incorrect = answered - correct;
         dom.scoreProgressText.textContent = `Score: ${correct} / ${answered}`;
@@ -449,13 +463,15 @@ function resetQuizState() {
 }
 
 function showAnswerResult() {
-    const userAnswer = appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex];
     Array.from(dom.answerButtons.children).forEach(container => {
         const button = container.querySelector('button');
         const rationale = container.querySelector('.rationale');
         button.disabled = true;
 
-        if (button.dataset.correct === 'true') {
+        const isCorrect = button.dataset.correct === 'true';
+        const userAnswer = appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex];
+        
+        if (isCorrect) {
             button.classList.add('correct');
             rationale.classList.add('bg-green-100', 'visible');
         } else {
@@ -465,8 +481,49 @@ function showAnswerResult() {
             rationale.classList.add('bg-red-100', 'visible');
         }
     });
-    dom.hintBtn.classList.add('hidden');
 }
+
+/**
+ * NEW: Special result display for the full simulation review mode.
+ */
+function showSimulationReviewResult() {
+    const userAnswer = appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex];
+    Array.from(dom.answerButtons.children).forEach(container => {
+        const button = container.querySelector('button');
+        const rationale = container.querySelector('.rationale');
+        button.disabled = true;
+        const isCorrect = button.dataset.correct === 'true';
+
+        // Always show all rationales
+        rationale.classList.add('visible');
+        rationale.classList.toggle('bg-green-100', isCorrect);
+        rationale.classList.toggle('bg-red-100', !isCorrect);
+
+        // Mark the correct answer
+        if (isCorrect) {
+            button.classList.add('correct');
+        }
+
+        // Mark the user's incorrect answer
+        if (userAnswer && button.dataset.text === userAnswer.answer && !userAnswer.isCorrect) {
+             button.classList.add('incorrect', 'user-choice');
+        }
+    });
+}
+
+
+export function triggerEndQuiz() {
+    if (appState.currentQuiz.isReviewMode) {
+        showMainMenuScreen();
+        return;
+    }
+    ui.showConfirmationModal('End Quiz?', 'Are you sure you want to end this quiz?', () => {
+        dom.modalBackdrop.classList.add('hidden');
+        showResults();
+    });
+}
+
+// --- QUIZ CREATION/STARTING FUNCTIONS ---
 
 export function handleMockExamStart() {
     dom.mockError.classList.add('hidden');
@@ -479,7 +536,6 @@ export function handleMockExamStart() {
     const customTime = parseInt(dom.customTimerInput.value, 10);
     
     let questionPool = getQuestionPool();
-
     const selectedChapters = [...dom.chapterSelectMock.querySelectorAll('input:checked')].map(el => el.value);
     const selectedSources = [...dom.sourceSelectMock.querySelectorAll('input:checked')].map(el => el.value);
 
@@ -500,12 +556,15 @@ export function handleMockExamStart() {
 
 export function handleStartSimulation() {
     dom.simulationError.classList.add('hidden');
-    if (appState.allQuestions.length < SIMULATION_Q_COUNT) {
-        dom.simulationError.textContent = `Not enough questions available. (Required: ${SIMULATION_Q_COUNT})`;
+    let questionPool = getQuestionPool();
+
+    if (questionPool.length < SIMULATION_Q_COUNT) {
+        dom.simulationError.textContent = `Not enough unanswered questions available (${questionPool.length}). Showing from all questions instead.`;
         dom.simulationError.classList.remove('hidden');
-        return;
+        questionPool = appState.allQuestions; // Fallback to all questions
     }
-    const simulationQuestions = [...appState.allQuestions].sort(() => Math.random() - 0.5).slice(0, SIMULATION_Q_COUNT);
+
+    const simulationQuestions = [...questionPool].sort(() => Math.random() - 0.5).slice(0, SIMULATION_Q_COUNT);
     const totalTimeSeconds = SIMULATION_TOTAL_TIME_MINUTES * 60;
     const config = { isSimulation: true, totalTimeSeconds };
     launchQuiz(simulationQuestions, "Exam Simulation", config);
@@ -514,17 +573,6 @@ export function handleStartSimulation() {
 export function startChapterQuiz(chapterName, questionsToUse) {
     const shuffled = [...questionsToUse].sort(() => Math.random() - 0.5);
     launchQuiz(shuffled, chapterName);
-}
-
-export function triggerEndQuiz() {
-    if (appState.currentQuiz.isReviewMode) {
-        showMainMenuScreen();
-        return;
-    }
-    ui.showConfirmationModal('End Quiz?', 'Are you sure you want to end this quiz?', () => {
-        dom.modalBackdrop.classList.add('hidden');
-        showResults();
-    });
 }
 
 export function handleQBankSearch() {
@@ -539,17 +587,14 @@ export function handleQBankSearch() {
     }
     
     const questionPool = getQuestionPool();
-
     const results = questionPool.filter(q => {
         const questionText = q.question.toLowerCase();
-        const answersText = q.answerOptions
-            .map(opt => opt.text.toLowerCase())
-            .join(' '); 
-        return questionText.includes(searchTerm) || answersText.includes(searchTerm);
+        const answersText = q.answerOptions.map(opt => opt.text.toLowerCase()).join(' '); 
+        const keywordsText = (q.Keywords || '').toLowerCase();
+        return questionText.includes(searchTerm) || answersText.includes(searchTerm) || keywordsText.includes(searchTerm);
     });
 
     appState.qbankSearchResults = results;
-    
     dom.qbankMainContent.classList.add('hidden');
 
     if (results.length === 0) {
@@ -561,14 +606,12 @@ export function handleQBankSearch() {
             acc[source] = (acc[source] || 0) + 1;
             return acc;
         }, {});
-
         let resultsHtml = `<p class="font-bold text-lg mb-2">Found ${results.length} questions for "${dom.qbankSearchInput.value}", distributed as follows:</p>`;
         resultsHtml += '<ul class="list-disc list-inside text-left">';
         for (const source in sourceCounts) {
             resultsHtml += `<li><strong>${source}:</strong> ${sourceCounts[source]} Questions</li>`;
         }
         resultsHtml += '</ul>';
-
         dom.qbankSearchResultsInfo.innerHTML = resultsHtml;
         dom.qbankSearchResultsContainer.classList.remove('hidden');
     }
@@ -595,7 +638,6 @@ export function startSearchedQuiz() {
 
 export function updateChapterFilter() {
     const questionPool = getQuestionPool();
-
     const selectedSources = [...dom.sourceSelectMock.querySelectorAll('input:checked')].map(el => el.value);
     
     let relevantQuestions = selectedSources.length === 0 
@@ -663,7 +705,6 @@ export function startQuizBrowse(browseBy) {
     const title = isChapter ? 'Browse by Chapter' : 'Browse by Source';
     
     const questionPool = getQuestionPool();
-
     const itemCounts = questionPool.reduce((acc, q) => {
         const item = isChapter ? (q.chapter || 'Uncategorized') : (q.source || 'Uncategorized');
         acc[item] = (acc[item] || 0) + 1;
@@ -671,7 +712,6 @@ export function startQuizBrowse(browseBy) {
     }, {});
 
     const items = Object.keys(itemCounts).sort();
-
     dom.listTitle.textContent = title;
     dom.listItems.innerHTML = ''; 
 
