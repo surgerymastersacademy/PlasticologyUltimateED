@@ -1,4 +1,4 @@
-// js/features/quiz.js (FINAL CORRECTED VERSION - Fixes Simulation Mode bug and allows answer changing)
+// js/features/quiz.js (FINAL CORRECTED VERSION - Fixes Simulation Mode bug and allows answerchanging)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -667,3 +667,4 @@ export function startQuizBrowse(browseBy) {
     ui.showScreen(dom.listContainer);
     appState.navigationHistory.push(() => startQuizBrowse(browseBy));
 }
+
