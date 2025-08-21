@@ -235,19 +235,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function switchQBankTab(activeIndex) {
         qbankTabs.forEach((tab, index) => {
-            tab.classList.toggle('active', index === activeIndex);
+            if(tab) tab.classList.toggle('active', index === activeIndex);
         });
         qbankPanels.forEach((panel, index) => {
-            panel.classList.toggle('hidden', index !== activeIndex);
+            if(panel) panel.classList.toggle('hidden', index !== activeIndex);
         });
         dom.qbankMainContent.classList.remove('hidden');
         dom.qbankSearchResultsContainer.classList.add('hidden');
     }
 
     qbankTabs.forEach((tab, index) => {
-        tab.addEventListener('click', () => switchQBankTab(index));
+        if(tab) tab.addEventListener('click', () => switchQBankTab(index));
     });
-    switchQBankTab(0);
+    if(qbankTabs[0]) switchQBankTab(0);
+
 
     // In-Quiz Listeners
     dom.endQuizBtn.addEventListener('click', triggerEndQuiz);
@@ -292,8 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.learningBrowseByChapterBtn.addEventListener('click', () => startLearningBrowse('chapter'));
     dom.learningBrowseBySourceBtn.addEventListener('click', () => startLearningBrowse('source'));
     
-    // --- NEW Event Listeners for new buttons ---
-    // Note: The buttons now need unique IDs in index.html
+    // --- UPDATED Event Listeners for new buttons ---
     const learningMistakesBtn = document.getElementById('learning-mistakes-btn');
     if(learningMistakesBtn) learningMistakesBtn.addEventListener('click', startLearningMistakes);
 
