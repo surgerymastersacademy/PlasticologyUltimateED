@@ -1,8 +1,9 @@
-// js/features/learningMode.js (Corrected and Enhanced with Browse functionality)
+// js/features/learningMode.js (With Mistakes & Bookmarked logic)
 
-import { appState } from '../state.js';
+import { appState, API_URL } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
+import { parseQuestions } from '../utils.js';
 
 export function showLearningModeBrowseScreen() {
     ui.showScreen(dom.learningModeContainer);
@@ -13,8 +14,7 @@ export function showLearningModeBrowseScreen() {
 
 function launchLearningMode(title, questions) {
     if (questions.length === 0) {
-        // This is a safeguard, should not happen if called from a button with items.
-        alert(`No questions found for ${title}.`);
+        ui.showConfirmationModal('No Questions', `No questions found for "${title}".`, () => dom.modalBackdrop.classList.add('hidden'));
         return;
     }
     ui.showScreen(dom.learningModeContainer);
@@ -39,7 +39,7 @@ function showLearningQuestion() {
     currentQuestion.answerOptions.forEach(answer => {
         const answerDiv = document.createElement('div');
         const button = document.createElement('button');
-        button.innerHTML = answer.text; // Use innerHTML to render any potential HTML tags
+        button.innerHTML = answer.text;
         button.className = 'learning-answer-btn w-full text-left p-4 rounded-lg';
         button.disabled = true;
 
@@ -88,21 +88,13 @@ export function handleLearningSearch() {
         q.answerOptions.some(opt => opt.text.toLowerCase().includes(searchTerm))
     );
 
-    if (filteredQuestions.length === 0) {
-        dom.learningSearchError.textContent = `No questions found for "${dom.learningSearchInput.value}".`;
-        dom.learningSearchError.classList.remove('hidden');
-    } else {
-        launchLearningMode(`Search: "${dom.learningSearchInput.value}"`, filteredQuestions);
-    }
+    launchLearningMode(`Search: "${dom.learningSearchInput.value}"`, filteredQuestions);
 }
 
-
-// --- NEW --- Functions for Browse by Chapter/Source
 export function startLearningBrowse(browseBy) {
     const isChapter = browseBy === 'chapter';
     const title = isChapter ? 'Browse by Chapter' : 'Browse by Source';
     
-    // Get unique items (chapters or sources) and count questions for each
     const itemCounts = appState.allQuestions.reduce((acc, q) => {
         const item = isChapter ? (q.chapter || 'Uncategorized') : (q.source || 'Uncategorized');
         acc[item] = (acc[item] || 0) + 1;
@@ -110,9 +102,8 @@ export function startLearningBrowse(browseBy) {
     }, {});
 
     const items = Object.keys(itemCounts).sort();
-
     dom.listTitle.textContent = title;
-    dom.listItems.innerHTML = ''; // Clear previous items
+    dom.listItems.innerHTML = '';
 
     if (items.length === 0) {
         dom.listItems.innerHTML = `<p class="text-slate-500 col-span-full text-center">No ${browseBy}s found.</p>`;
@@ -120,10 +111,7 @@ export function startLearningBrowse(browseBy) {
         items.forEach(item => {
             const button = document.createElement('button');
             button.className = 'action-btn p-4 bg-white rounded-lg shadow-sm text-center hover:bg-slate-50';
-            button.innerHTML = `
-                <h3 class="font-bold text-slate-800">${item}</h3>
-                <p class="text-sm text-slate-500">${itemCounts[item]} Questions</p>
-            `;
+            button.innerHTML = `<h3 class="font-bold text-slate-800">${item}</h3><p class="text-sm text-slate-500">${itemCounts[item]} Questions</p>`;
             button.addEventListener('click', () => {
                 const questions = appState.allQuestions.filter(q => {
                     const qItem = isChapter ? (q.chapter || 'Uncategorized') : (q.source || 'Uncategorized');
@@ -137,4 +125,34 @@ export function startLearningBrowse(browseBy) {
 
     ui.showScreen(dom.listContainer);
     appState.navigationHistory.push(() => startLearningBrowse(browseBy));
+}
+
+// --- NEW FUNCTIONS FOR MISTAKES & BOOKMARKED ---
+
+export async function startLearningMistakes() {
+    ui.showConfirmationModal('Loading...', 'Fetching your mistakes, please wait.', () => {});
+    dom.modalConfirmBtn.classList.add('hidden'); // Hide confirm button
+    dom.modalCancelBtn.classList.add('hidden'); // Hide cancel button
+    try {
+        const response = await fetch(`${API_URL}?request=getIncorrectQuestions&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
+        if (!response.ok) throw new Error('Failed to fetch your mistakes.');
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        const mistakeQuestions = parseQuestions(data.questions);
+        dom.modalBackdrop.classList.add('hidden'); // Hide modal before launching
+        launchLearningMode("Study Mistakes", mistakeQuestions);
+
+    } catch (error) {
+        console.error("Error fetching mistakes:", error);
+        dom.modalConfirmBtn.classList.remove('hidden');
+        dom.modalCancelBtn.classList.remove('hidden');
+        ui.showConfirmationModal('Error', error.message, () => dom.modalBackdrop.classList.add('hidden'));
+    }
+}
+
+export function startLearningBookmarked() {
+    const bookmarkedIds = Array.from(appState.bookmarkedQuestions);
+    const bookmarkedQuestions = appState.allQuestions.filter(q => bookmarkedIds.includes(q.UniqueID));
+    launchLearningMode("Study Bookmarked", bookmarkedQuestions);
 }
