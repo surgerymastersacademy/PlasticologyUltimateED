@@ -49,7 +49,6 @@ export function logUserActivity(eventData) {
 
     fetch(API_URL, {
         method: 'POST',
-        mode: 'no-cors',
         body: JSON.stringify(payload)
     }).then(() => {
         if (newLogEntry) {
@@ -113,7 +112,7 @@ export function logIncorrectAnswer(questionId, userAnswer) {
         questionId: questionId,
         userAnswer: userAnswer
     };
-    fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) })
+    fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) })
         .catch(err => console.error("Failed to log incorrect answer:", err));
 }
 
@@ -127,6 +126,6 @@ export function logCorrectedMistake(questionId) {
         userId: appState.currentUser.UniqueID,
         questionId: questionId
     };
-    fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) })
+    fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) })
         .catch(err => console.error("Failed to log corrected mistake:", err));
 }
