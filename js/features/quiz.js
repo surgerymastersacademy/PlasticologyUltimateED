@@ -1,4 +1,4 @@
-// js/features/quiz.js (FINAL CORRECTED VERSION - Fixes Simulation Mode bug and allows answerchanging)
+// js/features/quiz.js (FINAL CORRECTED VERSION - Fixes Simulation Mode score calculation bug)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -251,7 +251,6 @@ function showQuestion() {
     dom.quizNoteBtn.classList.toggle('has-note', hasNote);
 }
 
-// --- REFACTORED AND CORRECTED selectAnswer FUNCTION ---
 function selectAnswer(e, selectedAnswer) {
     const currentQuestionIndex = appState.currentQuiz.currentQuestionIndex;
     const currentQuestion = appState.currentQuiz.questions[currentQuestionIndex];
@@ -304,7 +303,7 @@ function showResults() {
     const totalQuestions = appState.currentQuiz.originalQuestions.length;
     const attemptedQuestions = appState.currentQuiz.originalUserAnswers.filter(a => a !== null).length;
 
-    // Recalculate the final score for simulation mode here
+    // --- BUG FIX: Recalculate the final score for simulation mode here ---
     if (appState.currentQuiz.isSimulationMode) {
         let finalScore = 0;
         appState.currentQuiz.originalUserAnswers.forEach(answer => {
@@ -314,6 +313,7 @@ function showResults() {
         });
         appState.currentQuiz.score = finalScore;
     }
+    // --------------------------------------------------------------------
 
     dom.resultsTitle.textContent = appState.currentQuiz.isSimulationMode ? "Simulation Complete!" : "Quiz Complete!";
     
@@ -667,4 +667,3 @@ export function startQuizBrowse(browseBy) {
     ui.showScreen(dom.listContainer);
     appState.navigationHistory.push(() => startQuizBrowse(browseBy));
 }
-
