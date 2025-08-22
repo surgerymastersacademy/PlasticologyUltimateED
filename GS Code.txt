@@ -179,9 +179,561 @@ function doPost(e) {
   }
 }
 
-
 // ===============================================================
 // ================ HANDLER FUNCTIONS (وظائف المعالجة) ===========
 // ===============================================================
 
-// ... (Rest of the file is unchanged)
+function deactivateAllUserPlans(ss, userId) {
+    try {
+        var plannerSheet = ss.getSheetByName(STUDY_PLANNER_SHEET_NAME);
+        if (!plannerSheet) return; 
+
+        var values = plannerSheet.getDataRange().getValues();
+        var headers = values[0];
+        var userIdCol = headers.indexOf("User_ID");
+        var statusCol = headers.indexOf("Plan_Status");
+        if (userIdCol === -1 || statusCol === -1) {
+            Logger.log("Could not find User_ID or Plan_Status columns in Study_Planner sheet.");
+            return;
+        }
+
+        for (var i = 1; i < values.length; i++) {
+            if (String(values[i][userIdCol]).trim() === String(userId).trim()) {
+                plannerSheet.getRange(i + 1, statusCol + 1).setValue('FALSE');
+            }
+        }
+    } catch(e) {
+        Logger.log("Error in deactivateAllUserPlans: " + e.toString());
+    }
+}
+
+function handleUpdateStudyPlan(ss, data) {
+  Logger.log("Attempting to update plan ID: " + data.planId);
+  try {
+    var plannerSheet = getOrCreateSheet(ss, STUDY_PLANNER_SHEET_NAME, ["User_ID", "Plan_Name", "Plan_StartDate", "Plan_EndDate", "Study_Plan_JSON", "Plan_ID", "Plan_TimeStamp", "Plan_Status"]);
+    var values = plannerSheet.getDataRange().getValues();
+    var headers = values[0];
+    var planIdCol = headers.indexOf("Plan_ID");
+    var planJsonCol = headers.indexOf("Study_Plan_JSON");
+    if (planIdCol === -1 || planJsonCol === -1) {
+        Logger.log("Could not find Plan_ID or Study_Plan_JSON columns.");
+        return createErrorResponse("Sheet is missing required columns.");
+    }
+
+    var rowFound = -1;
+    for (var i = 1; i < values.length; i++) {
+      if (String(values[i][planIdCol]).trim() === String(data.planId).trim()) {
+        rowFound = i + 1;
+        break;
+      }
+    }
+
+    if (rowFound !== -1) {
+      Logger.log("Found plan in row " + rowFound + ". Updating now.");
+      plannerSheet.getRange(rowFound, planJsonCol + 1).setValue(JSON.stringify(data.studyPlan));
+      return createJsonResponse({ success: true, message: "Study plan updated." });
+    } else {
+      Logger.log("Plan ID not found: " + data.planId);
+      return createErrorResponse("Plan ID not found.");
+    }
+  } catch (error) {
+    Logger.log("handleUpdateStudyPlan Error: " + error.toString());
+    return createErrorResponse("Failed to update study plan: " + error.toString());
+  }
+}
+
+function handleDeleteStudyPlan(ss, data) {
+    try {
+      var plannerSheet = ss.getSheetByName(STUDY_PLANNER_SHEET_NAME);
+      if (!plannerSheet) return createErrorResponse("Study_Planner sheet not found.");
+
+      var values = plannerSheet.getDataRange().getValues();
+      var headers = values[0];
+      var planIdCol = headers.indexOf("Plan_ID");
+      if (planIdCol === -1) {
+        return createErrorResponse("Plan_ID column not found in Study_Planner sheet.");
+      }
+
+      for (var i = values.length - 1; i > 0; i--) {
+        if (String(values[i][planIdCol]).trim() === String(data.planId).trim()) {
+          plannerSheet.deleteRow(i + 1);
+          return createJsonResponse({ success: true, message: "Plan deleted successfully." });
+        }
+      }
+      return createErrorResponse("Plan ID not found for deletion.");
+    } catch (error) {
+      Logger.log("handleDeleteStudyPlan Error: " + error.toString());
+      return createErrorResponse("Failed to delete study plan: " + error.toString());
+    }
+}
+
+
+function handleGetAllUserPlans(userId) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var plannerSheet = getOrCreateSheet(ss, STUDY_PLANNER_SHEET_NAME, ["User_ID", "Plan_Name", "Plan_StartDate", "Plan_EndDate", "Study_Plan_JSON", "Plan_ID", "Plan_TimeStamp", "Plan_Status"]);
+    var allPlans = sheetToJSON(plannerSheet);
+    var userPlans = allPlans.filter(function(row) {
+      return row.User_ID === userId;
+    });
+    userPlans.forEach(function(plan) {
+      try {
+        plan.Study_Plan = JSON.parse(plan.Study_Plan_JSON || '[]');
+      } catch (e) {
+        plan.Study_Plan = [];
+      }
+    });
+    return createJsonResponse({ success: true, plans: userPlans });
+  } catch (error) {
+    Logger.log("handleGetAllUserPlans Error: " + error.toString());
+    return createErrorResponse("Failed to retrieve study plans: " + error.toString());
+  }
+}
+
+function handleCreateStudyPlan(ss, data) {
+    try {
+        var plannerSheet = getOrCreateSheet(ss, STUDY_PLANNER_SHEET_NAME, ["User_ID", "Plan_Name", "Plan_StartDate", "Plan_EndDate", "Study_Plan_JSON", "Plan_ID", "Plan_TimeStamp", "Plan_Status"]);
+        var planId = "PLAN_" + new Date().getTime();
+        var now = new Date();
+        
+        deactivateAllUserPlans(ss, data.userId);
+        var newRow = [
+            data.userId,
+            data.planName,
+            new Date(data.startDate),
+            new Date(data.endDate),
+            JSON.stringify(data.studyPlan),
+            planId,
+            now,
+           'TRUE'
+        ];
+        plannerSheet.appendRow(newRow);
+        return createJsonResponse({ success: true, message: "Plan created successfully.", newPlanId: planId });
+    } catch (error) {
+        Logger.log("handleCreateStudyPlan Error: " + error.toString());
+        return createErrorResponse("Failed to create study plan: " + error.toString());
+    }
+}
+
+function handleActivateStudyPlan(ss, data) {
+    try {
+        deactivateAllUserPlans(ss, data.userId);
+        var plannerSheet = ss.getSheetByName(STUDY_PLANNER_SHEET_NAME);
+        var values = plannerSheet.getDataRange().getValues();
+        var headers = values[0];
+        var planIdCol = headers.indexOf("Plan_ID");
+        var statusCol = headers.indexOf("Plan_Status");
+        var rowFound = -1;
+        for (var i = 1; i < values.length; i++) {
+          if (String(values[i][planIdCol]).trim() === String(data.planId).trim()) {
+            rowFound = i + 1;
+            break;
+          }
+        }
+        
+        if (rowFound !== -1) {
+            plannerSheet.getRange(rowFound, statusCol + 1).setValue('TRUE');
+            return createJsonResponse({ success: true, message: "Plan activated." });
+        } else {
+            return createErrorResponse("Plan to activate not found.");
+        }
+    } catch (error) {
+        Logger.log("handleActivateStudyPlan Error: " + error.toString());
+        return createErrorResponse("Failed to activate study plan: " + error.toString());
+    }
+}
+
+function handleLogin(username, password) {
+    var user = verifyUser(username, password);
+    if (user) { 
+      return createJsonResponse({ success: true, user: user });
+    } else { 
+      return createJsonResponse({ success: false, message: "Invalid username or password." });
+    }
+}
+
+function handleContentDataRequest() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var data = {
+    questions: sheetToJSON(ss.getSheetByName(QUESTIONS_SHEET_NAME)),
+    lectures: sheetToJSON(ss.getSheetByName(LECTURES_SHEET_NAME)),
+    books: sheetToJSON(ss.getSheetByName(BOOKS_SHEET_NAME)),
+    announcements: getActiveAnnouncements(ss),
+    osceCases: sheetToJSON(ss.getSheetByName(OSCE_CASES_SHEET_NAME)),
+    osceQuestions: sheetToJSON(ss.getSheetByName(OSCE_QUESTIONS_SHEET_NAME)),
+    roles: sheetToJSON(ss.getSheetByName(ROLES_SHEET_NAME)),
+    freeTestQuestions: sheetToJSON(ss.getSheetByName(FREE_TEST_QUESTIONS_SHEET_NAME))
+  };
+  return createJsonResponse(data);
+}
+
+function handleUserDataRequest(userId) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var answeredSheet = getOrCreateSheet(ss, ANSWERED_QUESTIONS_LOG_SHEET_NAME, ["UserID", "QuestionID"]);
+  var answeredData = sheetToJSON(answeredSheet);
+  var userAnsweredIds = answeredData.filter(function(r) { return r.UserID === userId; }).map(function(r) { return r.QuestionID; });
+  var data = {
+    logs: getLogsForUser(ss, userId),
+    quizNotes: getNotesForUser(ss, QUIZ_NOTES_SHEET_NAME, userId),
+    lectureNotes: getNotesForUser(ss, LECTURE_NOTES_SHEET_NAME, userId),
+    answeredQuestions: userAnsweredIds
+  };
+  return createJsonResponse(data);
+}
+
+function handleUserCardDataRequest(userId) {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var cardSheet = getOrCreateSheet(ss, USERS_CARD_SHEET_NAME, ["UniqueID", "Name", "Nickname", "ExamDate", "Age", "StudyType", "QuizScore", "User_Img"]);
+    var cardData = sheetToJSON(cardSheet);
+    var userData = cardData.find(function(row) { return row.UniqueID === userId; });
+    if (!userData) {
+        var usersSheet = ss.getSheetByName(USERS_SHEET_NAME);
+        if (!usersSheet) return createErrorResponse("Users sheet not found.");
+        var allUsers = sheetToJSON(usersSheet);
+        var mainUser = allUsers.find(function(u) { return u.UniqueID === userId; });
+        if (!mainUser) return createErrorResponse("User not found in main user list.");
+        var newRowData = [userId, mainUser.Name, "", "", "", "", 0, ""];
+        cardSheet.appendRow(newRowData);
+        userData = { UniqueID: userId, Name: mainUser.Name, Nickname: "", ExamDate: "", Age: "", StudyType: "", QuizScore: 0, User_Img: "" };
+    }
+    var quizLogSheet = ss.getSheetByName(QUIZ_LOG_SHEET_NAME);
+    var totalScore = 0;
+    if (quizLogSheet) {
+        var logData = sheetToJSON(quizLogSheet);
+        logData.forEach(function(log) {
+            if (log.UserID === userId && log.Score) {
+                totalScore += parseInt(log.Score, 10) || 0;
+            }
+        });
+    }
+    var values = cardSheet.getDataRange().getValues();
+    var headers = values[0];
+    var uniqueIdCol = headers.indexOf("UniqueID"), scoreCol = headers.indexOf("QuizScore");
+    for (var i = 1; i < values.length; i++) {
+        if (values[i][uniqueIdCol] === userId) {
+            cardSheet.getRange(i + 1, scoreCol + 1).setValue(totalScore);
+            break;
+        }
+    }
+    userData.QuizScore = totalScore;
+    return createJsonResponse({ success: true, cardData: userData });
+}
+
+function handleUpdateUserCard(ss, data) {
+    var cardSheet = ss.getSheetByName(USERS_CARD_SHEET_NAME);
+    if (!cardSheet) return createErrorResponse("Users_Card sheet not found.");
+    var values = cardSheet.getDataRange().getValues();
+    var headers = values.shift();
+    var uniqueIdCol = headers.indexOf("UniqueID"), nicknameCol = headers.indexOf("Nickname"), examDateCol = headers.indexOf("ExamDate"), userImgCol = headers.indexOf("User_Img");
+    for (var i = 0; i < values.length; i++) {
+        if (values[i][uniqueIdCol] === data.userId) {
+            var rowNum = i + 2;
+            if (data.nickname !== undefined) cardSheet.getRange(rowNum, nicknameCol + 1).setValue(data.nickname);
+            if (data.examDate !== undefined) cardSheet.getRange(rowNum, examDateCol + 1).setValue(data.examDate);
+            if (data.userImg !== undefined) cardSheet.getRange(rowNum, userImgCol + 1).setValue(data.userImg);
+            return createJsonResponse({ success: true, message: "User card updated." });
+        }
+    }
+    return createErrorResponse("User not found in Users_Card sheet for update.");
+}
+
+function handleReviewQuizRequest(logId, userId) {
+    try {
+        var ss = SpreadsheetApp.getActiveSpreadsheet();
+        var quizLogSheet = ss.getSheetByName(QUIZ_LOG_SHEET_NAME);
+        if (!quizLogSheet) return createErrorResponse("Quiz log sheet not found.");
+        var logData = quizLogSheet.getDataRange().getValues();
+        var logHeaders = logData.shift();
+        var timestampCol = logHeaders.indexOf("Timestamp"), userIdCol = logHeaders.indexOf("UserID"), detailsCol = logHeaders.indexOf("Details");
+        var quizDetailsStr = null, quizLogFound = false;
+        for (var i = 0; i < logData.length; i++) {
+            var row = logData[i];
+            if (String(row[userIdCol]) === String(userId) && new Date(row[timestampCol]).toISOString() === new Date(logId).toISOString()) {
+                quizDetailsStr = row[detailsCol];
+                quizLogFound = true;
+                break;
+            }
+        }
+        if (!quizLogFound) return createErrorResponse("Quiz log not found for the specified user and ID.");
+        var quizDetails = JSON.parse(quizDetailsStr);
+        var allQuestions = sheetToJSON(ss.getSheetByName(QUESTIONS_SHEET_NAME));
+        var questionsMap = allQuestions.reduce(function(map, q) { map[q.UniqueID] = q; return map; }, {});
+        var reviewQuestions = quizDetails.map(function(detail) {
+            var fullQuestion = questionsMap[detail.qID];
+            if (fullQuestion) { return { question: fullQuestion, userAnswer: detail.ans }; }
+            return null;
+        }).filter(function(q) { return q !== null; });
+        return createJsonResponse({ success: true, reviewData: reviewQuestions });
+    } catch (error) {
+        Logger.log("handleReviewQuizRequest Error: " + error.toString());
+        return createErrorResponse("Failed to retrieve quiz for review: " + error.toString());
+    }
+}
+
+function handleLeaderboardRequest(currentUserId) {
+    try {
+        var ss = SpreadsheetApp.getActiveSpreadsheet();
+        var cardSheet = getOrCreateSheet(ss, USERS_CARD_SHEET_NAME, ["UniqueID", "Name", "Nickname", "ExamDate", "Age", "StudyType", "QuizScore", "User_Img"]);
+        var cardData = sheetToJSON(cardSheet).filter(function(user) { return user.Name && user.Name !== 'N/A' && user.Name !== 'Guest'; });
+        cardData.sort(function(a, b) { return (b.QuizScore || 0) - (a.QuizScore || 0); });
+        var currentUserRankData = null, top10Public = [];
+        cardData.forEach(function(user, index) {
+            var rank = index + 1;
+            var displayName = (user.Nickname && user.Nickname.trim() !== '') ? user.Nickname : user.Name;
+            if (rank <= 10) top10Public.push({ rank: rank, name: displayName });
+            if (user.UniqueID === currentUserId) currentUserRankData = { rank: rank, name: displayName, score: user.QuizScore || 0 };
+        });
+        return createJsonResponse({ success: true, leaderboard: top10Public, currentUserRank: currentUserRankData });
+    } catch (error) {
+        Logger.log("handleLeaderboardRequest Error: " + error.toString());
+        return createErrorResponse("Failed to retrieve leaderboard data: " + error.toString());
+    }
+}
+
+function handleIncorrectQuestionsRequest(userId) {
+    try {
+        var ss = SpreadsheetApp.getActiveSpreadsheet();
+        var incorrectSheet = ss.getSheetByName(USER_INCORRECT_QUESTIONS_SHEET_NAME);
+        if (!incorrectSheet) return createJsonResponse({ success: true, questions: [] });
+        var incorrectData = sheetToJSON(incorrectSheet);
+        var userMistakes = incorrectData.filter(function(row) { return row.UserID === userId && !row.CorrectTimestamp; });
+        var questionIds = userMistakes.map(function(mistake) { return mistake.QuestionID; });
+        if (questionIds.length === 0) return createJsonResponse({ success: true, questions: [] });
+        var allQuestions = sheetToJSON(ss.getSheetByName(QUESTIONS_SHEET_NAME));
+        var mistakeQuestions = allQuestions.filter(function(q) { return questionIds.indexOf(q.UniqueID) !== -1; });
+        return createJsonResponse({ success: true, questions: mistakeQuestions });
+    } catch (error) {
+        Logger.log("handleIncorrectQuestionsRequest Error: " + error.toString());
+        return createErrorResponse("Failed to retrieve incorrect questions: " + error.toString());
+    }
+}
+
+function handleGetMessagesRequest(userId) {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var messengerSheet = getOrCreateSheet(ss, MESSENGER_SHEET_NAME, ["Timestamp", "UserID", "UserName", "UserMessage", "AdminReply"]);
+    var messagesData = sheetToJSON(messengerSheet);
+    var userMessages = messagesData.filter(function(row) { return String(row.UserID) === String(userId); });
+    userMessages.sort(function(a, b) { return new Date(a.Timestamp) - new Date(b.Timestamp); });
+    return createJsonResponse({ success: true, messages: userMessages });
+}
+
+function handleSendMessage(ss, userId, userName, message) {
+    var messengerSheet = getOrCreateSheet(ss, MESSENGER_SHEET_NAME, ["Timestamp", "UserID", "UserName", "UserMessage", "AdminReply"]);
+    messengerSheet.appendRow([new Date(), userId, userName, message, ""]);
+    return createJsonResponse({ success: true, message: "Message sent successfully." });
+}
+
+function verifyUser(username, password) {
+    try {
+        var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(USERS_SHEET_NAME);
+        if (!sheet) { Logger.log("Error: Users sheet not found."); return null;
+        }
+        var data = sheet.getDataRange().getValues();
+        var headers = data.shift();
+        var usernameCol = headers.indexOf("Username"), passwordCol = headers.indexOf("Password"), accessGrantedCol = headers.indexOf("AccessGranted");
+        if (usernameCol === -1 || passwordCol === -1 || accessGrantedCol === -1) {
+            Logger.log("Error: Could not find required columns in Users sheet.");
+            return null;
+        }
+        for (var i = 0; i < data.length; i++) {
+            var row = data[i];
+            if (row[usernameCol].toLowerCase() === username.toLowerCase() && String(row[passwordCol]) === String(password)) {
+                if (row[accessGrantedCol] !== true && String(row[accessGrantedCol]).toLowerCase() !== 'true') {
+                    Logger.log("Login failed for user '" + username + "': Access not granted.");
+                    return null;
+                }
+                var userObject = objectifyRow(row, headers);
+                delete userObject.Password;
+                return userObject;
+            }
+        }
+        return null;
+    } catch (error) {
+        Logger.log("Error in verifyUser: " + error.toString());
+        return null;
+    }
+}
+
+function getLogsForUser(ss, userId) {
+  var quizSheet = ss.getSheetByName(QUIZ_LOG_SHEET_NAME);
+  var lectureSheet = ss.getSheetByName(LECTURE_LOG_SHEET_NAME);
+  var combinedLogs = [];
+  if (quizSheet) {
+    var quizData = sheetToJSON(quizSheet);
+    quizData.forEach(function(rowObj) {
+      if (rowObj.UserID === userId) {
+        combinedLogs.push({ logId: new Date(rowObj.Timestamp).toISOString(), timestamp: rowObj.Timestamp, eventType: rowObj.EventType, title: rowObj.QuizTitle, score: rowObj.Score, total: rowObj.TotalQuestions, isReviewable: rowObj.Details && rowObj.Details.length > 2, Details: rowObj.Details });
+      }
+    });
+  }
+  if (lectureSheet) {
+    var lectureData = sheetToJSON(lectureSheet);
+    lectureData.forEach(function(rowObj) {
+      if (rowObj.UserID === userId) {
+        combinedLogs.push({ timestamp: rowObj.Timestamp, eventType: rowObj.EventType, title: rowObj.LectureName });
+      }
+    });
+  }
+  combinedLogs.sort(function(a, b) { return new Date(b.timestamp) - new Date(a.timestamp); });
+  return combinedLogs;
+}
+
+function getNotesForUser(ss, sheetName, userId) {
+    var notesSheet = ss.getSheetByName(sheetName);
+    var userNotes = [];
+    if (notesSheet) {
+        var notesData = sheetToJSON(notesSheet);
+        notesData.forEach(function(rowObj) {
+            if (rowObj.UserID === userId) { userNotes.push(rowObj); }
+        });
+    }
+    return userNotes;
+}
+
+function upsertNote(sheet, data) {
+  var uniqueId = data.uniqueId;
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0];
+  var noteColIndex = headers.indexOf("NoteText"), timeColIndex = headers.indexOf("Timestamp"), uniqueIdColIndex = headers.indexOf("UniqueID");
+  var rowFound = false;
+  for (var i = 1; i < values.length; i++) {
+    if (values[i][uniqueIdColIndex] === uniqueId) {
+      sheet.getRange(i + 1, noteColIndex + 1).setValue(data.noteText);
+      sheet.getRange(i + 1, timeColIndex + 1).setValue(new Date());
+      rowFound = true;
+      break;
+    }
+  }
+  if (!rowFound) {
+    var newRowData = headers.map(function(header) {
+      if (header === "UniqueID") return uniqueId;
+      if (header === "Timestamp") return new Date();
+      if (header === "UserID") return data.userId;
+      if (header === "NoteText") return data.noteText;
+      if (header === "QuizID" || header === "LectureID") return data.itemId;
+      return "";
+    });
+    sheet.appendRow(newRowData);
+  }
+}
+
+function deleteNote(sheet, uniqueId) {
+  var values = sheet.getDataRange().getValues();
+  var uniqueIdColIndex = values[0].indexOf("UniqueID");
+  for (var i = values.length - 1; i > 0; i--) {
+    if (values[i][uniqueIdColIndex] === uniqueId) {
+      sheet.deleteRow(i + 1);
+      break;
+    }
+  }
+}
+
+function clearUserLogs(ss, sheetName, userId) {
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) return;
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var userIdCol = headers.indexOf("UserID");
+    if (userIdCol === -1) return;
+    for (var i = data.length - 1; i > 0; i--) {
+        if (data[i][userIdCol] === userId) {
+            sheet.deleteRow(i + 1);
+        }
+    }
+}
+
+function upsertIncorrectQuestion(ss, data) {
+    var sheet = getOrCreateSheet(ss, USER_INCORRECT_QUESTIONS_SHEET_NAME, ["UniqueID", "UserID", "QuestionID", "UserAnswer", "WrongCount", "CorrectTimestamp", "LastUpdate"]);
+    var values = sheet.getDataRange().getValues();
+    var headers = values.shift();
+    var uniqueIdCol = headers.indexOf("UniqueID"), wrongCountCol = headers.indexOf("WrongCount"), userAnswerCol = headers.indexOf("UserAnswer"), lastUpdateCol = headers.indexOf("LastUpdate");
+    var uniqueId = `${data.userId}_${data.questionId}`, now = new Date(), rowFound = -1;
+    for (var i = 0; i < values.length; i++) {
+        if (values[i][uniqueIdCol] === uniqueId) {
+            rowFound = i + 2;
+            break;
+        }
+    }
+    if (rowFound !== -1) {
+        var currentWrongCount = parseInt(sheet.getRange(rowFound, wrongCountCol + 1).getValue(), 10) || 0;
+        sheet.getRange(rowFound, wrongCountCol + 1).setValue(currentWrongCount + 1);
+        sheet.getRange(rowFound, userAnswerCol + 1).setValue(data.userAnswer);
+        sheet.getRange(rowFound, lastUpdateCol + 1).setValue(now);
+    } else {
+        sheet.appendRow([uniqueId, data.userId, data.questionId, data.userAnswer, 1, "", now]);
+    }
+}
+
+function markIncorrectAsCorrect(ss, data) {
+    var sheet = ss.getSheetByName(USER_INCORRECT_QUESTIONS_SHEET_NAME);
+    if (!sheet) return;
+    var values = sheet.getDataRange().getValues();
+    var headers = values.shift();
+    var uniqueIdCol = headers.indexOf("UniqueID"), correctTimestampCol = headers.indexOf("CorrectTimestamp"), lastUpdateCol = headers.indexOf("LastUpdate");
+    var uniqueId = `${data.userId}_${data.questionId}`, now = new Date();
+    for (var i = 0; i < values.length; i++) {
+        if (values[i][uniqueIdCol] === uniqueId) {
+            var rowNum = i + 2;
+            sheet.getRange(rowNum, correctTimestampCol + 1).setValue(now);
+            sheet.getRange(rowNum, lastUpdateCol + 1).setValue(now);
+            break;
+        }
+    }
+}
+
+function getActiveAnnouncements(ss) {
+  try {
+    var sheet = ss.getSheetByName(ANNOUNCEMENTS_SHEET_NAME);
+    if (!sheet) return [];
+    var data = sheetToJSON(sheet);
+    var activeAnnouncements = data.filter(function(row) { return String(row.IsActive).toUpperCase() === 'TRUE'; });
+    activeAnnouncements.sort(function(a, b) { return new Date(b.TimeStamp) - new Date(a.TimeStamp); });
+    return activeAnnouncements;
+  } catch (e) {
+    Logger.log("Error in getActiveAnnouncements: " + e.toString());
+    return [];
+  }
+}
+
+function sheetToJSON(sheet) {
+  if (!sheet) return [];
+  try {
+    var data = sheet.getDataRange().getValues();
+    var headers = data.shift();
+    return data.map(function(row) {
+      return objectifyRow(row, headers);
+    });
+  } catch(e) {
+    Logger.log("Error in sheetToJSON for sheet: " + (sheet ? sheet.getName() : 'N/A') + " - " + e.toString());
+    return [];
+  }
+}
+
+function objectifyRow(row, headers) {
+  var obj = {};
+  headers.forEach(function(header, i) {
+    if (header) {
+      obj[header] = row[i];
+    }
+  });
+  return obj;
+}
+
+function getOrCreateSheet(spreadsheet, sheetName, headers) {
+  var sheet = spreadsheet.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(sheetName);
+    sheet.appendRow(headers);
+  }
+  return sheet;
+}
+
+function createJsonResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function createErrorResponse(message) {
+  return ContentService.createTextOutput(JSON.stringify({ error: message }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
