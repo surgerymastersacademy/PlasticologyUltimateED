@@ -141,7 +141,7 @@
                         <div id="last-quiz-ribbon" class="hidden p-3 bg-blue-100 border border-blue-200 text-blue-800 rounded-lg text-center text-sm font-medium"></div>
                     </div>
                     <p class="text-slate-500 text-center mb-8">Let’s get started – choose a section</p>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                         <button id="lectures-btn" class="main-menu-btn flex flex-col items-center justify-center p-8 rounded-xl text-white bg-gradient-to-r from-teal-500 to-cyan-600">
                             <i class="fas fa-video text-5xl mb-4"></i>
                             <span class="text-2xl font-bold">Lectures</span>
@@ -156,6 +156,11 @@
                             <i class="fas fa-book-reader text-5xl mb-4"></i>
                             <span class="text-2xl font-bold">Learning Mode</span>
                             <span class="font-light">Study Questions</span>
+                        </button>
+                        <button id="theory-btn" class="main-menu-btn flex flex-col items-center justify-center p-8 rounded-xl text-white bg-gradient-to-r from-yellow-500 to-orange-600">
+                            <i class="fas fa-book-medical text-5xl mb-4"></i>
+                            <span class="text-2xl font-bold">Theory Bank</span>
+                            <span class="font-light">Study Essays</span>
                         </button>
                         <button id="osce-btn" class="main-menu-btn flex flex-col items-center justify-center p-8 rounded-xl text-white bg-gradient-to-r from-sky-500 to-blue-600">
                             <i class="fas fa-user-md text-5xl mb-4"></i>
@@ -172,7 +177,7 @@
                             <span class="text-2xl font-bold">Leaderboard</span>
                             <span class="font-light">Top 10 Users</span>
                         </button>
-                         <button id="study-planner-btn" class="main-menu-btn flex flex-col items-center justify-center p-8 rounded-xl text-white bg-gradient-to-r from-purple-500 to-indigo-600 col-span-2 md:col-span-1">
+                         <button id="study-planner-btn" class="main-menu-btn flex flex-col items-center justify-center p-8 rounded-xl text-white bg-gradient-to-r from-purple-500 to-indigo-600">
                             <i class="fas fa-calendar-alt text-5xl mb-4"></i>
                             <span class="text-2xl font-bold">Study Planner</span>
                             <span class="font-light">Organize Your Study</span>
@@ -649,6 +654,66 @@
                     </div>
                 </div>
             </div>
+
+            <div id="theory-container" class="w-full hidden">
+                <div id="theory-controls" class="">
+                    <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
+                        <button id="theory-back-btn" class="text-slate-700 hover:text-blue-600 transition-colors" title="Back"><i class="fas fa-arrow-left"></i> Back</button>
+                        <h2 class="text-xl md:text-2xl font-bold text-slate-800">Theory & Essay Bank</h2>
+                        <div class="w-16"></div> 
+                    </div>
+                    <div class="p-6 md:p-8">
+                        <div class="relative flex items-center mb-6">
+                            <input type="text" id="theory-search-input" placeholder="Search by keyword..." class="w-full p-3 pl-10 border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 transition">
+                            <button id="theory-search-btn" class="absolute right-2 bg-yellow-600 text-white rounded-lg px-4 py-1.5 hover:bg-yellow-700">Search</button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button id="theory-flashcard-mode-btn" class="action-btn w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-lg">Flashcard Mode</button>
+                            <button id="theory-exam-mode-btn" class="action-btn w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-lg">Thinking Exam Mode</button>
+                        </div>
+                         <div class="relative flex py-5 items-center">
+                            <div class="flex-grow border-t border-gray-300"></div>
+                            <span class="flex-shrink mx-4 text-gray-400 text-sm">OR</span>
+                            <div class="flex-grow border-t border-gray-300"></div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button id="theory-browse-by-chapter-btn" class="action-btn w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 px-6 rounded-lg">Browse by Chapter</button>
+                            <button id="theory-browse-by-source-btn" class="action-btn w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 px-6 rounded-lg">Browse by Source</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="theory-viewer" class="hidden">
+                     <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
+                        <button id="theory-end-btn" class="text-slate-600 hover:text-red-600 transition-colors" title="End Session"><i class="fas fa-stop-circle text-2xl"></i></button>
+                        <h2 id="theory-title" class="text-lg md:text-2xl font-bold text-slate-800 text-center mx-2 truncate"></h2>
+                        <div id="theory-timer" class="text-lg font-mono bg-slate-200 text-slate-800 px-3 py-1 rounded-md"></div>
+                    </div>
+                    <div class="p-6 md:p-8">
+                        <p id="theory-progress-text" class="font-semibold text-slate-600 text-center mb-2"></p>
+                        <div id="theory-card" class="bg-white p-6 rounded-lg shadow-md min-h-[50vh] flex flex-col">
+                            <p id="theory-source-text" class="text-sm text-slate-400 mb-2"></p>
+                            <div id="theory-img-container" class="mb-4 text-center"></div>
+                            <h3 id="theory-question-text" class="text-xl font-bold text-slate-800 mb-4 flex-grow"></h3>
+                            <div id="theory-answer-container" class="mt-4 p-4 bg-green-50 border-l-4 border-green-400 hidden">
+                                <h4 class="font-bold text-green-800 mb-2">Model Answer</h4>
+                                <p id="theory-answer-text" class="text-green-900"></p>
+                            </div>
+                            <div class="mt-4 text-center">
+                                <button id="theory-show-answer-btn" class="action-btn bg-blue-600 text-white py-2 px-6 rounded-lg">Show Answer</button>
+                            </div>
+                        </div>
+                        <div class="mt-6 flex justify-between items-center">
+                            <button id="theory-prev-btn" class="action-btn bg-slate-300 text-slate-800 font-bold py-3 px-6 rounded-lg hover:bg-slate-400">Previous</button>
+                             <div class="flex items-center gap-4">
+                                <button id="theory-note-btn" class="text-2xl text-slate-500 hover:text-amber-500 transition-colors note-icon" title="My Note"><i class="fas fa-sticky-note"></i></button>
+                                <button id="theory-status-btn" class="text-2xl text-slate-500 hover:text-green-500 transition-colors" title="Mark as Completed"><i class="far fa-check-circle"></i></button>
+                            </div>
+                            <button id="theory-next-btn" class="action-btn bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 
             <div id="study-planner-container" class="w-full hidden">
                 <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
