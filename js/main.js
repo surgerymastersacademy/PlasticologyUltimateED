@@ -4,7 +4,7 @@ import { appState } from './state.js';
 import * as dom from './dom.js';
 import * as ui from './ui.js';
 import * as utils from './utils.js';
-import { fetchContentData, fetchUserData } from './api.js';
+import { fetchContentData, fetchUserData, logTheoryActivity } from './api.js';
 import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
 import {
     launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz,
@@ -18,6 +18,8 @@ import { showActivityLog, renderFilteredLog } from './features/activityLog.js';
 import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.js';
 import { showLeaderboardScreen } from './features/leaderboard.js';
 import { analyzePerformanceByChapter } from './features/performance.js';
+// --- NEW: Import new theory module ---
+import { showTheoryMenuScreen } from './features/theory.js';
 
 
 // SHARED & EXPORTED FUNCTIONS
@@ -30,15 +32,23 @@ export function showMainMenuScreen() {
 
 export function openNoteModal(type, itemId, itemTitle) {
     appState.currentNote = { type, itemId, itemTitle };
-    let existingNote = type === 'quiz'
-        ? appState.userQuizNotes.find(n => n.QuizID === itemId)
-        : appState.userLectureNotes.find(n => n.LectureID === itemId);
+    let existingNote;
+
+    if (type === 'quiz') {
+        existingNote = appState.userQuizNotes.find(n => n.QuizID === itemId);
+    } else if (type === 'lecture') {
+        existingNote = appState.userLectureNotes.find(n => n.LectureID === itemId);
+    } else if (type === 'theory') {
+        const log = appState.userTheoryLogs.find(l => l.Question_ID === itemId);
+        existingNote = log ? { NoteText: log.Notes } : null;
+    }
 
     dom.noteModalTitle.textContent = `Note on: ${itemTitle.substring(0, 40)}...`;
     dom.noteTextarea.value = existingNote ? existingNote.NoteText : '';
     dom.modalBackdrop.classList.remove('hidden');
     dom.noteModal.classList.remove('hidden');
 }
+
 
 function populateAllFilters() {
     // For QBank (Exam Mode)
@@ -132,6 +142,8 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.allOsceQuestions = utils.parseOsceQuestions(data.osceQuestions);
             appState.allRoles = data.roles || [];
             appState.allChaptersNames = Object.keys(appState.groupedLectures);
+            // --- NEW: Parse theory questions ---
+            appState.allTheoryQuestions = utils.parseTheoryQuestions(data.theoryQuestions);
 
             populateAllFilters();
             
@@ -165,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     dom.freeTestBtn.addEventListener('click', startFreeTest);
-    [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn].forEach(btn => {
+    [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn, dom.theoryBackBtn].forEach(btn => {
         btn.addEventListener('click', () => {
             if (appState.navigationHistory.length > 1) {
                 appState.navigationHistory.pop();
@@ -181,6 +193,8 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.lecturesBtn.addEventListener('click', () => { if (checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); appState.navigationHistory.push(() => ui.showScreen(dom.lecturesContainer)); } });
     dom.qbankBtn.addEventListener('click', () => { if (checkPermission('MCQBank')) { ui.showScreen(dom.qbankContainer); appState.navigationHistory.push(() => ui.showScreen(dom.qbankContainer)); } });
     dom.learningModeBtn.addEventListener('click', () => { if (checkPermission('LerningMode')) showLearningModeBrowseScreen(); });
+    // --- NEW: Add event listener for theory button ---
+    dom.theoryBtn.addEventListener('click', () => { if (checkPermission('TheoryBank')) showTheoryMenuScreen(); });
     dom.osceBtn.addEventListener('click', () => { if (checkPermission('OSCEBank')) { ui.showScreen(dom.osceContainer); appState.navigationHistory.push(() => ui.showScreen(dom.osceContainer)); } });
     dom.libraryBtn.addEventListener('click', () => { if (checkPermission('Library')) { ui.renderBooks(); ui.showScreen(dom.libraryContainer); appState.navigationHistory.push(() => ui.showScreen(dom.libraryContainer)); } });
     dom.studyPlannerBtn.addEventListener('click', () => { if (checkPermission('StudyPlanner')) showStudyPlannerScreen(); });
@@ -202,7 +216,25 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.logFilterLectures.addEventListener('click', () => renderFilteredLog('lectures'));
     dom.notesFilterQuizzes.addEventListener('click', () => renderNotes('quizzes'));
     dom.notesFilterLectures.addEventListener('click', () => renderNotes('lectures'));
-    dom.noteSaveBtn.addEventListener('click', handleSaveNote);
+    
+    // MODIFIED: Handle saving notes for all types, not just quiz/lecture
+    dom.noteSaveBtn.addEventListener('click', () => {
+        const { type, itemId } = appState.currentNote;
+        if (type === 'theory') {
+            logTheoryActivity({
+                questionId: itemId,
+                Notes: dom.noteTextarea.value,
+            });
+            // Also update the UI icon if the theory screen is visible
+            const theoryNoteBtn = document.getElementById('theory-note-btn');
+            if(theoryNoteBtn) theoryNoteBtn.classList.toggle('has-note', dom.noteTextarea.value.length > 0);
+             dom.modalBackdrop.classList.add('hidden');
+             dom.noteModal.classList.add('hidden');
+        } else {
+            handleSaveNote(); // Use the old handler for quiz/lecture notes
+        }
+    });
+
     dom.noteCancelBtn.addEventListener('click', () => { dom.noteModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
     
     // QBank Listeners
@@ -269,7 +301,6 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.resultsHomeBtn.addEventListener('click', showMainMenuScreen);
     dom.restartBtn.addEventListener('click', () => restartCurrentQuiz());
     dom.reviewIncorrectBtn.addEventListener('click', () => reviewIncorrectAnswers());
-    // NEW: Connect the new simulation review button
     const reviewSimulationBtn = document.getElementById('review-simulation-btn');
     if(reviewSimulationBtn) reviewSimulationBtn.addEventListener('click', () => startSimulationReview());
 
