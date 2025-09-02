@@ -31,6 +31,28 @@ export function parseQuestions(data) {
 }
 
 /**
+ * --- NEW: Parses raw theory question data from the backend. ---
+ * @param {Array} data - Array of theory question objects from Google Sheets.
+ * @returns {Array} - Array of formatted theory question objects.
+ */
+export function parseTheoryQuestions(data) {
+    if (!data) return [];
+    return data.filter(row => row.QuestionText && String(row.QuestionText).trim()).map(row => {
+        return {
+            UniqueID: row.UniqueID,
+            Chapter: row.Chapter || 'Uncategorized',
+            Source: row.Source || 'Uncategorized',
+            QuestionText: row.QuestionText,
+            ModelAnswer: row.ModelAnswer || 'No model answer provided.',
+            Keywords: row.Keywords || '',
+            Audio_URL: row.Audio_URL || '',
+            Img_URL: row.Img_URL || ''
+        };
+    });
+}
+
+
+/**
  * Groups raw lecture data by chapter.
  * @param {Array} lectureData - Array of lecture objects from Google Sheets.
  * @returns {Object} - An object where keys are chapter names.
