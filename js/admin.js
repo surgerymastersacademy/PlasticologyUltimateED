@@ -1,6 +1,6 @@
-// js/admin.js (NEW FILE)
+// js/admin.js (FINAL VERSION FOR PHASE 1)
 
-// Note: We are using the same API_URL as the main application
+// NOTE: This should be the same URL from your state.js file
 const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
 
 // --- DOM ELEMENTS ---
@@ -38,30 +38,42 @@ const adminState = {
     currentView: 'dashboard',
     allUsers: [],
     allMessages: [],
-    // Add other data stores as needed
+    allLogs: [], // For progress tracking
 };
 
 // --- API FUNCTIONS ---
 
-async function verifyAdminPassword(password) {
-    const payload = {
-        eventType: 'adminLogin',
-        password: password
-    };
-    const response = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-    });
-    return response.json();
+async function apiRequest(payload) {
+    try {
+        // Add the admin password to every request for authentication
+        const authenticatedPayload = { ...payload, password: adminState.adminPassword };
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify(authenticatedPayload),
+            redirect: 'follow'
+        });
+        if (!response.ok) throw new Error('Network error');
+        return response.json();
+    } catch (error) {
+        console.error('API Request Error:', error);
+        return { success: false, message: error.message };
+    }
 }
 
 async function fetchAdminData() {
     dom.loader.classList.remove('hidden');
-    // In a real app, you'd use a session token. For simplicity, we pass the password.
-    const response = await fetch(`${API_URL}?request=adminData&password=${adminState.adminPassword}`);
-    const data = await response.json();
-    dom.loader.classList.add('hidden');
-    return data;
+    try {
+        const response = await fetch(`${API_URL}?request=adminData&password=${adminState.adminPassword}`);
+        if (!response.ok) throw new Error('Network error');
+        const data = await response.json();
+        if(data.error) throw new Error(data.error);
+        dom.loader.classList.add('hidden');
+        return data;
+    } catch (error) {
+        console.error('Fetch Admin Data Error:', error);
+        dom.loader.classList.add('hidden');
+        return { error: error.message };
+    }
 }
 
 // --- RENDERING FUNCTIONS ---
@@ -69,7 +81,7 @@ async function fetchAdminData() {
 function renderUsersTable(usersToRender) {
     dom.usersTableBody.innerHTML = '';
     if (!usersToRender || usersToRender.length === 0) {
-        dom.usersTableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center">No users found.</td></tr>`;
+        dom.usersTableBody.innerHTML = `<tr><td colspan="7" class="p-4 text-center">No users found.</td></tr>`;
         return;
     }
 
@@ -80,6 +92,7 @@ function renderUsersTable(usersToRender) {
             <th class="p-3">Role</th>
             <th class="p-3">Subscription End</th>
             <th class="p-3">Access</th>
+            <th class="p-3">Total Score</th>
             <th class="p-3">Actions</th>
         </tr>`;
     dom.usersTableBody.parentElement.querySelector('thead').innerHTML = tableHeaders;
@@ -91,30 +104,32 @@ function renderUsersTable(usersToRender) {
         const expiryDate = user.SubscriptionEndDate ? new Date(user.SubscriptionEndDate).toLocaleDateString('en-GB') : 'N/A';
         const isExpired = user.SubscriptionEndDate && new Date() > new Date(user.SubscriptionEndDate);
         
+        const userLogs = adminState.allLogs.filter(log => log.UserID === user.UniqueID);
+        const totalScore = userLogs.reduce((acc, log) => acc + (parseInt(log.Score, 10) || 0), 0);
+
         row.innerHTML = `
-            <td class="p-3">${user.Name || 'N/A'}</td>
+            <td class="p-3 font-semibold text-slate-800 dark:text-white">${user.Name || 'N/A'}</td>
             <td class="p-3 font-mono">${user.Username}</td>
-            <td class="p-3">${user.Role}</td>
-            <td class="p-3 ${isExpired ? 'text-red-500' : ''}">${expiryDate}</td>
-            <td class="p-3">${user.AccessGranted ? '<span class="text-green-500">Enabled</span>' : '<span class="text-red-500">Disabled</span>'}</td>
+            <td class="p-3 font-semibold ${user.Role === 'Trial' ? 'text-orange-500' : ''}">${user.Role}</td>
+            <td class="p-3 ${isExpired ? 'text-red-500 font-bold' : ''}">${expiryDate}</td>
+            <td class="p-3">${String(user.AccessGranted) === 'true' ? '<span class="text-green-500 font-semibold">Enabled</span>' : '<span class="text-red-500 font-semibold">Disabled</span>'}</td>
+            <td class="p-3 font-bold text-blue-600">${totalScore}</td>
             <td class="p-3">
                 <button class="edit-user-btn text-blue-500 hover:underline" data-userid="${user.UniqueID}">Edit</button>
+                <button class="view-progress-btn text-green-500 hover:underline ml-2" data-userid="${user.UniqueID}">Progress</button>
             </td>
         `;
         dom.usersTableBody.appendChild(row);
     });
 
-    // Add event listeners for the new edit buttons
-    document.querySelectorAll('.edit-user-btn').forEach(btn => {
-        btn.addEventListener('click', handleEditUserClick);
-    });
+    document.querySelectorAll('.edit-user-btn').forEach(btn => btn.addEventListener('click', handleEditUserClick));
+    document.querySelectorAll('.view-progress-btn').forEach(btn => btn.addEventListener('click', handleViewProgressClick));
 }
 
-// Placeholder for other render functions
 function renderDashboard() {
     const totalUsers = adminState.allUsers.length;
     const trialUsers = adminState.allUsers.filter(u => u.Role === 'Trial').length;
-    const activeSubscriptions = adminState.allUsers.filter(u => u.Role === 'Full Course' && new Date(u.SubscriptionEndDate) > new Date()).length;
+    const activeSubscriptions = adminState.allUsers.filter(u => u.Role !== 'Trial' && String(u.AccessGranted) === 'true').length;
 
     dom.sections.dashboard.innerHTML = `
         <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-4">Dashboard</h2>
@@ -135,22 +150,60 @@ function renderDashboard() {
     `;
 }
 
+function renderMessages() {
+    dom.messagesList.innerHTML = '';
+    if (!adminState.allMessages || adminState.allMessages.length === 0) {
+        dom.messagesList.innerHTML = `<p class="text-center text-slate-500">No messages found.</p>`
+        return;
+    }
+
+    const groupedMessages = adminState.allMessages.reduce((acc, msg) => {
+        if (!msg.UserID) return acc;
+        if (!acc[msg.UserID]) {
+            acc[msg.UserID] = { name: msg.UserName, messages: [] };
+        }
+        acc[msg.UserID].messages.push(msg);
+        return acc;
+    }, {});
+
+    for (const userId in groupedMessages) {
+        const conversation = groupedMessages[userId];
+        const container = document.createElement('div');
+        container.className = "bg-white dark:bg-slate-800 rounded-lg shadow p-4";
+        
+        let messagesHtml = conversation.messages.map(msg => {
+            const date = new Date(msg.Timestamp).toLocaleString('en-GB');
+            let html = '';
+            if (msg.UserMessage) {
+                html += `<div class="mb-2"><p class="font-semibold">${conversation.name || 'User'} <span class="text-xs text-slate-400">(${date})</span>:</p><p class="pl-2">${msg.UserMessage}</p></div>`;
+            }
+            if (msg.AdminReply) {
+                html += `<div class="mb-2 bg-blue-50 dark:bg-slate-700 p-2 rounded"><p class="font-semibold">Your Reply:</p><p class="pl-2">${msg.AdminReply}</p></div>`;
+            }
+            return html;
+        }).join('');
+
+        container.innerHTML = `
+            <h3 class="text-lg font-bold border-b pb-2 mb-2 dark:text-white dark:border-slate-600">${conversation.name} (${userId})</h3>
+            <div class="max-h-60 overflow-y-auto p-2 bg-slate-50 dark:bg-slate-700/50 rounded">${messagesHtml}</div>
+            <form class="reply-form mt-4 flex gap-2">
+                <input type="hidden" name="UserID" value="${userId}">
+                <input type="text" name="AdminReply" class="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600" placeholder="Type your reply..." required>
+                <button type="submit" class="px-4 py-2 font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Send</button>
+            </form>
+        `;
+        dom.messagesList.appendChild(container);
+    }
+}
+
 
 // --- EVENT HANDLERS & LOGIC ---
 
 function showSection(sectionId) {
     adminState.currentView = sectionId;
-    // Hide all sections
-    for (const key in dom.sections) {
-        dom.sections[key].classList.add('hidden');
-    }
-    // Show the active section
+    Object.values(dom.sections).forEach(section => section.classList.add('hidden'));
     dom.sections[sectionId].classList.remove('hidden');
-
-    // Update sidebar active state
-    for (const key in dom.navLinks) {
-        dom.navLinks[key].classList.remove('active');
-    }
+    Object.values(dom.navLinks).forEach(link => link.classList.remove('active'));
     dom.navLinks[sectionId].classList.add('active');
 }
 
@@ -167,7 +220,7 @@ function handleEditUserClick(event) {
             <select name="Role" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white">
                 <option value="Trial" ${user.Role === 'Trial' ? 'selected' : ''}>Trial</option>
                 <option value="Full Course" ${user.Role === 'Full Course' ? 'selected' : ''}>Full Course</option>
-                </select>
+            </select>
         </div>
         <div>
             <label class="block mb-1 dark:text-slate-300">Subscription End Date</label>
@@ -176,8 +229,8 @@ function handleEditUserClick(event) {
         <div>
             <label class="block mb-1 dark:text-slate-300">Access Granted</label>
             <select name="AccessGranted" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white">
-                <option value="TRUE" ${user.AccessGranted ? 'selected' : ''}>Enabled</option>
-                <option value="FALSE" ${!user.AccessGranted ? 'selected' : ''}>Disabled</option>
+                <option value="TRUE" ${String(user.AccessGranted) === 'true' ? 'selected' : ''}>Enabled</option>
+                <option value="FALSE" ${String(user.AccessGranted) !== 'true' ? 'selected' : ''}>Disabled</option>
             </select>
         </div>
         <div class="flex justify-end gap-4 pt-4">
@@ -192,6 +245,21 @@ function handleEditUserClick(event) {
     });
 }
 
+function handleViewProgressClick(event) {
+    const userId = event.target.dataset.userid;
+    const user = adminState.allUsers.find(u => u.UniqueID === userId);
+    const userLogs = adminState.allLogs.filter(log => log.UserID === userId);
+    
+    if (!user) return;
+
+    const totalScore = userLogs.reduce((acc, log) => acc + (parseInt(log.Score, 10) || 0), 0);
+    const quizCount = userLogs.length;
+    const avgScore = quizCount > 0 ? (totalScore / quizCount).toFixed(1) : 0;
+
+    alert(`Progress for ${user.Name}:\n- Quizzes Taken: ${quizCount}\n- Total Score: ${totalScore}\n- Average Score: ${avgScore}`);
+}
+
+
 async function initializeConsole() {
     const data = await fetchAdminData();
     if (data.error) {
@@ -200,26 +268,27 @@ async function initializeConsole() {
     }
     adminState.allUsers = data.users || [];
     adminState.allMessages = data.messages || [];
+    adminState.allLogs = data.logs || [];
 
-    // Initial render
     renderDashboard();
     renderUsersTable(adminState.allUsers);
-    // renderMessages(); // We will build this next
+    renderMessages();
 }
 
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
+    // Handle Admin Login
     dom.loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const password = dom.passwordInput.value;
-        const result = await verifyAdminPassword(password);
+        const result = await apiRequest({ eventType: 'adminLogin', password: password });
 
         if (result.success) {
             adminState.isAuthenticated = true;
             adminState.adminPassword = password;
             dom.loginScreen.classList.add('hidden');
             dom.adminConsole.classList.remove('hidden');
-            initializeConsole();
+            await initializeConsole();
         } else {
             dom.loginError.textContent = result.message || 'Incorrect password.';
             dom.loginError.classList.remove('hidden');
@@ -227,12 +296,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Sidebar navigation
-    for (const key in dom.navLinks) {
+    Object.keys(dom.navLinks).forEach(key => {
         dom.navLinks[key].addEventListener('click', (e) => {
             e.preventDefault();
             showSection(key);
         });
-    }
+    });
 
     // User search
     dom.userSearchInput.addEventListener('input', (e) => {
@@ -245,30 +314,43 @@ document.addEventListener('DOMContentLoaded', () => {
         renderUsersTable(filteredUsers);
     });
 
-    // Add submit handler for the user edit form
+    // Handle user edit form submission
     dom.editUserForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
         
-        const payload = {
+        const result = await apiRequest({
             eventType: 'admin_updateUser',
-            password: adminState.adminPassword, // Send password for authentication
             userData: data
-        };
-
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload)
         });
-        const result = await response.json();
 
         if (result.success) {
             dom.editUserModal.classList.add('hidden');
             alert('User updated successfully!');
-            initializeConsole(); // Refresh all data
+            await initializeConsole(); // Refresh all data
         } else {
             alert('Error updating user: ' + result.message);
+        }
+    });
+    
+    // Handle message reply form submission
+    dom.messagesList.addEventListener('submit', async (e) => {
+        if (!e.target.classList.contains('reply-form')) return;
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        
+        const result = await apiRequest({
+            eventType: 'admin_replyToMessage',
+            replyData: data
+        });
+
+        if (result.success) {
+            alert('Reply sent!');
+            await initializeConsole(); // Refresh all data
+        } else {
+            alert('Error sending reply: ' + result.message);
         }
     });
 });
