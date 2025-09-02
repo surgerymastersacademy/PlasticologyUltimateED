@@ -1,4 +1,4 @@
-// js/features/userProfile.js (FINAL CORRECTED VERSION - SYNCS LECTURE LOGS)
+// js/features/userProfile.js (FINAL CORRECTED VERSION - SYNCS LECTURE LOGS & DISPLAYS SUB STATUS)
 
 import { API_URL, appState, AVATAR_BASE_URL, AVATAR_OPTIONS } from '../state.js';
 import * as dom from '../dom.js';
@@ -42,11 +42,8 @@ export async function handleLogin(event) {
             ui.updateWatermark();
             await fetchUserData();
 
-            // --- MODIFICATION START: Sync server logs with local state ---
-            // 1. Load progress from localStorage first (for speed on the same device)
             loadUserProgress(); 
             
-            // 2. Sync lecture views from server logs
             if (appState.fullActivityLog.length > 0) {
                 const lectureLogs = appState.fullActivityLog.filter(log => log.eventType === 'ViewLecture');
                 const lectureLinksMap = new Map();
@@ -62,10 +59,8 @@ export async function handleLogin(event) {
                     }
                 });
                 
-                // 3. Save the combined progress back to localStorage
                 saveUserProgress();
             }
-            // --- MODIFICATION END ---
 
             await showUserCardModal(true);
             updateUserProfileHeader();
@@ -108,7 +103,8 @@ export function checkPermission(feature) {
         ui.showConfirmationModal('Access Denied', 'Please log in to access this feature.', () => dom.modalBackdrop.classList.add('hidden'));
         return false;
     }
-    if (!appState.userRoles || appState.userRoles[feature] === undefined || String(appState.userRoles[feature]).toLowerCase() !== 'true') {
+    const userRolePermissions = appState.allRoles.find(role => role.Role === appState.currentUser.Role);
+    if (!userRolePermissions || String(userRolePermissions[feature]).toLowerCase() !== 'true') {
         ui.showConfirmationModal('Access Denied', `Your current role does not have access to the "${feature}" feature.`, () => dom.modalBackdrop.classList.add('hidden'));
         return false;
     }
@@ -119,8 +115,8 @@ export function checkPermission(feature) {
  * Applies UI changes based on the user's role permissions (e.g., disabling buttons).
  */
 export function applyRolePermissions() {
-    const role = appState.userRoles;
-    if (!role) return;
+    const rolePermissions = appState.allRoles.find(role => role.Role === appState.currentUser.Role);
+    if (!rolePermissions) return;
 
     const featureElements = {
         'Lectures': dom.lecturesBtn,
@@ -131,14 +127,16 @@ export function applyRolePermissions() {
         'Radio': dom.radioBtn,
         'Library': dom.libraryBtn,
         'StudyPlanner': dom.studyPlannerBtn,
+        'TheoryBank': dom.theoryBtn,
     };
 
     for (const feature in featureElements) {
         const element = featureElements[feature];
         if (element) {
-            const hasAccess = String(role[feature]).toLowerCase() === 'true';
+            const hasAccess = String(rolePermissions[feature]).toLowerCase() === 'true';
             element.disabled = !hasAccess;
-            element.classList.toggle('disabled-feature', !hasAccess);
+            element.style.opacity = hasAccess ? '1' : '0.5';
+            element.style.cursor = hasAccess ? 'pointer' : 'not-allowed';
             element.title = hasAccess ? '' : `Access to ${feature} is not granted for your role.`;
         }
     }
@@ -164,9 +162,6 @@ export async function showUserCardModal(isLoginFlow = false) {
     dom.profileDetailsView.classList.remove('hidden');
     dom.profileEditError.classList.add('hidden');
 
-    dom.cardUserName.textContent = appState.currentUser.Name;
-    dom.userAvatar.src = AVATAR_BASE_URL + appState.currentUser.Name;
-
     try {
         const response = await fetch(`${API_URL}?request=getUserCardData&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
         if (!response.ok) throw new Error('Failed to fetch user card data.');
@@ -174,7 +169,7 @@ export async function showUserCardModal(isLoginFlow = false) {
         if (data.error) throw new Error(data.error);
 
         appState.userCardData = data.cardData;
-        renderUserCard(appState.userCardData);
+        renderUserCard();
         populateAvatarSelection();
     } catch (error) {
         console.error("Error loading user card data:", error);
@@ -183,15 +178,21 @@ export async function showUserCardModal(isLoginFlow = false) {
     }
 }
 
-function renderUserCard(cardData) {
-    if (!cardData) return;
+/**
+ * --- MODIFIED: Renders the user card using both appState.currentUser and appState.userCardData ---
+ */
+function renderUserCard() {
+    if (!appState.currentUser || !appState.userCardData) return;
+    
+    // Data from userCardData (Users_Card sheet)
+    const cardData = appState.userCardData;
     const displayName = cardData.Nickname && cardData.Nickname.trim() !== '' ? cardData.Nickname : appState.currentUser.Name;
     dom.cardUserName.textContent = displayName;
     dom.cardUserNickname.textContent = cardData.Nickname && cardData.Nickname.trim() !== '' ? `(${appState.currentUser.Name})` : '';
     dom.cardQuizScore.textContent = cardData.QuizScore !== undefined ? cardData.QuizScore : '0';
     dom.userAvatar.src = cardData.User_Img || (AVATAR_BASE_URL + appState.currentUser.Name);
     dom.headerUserAvatar.src = dom.userAvatar.src;
-
+    
     if (cardData.ExamDate) {
         const examDate = new Date(cardData.ExamDate);
         if (!isNaN(examDate)) {
@@ -205,6 +206,28 @@ function renderUserCard(cardData) {
     } else {
         dom.cardExamDate.textContent = 'Not Set';
         dom.cardDaysLeft.textContent = 'N/A';
+    }
+
+    // --- NEW: Data from currentUser (Users sheet) for subscription status ---
+    const userData = appState.currentUser;
+    dom.cardSubscriptionStatus.textContent = userData.Role || 'N/A';
+    if (userData.Role === 'Trial') {
+        dom.cardSubscriptionStatus.classList.add('text-orange-500');
+        dom.cardSubscriptionStatus.classList.remove('text-green-500');
+    } else {
+        dom.cardSubscriptionStatus.classList.add('text-green-500');
+        dom.cardSubscriptionStatus.classList.remove('text-orange-500');
+    }
+
+    if (userData.SubscriptionEndDate) {
+        const expiryDate = new Date(userData.SubscriptionEndDate);
+        if (!isNaN(expiryDate)) {
+            dom.cardSubscriptionExpiry.textContent = expiryDate.toLocaleDateString('en-GB');
+        } else {
+            dom.cardSubscriptionExpiry.textContent = 'N/A';
+        }
+    } else {
+        dom.cardSubscriptionExpiry.textContent = 'N/A';
     }
 }
 
@@ -265,7 +288,7 @@ export async function handleSaveProfile() {
         appState.userCardData.Nickname = payload.nickname;
         appState.userCardData.ExamDate = payload.examDate;
         appState.userCardData.User_Img = payload.userImg;
-        renderUserCard(appState.userCardData);
+        renderUserCard();
         updateUserProfileHeader();
         toggleProfileEditMode(false);
         ui.showConfirmationModal('Profile Updated', 'Your profile has been successfully updated!', () => { /* do nothing */ });
