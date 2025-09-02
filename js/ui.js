@@ -15,7 +15,7 @@ export function showScreen(screenToShow, isGuest = false) {
     dom.modalBackdrop.classList.add('hidden');
 
     // Hide all main content containers
-    [dom.loginContainer, dom.mainMenuContainer, dom.lecturesContainer, dom.qbankContainer, dom.listContainer, dom.quizContainer, dom.activityLogContainer, dom.notesContainer, dom.libraryContainer, dom.leaderboardContainer, dom.osceContainer, dom.osceQuizContainer, dom.learningModeContainer, dom.studyPlannerContainer].forEach(screen => {
+    [dom.loginContainer, dom.mainMenuContainer, dom.lecturesContainer, dom.qbankContainer, dom.listContainer, dom.quizContainer, dom.activityLogContainer, dom.notesContainer, dom.libraryContainer, dom.leaderboardContainer, dom.osceContainer, dom.osceQuizContainer, dom.learningModeContainer, dom.studyPlannerContainer, dom.theoryContainer].forEach(screen => {
         if (screen) screen.classList.add('hidden');
     });
 
