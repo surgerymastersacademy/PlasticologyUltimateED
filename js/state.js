@@ -1,6 +1,6 @@
 // js/state.js (FINAL CORRECTED VERSION FOR MULTI-PLANNER)
 
-export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec'; // <-- Don't forget to put your NEW URL here!
+export const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlWVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec'; // <-- Don't forget to put your NEW URL here!
 
 export const SIMULATION_Q_COUNT = 100;
 export const SIMULATION_TOTAL_TIME_MINUTES = 120;
@@ -19,6 +19,8 @@ export const appState = {
     allAnnouncements: [],
     allRoles: [],
     allChaptersNames: [],
+    // --- NEW: Add theory questions data ---
+    allTheoryQuestions: [],
     
     // User Data
     currentUser: null,
@@ -30,6 +32,8 @@ export const appState = {
     userQuizNotes: [],
     userLectureNotes: [],
     userMessages: [],
+    // --- NEW: Add theory logs data ---
+    userTheoryLogs: [],
     // --- MODIFICATION: Updated planner state for multiple plans ---
     studyPlans: [], // Will hold an array of all user's plans
     activeStudyPlan: null, // Will hold the currently active plan object
@@ -75,5 +79,14 @@ export const appState = {
         questions: [],
         currentIndex: 0,
         title: ''
+    },
+
+    // --- NEW: Add theory session state ---
+    currentTheorySession: {
+        questions: [],
+        currentIndex: 0,
+        isExamMode: false,
+        title: '',
+        timerInterval: null
     },
 };
