@@ -102,6 +102,9 @@
                             Log In
                         </button>
                     </form>
+                    <p class="text-center mt-4">
+                        <a href="#" id="show-register-link" class="text-sm text-blue-600 hover:underline">Don't have an account? Create one now!</a>
+                    </p>
                     <div class="relative flex py-5 items-center">
                         <div class="flex-grow border-t border-gray-300"></div>
                         <span class="flex-shrink mx-4 text-gray-400 text-sm">OR</span>
@@ -182,7 +185,7 @@
                             <span class="text-2xl font-bold">Study Planner</span>
                             <span class="font-light">Organize Your Study</span>
                         </button>
-                        <div class="md:hidden"></div>
+                        <div class="col-span-2 md:col-span-1"></div>
                     </div>
                 </div>
             </div>
@@ -793,6 +796,38 @@
     </div>
     
     <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        
+        <div id="registration-modal" class="bg-white rounded-lg p-8 shadow-xl max-w-lg w-full hidden">
+            <h3 class="text-xl font-bold mb-4 text-center">Create a New Account</h3>
+            <p class="text-center text-slate-500 mb-6">Register for a 24-hour free trial.</p>
+            <form id="registration-form" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="text" id="register-name" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Full Name (Required)" required>
+                    <input type="text" id="register-username" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Username (Required)" required>
+                    <input type="email" id="register-email" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Email (Required)" required>
+                    <input type="text" id="register-mobile" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Mobile Number (Required)" required>
+                    <input type="password" id="register-password" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Password (Required)" required>
+                    <input type="password" id="register-confirm-password" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Confirm Password (Required)" required>
+                    <input type="text" id="register-country" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Country (Required)" required>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                     <input type="text" id="register-study-type" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Study Type (Optional)">
+                    <div>
+                        <label for="register-exam-date" class="block text-sm font-medium text-slate-500 mb-1">Closest Exam Date (Optional)</label>
+                        <input type="date" id="register-exam-date" class="shadow-sm border rounded-lg w-full py-2 px-3 text-slate-500">
+                    </div>
+                </div>
+                
+                <p id="registration-error" class="text-red-500 text-xs italic hidden"></p>
+                <p id="registration-success" class="text-green-600 hidden"></p>
+
+                <div class="flex justify-end gap-4 pt-4">
+                    <button type="button" id="register-cancel-btn" class="action-btn bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">Cancel</button>
+                    <button type="submit" id="register-submit-btn" class="action-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Register</button>
+                </div>
+            </form>
+        </div>
+
         <div id="confirmation-modal" class="bg-white rounded-lg p-8 shadow-xl max-w-sm w-full hidden">
             <h3 id="modal-title" class="text-xl font-bold mb-4">Are you sure?</h3>
             <p id="modal-text" class="text-slate-600 mb-6"></p>
@@ -856,17 +891,29 @@
                 <button id="edit-profile-btn" class="mt-2 text-blue-600 hover:text-blue-800 text-sm"><i class="fas fa-edit mr-1"></i> Edit Profile</button>
             </div>
             <div id="profile-details-view">
-                <div class="flex justify-between items-center mb-3">
-                    <span class="font-semibold text-slate-700">Total Score:</span>
-                    <span id="card-quiz-score" class="text-blue-600 font-bold text-xl">0</span>
+                <div class="border-t pt-4 mt-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="font-semibold text-slate-700">Subscription:</span>
+                        <span id="card-subscription-status" class="text-slate-600 font-bold">--</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="font-semibold text-slate-700">Expires On:</span>
+                        <span id="card-subscription-expiry" class="text-slate-600">--</span>
+                    </div>
                 </div>
-                <div class="flex justify-between items-center mb-3">
-                    <span class="font-semibold text-slate-700">Exam Date:</span>
-                    <span id="card-exam-date" class="text-slate-600">Not Set</span>
-                </div>
-                <div class="flex justify-between items-center mb-3">
-                    <span class="font-semibold text-slate-700">Days Left:</span>
-                    <span id="card-days-left" class="text-red-600 font-bold">N/A</span>
+                 <div class="border-t pt-4 mt-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="font-semibold text-slate-700">Total Score:</span>
+                        <span id="card-quiz-score" class="text-blue-600 font-bold text-xl">0</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="font-semibold text-slate-700">Exam Date:</span>
+                        <span id="card-exam-date" class="text-slate-600">Not Set</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="font-semibold text-slate-700">Days Left:</span>
+                        <span id="card-days-left" class="text-red-600 font-bold">N/A</span>
+                    </div>
                 </div>
             </div>
             <div id="profile-edit-view" class="hidden">
