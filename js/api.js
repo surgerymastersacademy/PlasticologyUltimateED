@@ -4,6 +4,35 @@ import { API_URL, appState } from './state.js';
 // REMOVED: import { updateStudyPlanProgress } from './features/planner.js';
 
 /**
+ * --- NEW: Sends registration data to the backend. ---
+ * @param {object} registrationData - The user's registration details.
+ * @returns {Promise<object>} The JSON response from the server.
+ */
+export async function registerUser(registrationData) {
+    const payload = {
+        eventType: 'registerUser',
+        ...registrationData
+    };
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            mode: 'cors',
+            body: JSON.stringify(payload),
+            redirect: 'follow'
+        });
+        if (!response.ok) {
+            throw new Error('Network response was not ok.');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Registration API error:', error);
+        return { success: false, message: 'An error occurred during registration. Please check your connection and try again.' };
+    }
+}
+
+
+/**
  * Logs a user activity event to the backend.
  * @param {object} eventData - The data payload for the event.
  */
@@ -59,7 +88,7 @@ export function logUserActivity(eventData) {
 
 
 /**
- * --- NEW: Logs a theory question interaction to the backend. ---
+ * Logs a theory question interaction to the backend.
  * @param {object} logData - The data for the theory log.
  */
 export function logTheoryActivity(logData) {
@@ -132,7 +161,6 @@ export async function fetchUserData() {
         appState.userQuizNotes = data.quizNotes || [];
         appState.userLectureNotes = data.lectureNotes || [];
         appState.answeredQuestions = new Set(data.answeredQuestions || []);
-        // --- NEW: Load user theory logs into state ---
         appState.userTheoryLogs = data.theoryLogs || [];
 
         return data; // Return data so it can be used by other functions
