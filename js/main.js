@@ -19,7 +19,7 @@ import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.j
 import { showLeaderboardScreen } from './features/leaderboard.js';
 import { analyzePerformanceByChapter } from './features/performance.js';
 // --- NEW: Import new theory module ---
-import { showTheoryMenuScreen } from './features/theory.js';
+import { showTheoryMenuScreen, launchTheorySession } from './features/theory.js';
 
 
 // SHARED & EXPORTED FUNCTIONS
@@ -214,8 +214,12 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.logFilterAll.addEventListener('click', () => renderFilteredLog('all'));
     dom.logFilterQuizzes.addEventListener('click', () => renderFilteredLog('quizzes'));
     dom.logFilterLectures.addEventListener('click', () => renderFilteredLog('lectures'));
+    
+    // Notes Filter Listeners
     dom.notesFilterQuizzes.addEventListener('click', () => renderNotes('quizzes'));
     dom.notesFilterLectures.addEventListener('click', () => renderNotes('lectures'));
+    // --- NEW: Add event listener for theory notes filter ---
+    dom.notesFilterTheory.addEventListener('click', () => renderNotes('theory'));
     
     // MODIFIED: Handle saving notes for all types, not just quiz/lecture
     dom.noteSaveBtn.addEventListener('click', () => {
