@@ -49,6 +49,8 @@ export const lecturesList = document.getElementById('lectures-list');
 export const notesBackBtn = document.getElementById('notes-back-btn');
 export const notesFilterQuizzes = document.getElementById('notes-filter-quizzes');
 export const notesFilterLectures = document.getElementById('notes-filter-lectures');
+// --- NEW: Add Theory Notes filter button ---
+export const notesFilterTheory = document.getElementById('notes-filter-theory');
 export const notesList = document.getElementById('notes-list');
 export const activityBackBtn = document.getElementById('activity-back-btn');
 export const clearLogBtn = document.getElementById('clear-log-btn');
