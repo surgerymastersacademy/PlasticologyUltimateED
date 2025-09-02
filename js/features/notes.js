@@ -14,7 +14,7 @@ export async function showNotesScreen() {
     ui.showScreen(dom.notesContainer);
     appState.navigationHistory.push(showNotesScreen);
     await fetchUserData(); // Ensure we have the latest notes
-    renderNotes('quizzes');
+    renderNotes('quizzes'); // Default to showing quiz notes first
 }
 
 export function renderNotes(filter) {
@@ -22,7 +22,19 @@ export function renderNotes(filter) {
     document.querySelectorAll('#notes-container .filter-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById(`notes-filter-${filter}`).classList.add('active');
 
-    const notesToDisplay = filter === 'quizzes' ? appState.userQuizNotes : appState.userLectureNotes;
+    let notesToDisplay = [];
+    let noteType = '';
+
+    if (filter === 'quizzes') {
+        notesToDisplay = appState.userQuizNotes;
+        noteType = 'quiz';
+    } else if (filter === 'lectures') {
+        notesToDisplay = appState.userLectureNotes;
+        noteType = 'lecture';
+    } else if (filter === 'theory') {
+        notesToDisplay = appState.userTheoryLogs.filter(log => log.Notes && log.Notes.trim() !== '');
+        noteType = 'theory';
+    }
 
     if (notesToDisplay.length === 0) {
         dom.notesList.innerHTML = `<p class="text-center text-slate-500">No notes found for this category.</p>`;
@@ -34,20 +46,30 @@ export function renderNotes(filter) {
         noteItem.className = 'p-4 bg-white rounded-lg border border-slate-200 shadow-sm';
         let title = 'Note';
         let itemId = null;
-        let noteType = '';
+        let noteText = '';
+        let uniqueIdForDelete = '';
 
-        if (filter === 'quizzes') {
+
+        if (noteType === 'quiz') {
             const question = appState.allQuestions.find(q => q.UniqueID === note.QuizID);
             title = question ? `Note on: ${question.question.substring(0, 50)}...` : 'Note on deleted question';
             itemId = note.QuizID;
-            noteType = 'quiz';
-        } else {
+            noteText = note.NoteText;
+            uniqueIdForDelete = note.UniqueID;
+        } else if (noteType === 'lecture') {
             const lecture = Object.values(appState.groupedLectures).flatMap(c => c.topics).find(t => t.id === note.LectureID);
             title = lecture ? `Note on: ${lecture.name}` : 'Note on deleted lecture';
             itemId = note.LectureID;
-            noteType = 'lecture';
+            noteText = note.NoteText;
+            uniqueIdForDelete = note.UniqueID;
+        } else if (noteType === 'theory') {
+            const question = appState.allTheoryQuestions.find(q => q.UniqueID === note.Question_ID);
+            title = question ? `Note on: ${question.QuestionText.substring(0, 50)}...` : 'Note on deleted theory question';
+            itemId = note.Question_ID;
+            noteText = note.Notes;
+            uniqueIdForDelete = note.Log_UniqueID; // Use Log_UniqueID for deletion
         }
-
+        
         noteItem.innerHTML = `
             <div class="flex justify-between items-start">
                 <h4 class="font-bold text-slate-700 flex-grow">${title}</h4>
@@ -56,14 +78,14 @@ export function renderNotes(filter) {
                     <button class="delete-note-btn text-red-500 hover:text-red-700" title="Delete Note"><i class="fas fa-trash"></i></button>
                 </div>
             </div>
-            <p class="text-slate-600 mt-2 whitespace-pre-wrap">${note.NoteText}</p>
+            <p class="text-slate-600 mt-2 whitespace-pre-wrap">${noteText}</p>
         `;
 
         noteItem.querySelector('.edit-note-btn').addEventListener('click', () => {
             openNoteModal(noteType, itemId, title.replace('Note on: ', ''));
         });
         noteItem.querySelector('.delete-note-btn').addEventListener('click', () => {
-            handleDeleteNote(noteType, note.UniqueID);
+            handleDeleteNote(noteType, uniqueIdForDelete, itemId);
         });
 
         dom.notesList.appendChild(noteItem);
@@ -99,23 +121,40 @@ export function handleSaveNote() {
     dom.noteModal.classList.add('hidden');
 }
 
-function handleDeleteNote(noteType, uniqueId) {
+function handleDeleteNote(noteType, uniqueId, itemId) {
     ui.showConfirmationModal('Delete Note?', 'Are you sure you want to permanently delete this note?', () => {
-        const payload = {
-            eventType: noteType === 'quiz' ? 'deleteQuizNote' : 'deleteLectureNote',
-            uniqueId
-        };
+        let payload = {};
+        
+        if (noteType === 'theory') {
+            // For theory notes, we are "deleting" by clearing the 'Notes' field.
+            payload = {
+                eventType: 'saveTheoryLog',
+                userId: appState.currentUser.UniqueID,
+                questionId: itemId,
+                logUniqueId: uniqueId,
+                Notes: '' // Set notes to empty to "delete"
+            };
+            appState.userTheoryLogs = appState.userTheoryLogs.filter(n => n.Log_UniqueID !== uniqueId);
+
+        } else {
+            // For quiz and lecture notes, we delete the entire row.
+            payload = {
+                eventType: noteType === 'quiz' ? 'deleteQuizNote' : 'deleteLectureNote',
+                uniqueId: uniqueId
+            };
+            if (noteType === 'quiz') {
+                appState.userQuizNotes = appState.userQuizNotes.filter(n => n.UniqueID !== uniqueId);
+            } else {
+                appState.userLectureNotes = appState.userLectureNotes.filter(n => n.UniqueID !== uniqueId);
+            }
+        }
+        
         fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) })
             .catch(err => console.error("Failed to delete note:", err));
         
-        if (noteType === 'quiz') {
-            appState.userQuizNotes = appState.userQuizNotes.filter(n => n.UniqueID !== uniqueId);
-        } else {
-            appState.userLectureNotes = appState.userLectureNotes.filter(n => n.UniqueID !== uniqueId);
-        }
-        
+        // Refresh the current view
         if (!dom.notesContainer.classList.contains('hidden')) {
-            renderNotes(dom.notesFilterQuizzes.classList.contains('active') ? 'quizzes' : 'lectures');
+            renderNotes(noteType);
         } else if (!dom.lecturesContainer.classList.contains('hidden')) {
             renderLectures(dom.lectureSearchInput.value);
         }
