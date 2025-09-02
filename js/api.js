@@ -57,6 +57,45 @@ export function logUserActivity(eventData) {
     }).catch(error => console.error('Error logging activity:', error));
 }
 
+
+/**
+ * --- NEW: Logs a theory question interaction to the backend. ---
+ * @param {object} logData - The data for the theory log.
+ */
+export function logTheoryActivity(logData) {
+    if (!API_URL || !appState.currentUser || appState.currentUser.Role === 'Guest') return;
+
+    const payload = {
+        eventType: 'saveTheoryLog',
+        userId: appState.currentUser.UniqueID,
+        questionId: logData.questionId,
+        logUniqueId: `${appState.currentUser.UniqueID}_${logData.questionId}`,
+        ...logData // This will include 'Notes' or 'Status'
+    };
+
+    // Optimistically update the local state
+    const logIndex = appState.userTheoryLogs.findIndex(log => log.Question_ID === logData.questionId);
+    if (logIndex > -1) {
+        if (logData.Notes !== undefined) appState.userTheoryLogs[logIndex].Notes = logData.Notes;
+        if (logData.Status !== undefined) appState.userTheoryLogs[logIndex].Status = logData.Status;
+    } else {
+        appState.userTheoryLogs.push({
+            Log_UniqueID: payload.logUniqueId,
+            User_ID: payload.userId,
+            Question_ID: payload.questionId,
+            Notes: logData.Notes || '',
+            Status: logData.Status || ''
+        });
+    }
+
+    fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors', // Use no-cors for "fire and forget" logging
+        body: JSON.stringify(payload)
+    }).catch(error => console.error('Error logging theory activity:', error));
+}
+
+
 /**
  * Fetches the main content data (questions, lectures, etc.) from the backend.
  * @returns {Promise<object|null>}
@@ -93,6 +132,8 @@ export async function fetchUserData() {
         appState.userQuizNotes = data.quizNotes || [];
         appState.userLectureNotes = data.lectureNotes || [];
         appState.answeredQuestions = new Set(data.answeredQuestions || []);
+        // --- NEW: Load user theory logs into state ---
+        appState.userTheoryLogs = data.theoryLogs || [];
 
         return data; // Return data so it can be used by other functions
     } catch (error) {
