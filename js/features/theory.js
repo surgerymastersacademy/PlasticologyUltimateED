@@ -1,4 +1,4 @@
-// js/features/theory.js (NEW FILE)
+// js/features/theory.js (CORRECTED FILE)
 
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
@@ -29,12 +29,13 @@ export function showTheoryMenuScreen() {
 }
 
 /**
+ * --- CORRECTED: Added 'export' keyword ---
  * Launches a theory study/exam session.
  * @param {string} title - The title for the session.
  * @param {Array} questions - The array of theory questions for the session.
  * @param {boolean} isExamMode - Flag to determine if it's flashcard or exam mode.
  */
-function launchTheorySession(title, questions, isExamMode) {
+export function launchTheorySession(title, questions, isExamMode) {
     if (questions.length === 0) {
         ui.showConfirmationModal('No Questions', `No questions were found for this category.`, () => {});
         return;
@@ -192,27 +193,28 @@ function showTheoryListScreen(browseBy) {
             );
             
             // Customize modal buttons for this specific choice
-            dom.modalConfirmBtn.textContent = 'Flashcard Mode';
-            const examBtn = dom.modalConfirmBtn.cloneNode(true);
+            const confirmBtnContainer = dom.modalConfirmBtn.parentElement;
+            confirmBtnContainer.innerHTML = ''; // Clear old buttons
+            
+            const flashcardBtn = document.createElement('button');
+            flashcardBtn.textContent = 'Flashcard Mode';
+            flashcardBtn.className = 'action-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded';
+            flashcardBtn.onclick = () => {
+                launchTheorySession(item, questions, false);
+                dom.modalBackdrop.classList.add('hidden');
+            };
+
+            const examBtn = document.createElement('button');
             examBtn.textContent = 'Exam Mode';
-            examBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
-            examBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-            examBtn.addEventListener('click', () => {
+            examBtn.className = 'action-btn bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded';
+            examBtn.onclick = () => {
                 launchTheorySession(item, questions, true);
                 dom.modalBackdrop.classList.add('hidden');
-            });
-            // Add the new button and remove the old one's default action if it's cloned
-            dom.modalConfirmBtn.parentElement.prepend(examBtn);
-            // We need to replace the original confirm button to avoid double event listeners
-            const newConfirmBtn = dom.modalConfirmBtn.cloneNode(true);
-            dom.modalConfirmBtn.parentNode.replaceChild(newConfirmBtn, dom.modalConfirmBtn);
-            newConfirmBtn.addEventListener('click', () => {
-                 if (appState.modalConfirmAction) {
-                    appState.modalConfirmAction();
-                 }
-                dom.modalBackdrop.classList.add('hidden');
-            });
-
+            };
+            
+            confirmBtnContainer.appendChild(dom.modalCancelBtn);
+            confirmBtnContainer.appendChild(examBtn);
+            confirmBtnContainer.appendChild(flashcardBtn);
 
         });
         dom.listItems.appendChild(button);
