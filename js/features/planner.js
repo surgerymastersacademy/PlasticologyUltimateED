@@ -6,6 +6,8 @@ import * as ui from '../ui.js';
 import { calculateDaysLeft } from '../utils.js';
 import { launchQuiz } from './quiz.js';
 import { analyzePerformanceByChapter } from './performance.js';
+// --- NEW: Import the theory session launcher ---
+import { launchTheorySession } from './theory.js';
 
 /**
  * Main function to show the study planner screen. It decides whether to show the dashboard or the active plan.
@@ -160,13 +162,22 @@ function renderActivePlanView() {
                 
                 const keywordsData = JSON.stringify(task.keywords || []).replace(/"/g, '&quot;');
 
+                // --- MODIFIED: Add button for theory tasks ---
+                let actionButtonHtml = '';
+                if (task.type === 'quiz' && !task.completed) {
+                    actionButtonHtml = `<button class="start-planner-quiz-btn text-xs bg-blue-500 text-white py-1 px-2 rounded hover:bg-blue-600" data-keywords="${keywordsData}" data-is-comprehensive="${task.isComprehensive || false}">Start Quiz</button>`;
+                } else if (task.type === 'theory' && !task.completed) {
+                    actionButtonHtml = `<button class="start-planner-theory-btn text-xs bg-yellow-500 text-white py-1 px-2 rounded hover:bg-yellow-600" data-keywords="${keywordsData}">Start Study</button>`;
+                }
+
+
                 return `
                 <li class="flex items-center justify-between p-2 rounded-md ${task.completed ? 'bg-green-100 text-slate-500 line-through' : 'bg-slate-50'}">
                     <div class="flex items-center">
                         <input type="checkbox" class="task-checkbox h-4 w-4 mr-3" data-day-index="${dayIndex}" data-task-index="${taskIndex}" ${task.completed ? 'checked' : ''}>
                         ${taskContentHtml}
                     </div>
-                    ${task.type === 'quiz' && !task.completed ? `<button class="start-planner-quiz-btn text-xs bg-blue-500 text-white py-1 px-2 rounded hover:bg-blue-600" data-keywords="${keywordsData}" data-is-comprehensive="${task.isComprehensive || false}">Start Quiz</button>` : ''}
+                    ${actionButtonHtml}
                 </li>
             `}).join('');
 
@@ -212,12 +223,19 @@ function generatePlanContent(startDateStr, endDateStr) {
             const todaysKeywords = new Set(assignedLectures.flatMap(lec => (lec.Keywords || '').split(',').map(k => k.trim().toLowerCase()).filter(Boolean)));
             
             if (todaysKeywords.size > 0) {
+                // --- NEW: Add both an MCQ and a Theory task based on keywords ---
                 dayPlan.tasks.push({ 
                     type: 'quiz', 
-                    name: `Daily Quiz (Day ${i + 1})`, 
+                    name: `Daily MCQ Quiz (Day ${i + 1})`, 
                     keywords: [...todaysKeywords],
                     isComprehensive: false,
                     completed: false 
+                });
+                dayPlan.tasks.push({
+                    type: 'theory',
+                    name: `Daily Theory Study (Day ${i + 1})`,
+                    keywords: [...todaysKeywords],
+                    completed: false
                 });
             }
 
@@ -226,10 +244,16 @@ function generatePlanContent(startDateStr, endDateStr) {
             if ((i + 1) % CUMULATIVE_QUIZ_INTERVAL === 0 || i === daysForLectures - 1) {
                  dayPlan.tasks.push({ 
                     type: 'quiz', 
-                    name: `Cumulative Review`, 
+                    name: `Cumulative MCQ Review`, 
                     keywords: [...cumulativeKeywords],
                     isComprehensive: false,
                     completed: false 
+                });
+                 dayPlan.tasks.push({
+                    type: 'theory',
+                    name: `Cumulative Theory Review`,
+                    keywords: [...cumulativeKeywords],
+                    completed: false
                 });
             }
         }
@@ -393,12 +417,8 @@ function addActivePlanEventListeners() {
             } else {
                 const lowerCaseKeywords = keywords.map(k => k.toLowerCase());
                 questions = appState.allQuestions.filter(q => {
-                    const questionText = `
-                        ${q.question} 
-                        ${q.answerOptions.map(o => o.text).join(' ')} 
-                        ${q.answerOptions.map(o => o.rationale).join(' ')}
-                    `.toLowerCase();
-                    return lowerCaseKeywords.some(keyword => questionText.includes(keyword));
+                    const questionKeywords = (q.Keywords || '').toLowerCase();
+                    return lowerCaseKeywords.some(keyword => questionKeywords.includes(keyword));
                 });
             }
 
@@ -406,7 +426,28 @@ function addActivePlanEventListeners() {
                 const quizTitle = e.target.closest('li').querySelector('span, a').textContent;
                 launchQuiz(questions, quizTitle);
             } else {
-                alert('No questions found for the topics in this task.');
+                alert('No MCQ questions found for the topics in this task.');
+            }
+        });
+    });
+
+    // --- NEW: Add event listener for theory study buttons ---
+    document.querySelectorAll('.start-planner-theory-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const keywordsString = e.currentTarget.dataset.keywords.replace(/&quot;/g, '"');
+            const keywords = JSON.parse(keywordsString);
+            const lowerCaseKeywords = keywords.map(k => k.toLowerCase());
+
+            const questions = appState.allTheoryQuestions.filter(q => {
+                const questionKeywords = (q.Keywords || '').toLowerCase();
+                return lowerCaseKeywords.some(keyword => questionKeywords.includes(keyword));
+            });
+
+            if (questions.length > 0) {
+                const studyTitle = e.target.closest('li').querySelector('span, a').textContent;
+                launchTheorySession(studyTitle, questions, false); // Launch in flashcard mode
+            } else {
+                alert('No Theory questions found for the topics in this task.');
             }
         });
     });
