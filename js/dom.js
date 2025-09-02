@@ -49,7 +49,6 @@ export const lecturesList = document.getElementById('lectures-list');
 export const notesBackBtn = document.getElementById('notes-back-btn');
 export const notesFilterQuizzes = document.getElementById('notes-filter-quizzes');
 export const notesFilterLectures = document.getElementById('notes-filter-lectures');
-// --- NEW: Add Theory Notes filter button ---
 export const notesFilterTheory = document.getElementById('notes-filter-theory');
 export const notesList = document.getElementById('notes-list');
 export const activityBackBtn = document.getElementById('activity-back-btn');
@@ -262,8 +261,6 @@ export const qbankPanelCreate = document.getElementById('qbank-panel-create');
 export const qbankPanelPractice = document.getElementById('qbank-panel-practice');
 export const qbankPanelBrowse = document.getElementById('qbank-panel-browse');
 export const qbankMainContent = document.getElementById('qbank-main-content');
-
-// --- NEW: Theory Bank DOM Elements ---
 export const theoryBtn = document.getElementById('theory-btn');
 export const theoryContainer = document.getElementById('theory-container');
 export const theoryControls = document.getElementById('theory-controls');
@@ -289,3 +286,25 @@ export const theoryNextBtn = document.getElementById('theory-next-btn');
 export const theoryNoteBtn = document.getElementById('theory-note-btn');
 export const theoryStatusBtn = document.getElementById('theory-status-btn');
 export const theorySourceText = document.getElementById('theory-source-text');
+
+// --- NEW: Registration Elements ---
+export const registrationModal = document.getElementById('registration-modal');
+export const registrationForm = document.getElementById('registration-form');
+export const showRegisterLink = document.getElementById('show-register-link');
+export const registerCancelBtn = document.getElementById('register-cancel-btn');
+export const registerSubmitBtn = document.getElementById('register-submit-btn');
+export const registrationError = document.getElementById('registration-error');
+export const registrationSuccess = document.getElementById('registration-success');
+export const registerName = document.getElementById('register-name');
+export const registerUsername = document.getElementById('register-username');
+export const registerEmail = document.getElementById('register-email');
+export const registerMobile = document.getElementById('register-mobile');
+export const registerPassword = document.getElementById('register-password');
+export const registerConfirmPassword = document.getElementById('register-confirm-password');
+export const registerCountry = document.getElementById('register-country');
+export const registerStudyType = document.getElementById('register-study-type');
+export const registerExamDate = document.getElementById('register-exam-date');
+
+// --- NEW: Subscription Status in User Card ---
+export const cardSubscriptionStatus = document.getElementById('card-subscription-status');
+export const cardSubscriptionExpiry = document.getElementById('card-subscription-expiry');
