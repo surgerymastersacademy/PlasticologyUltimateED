@@ -2,7 +2,8 @@
 
 // NOTE: This should be the same URL from your state.js file
 const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
-// js/admin.js (CORRECTED VERSION)
+// js/admin.js (FINAL VERSION - With Announcements & Add User)
+
 // --- DOM ELEMENTS ---
 const dom = {
     loginScreen: document.getElementById('admin-login-screen'),
@@ -54,24 +55,6 @@ const adminState = {
 
 // --- API FUNCTIONS ---
 
-// CORRECTED: A dedicated function for login, which is a special case.
-async function verifyAdminPassword(password) {
-    const payload = { eventType: 'adminLogin', password: password };
-    try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload),
-            redirect: 'follow'
-        });
-        if (!response.ok) throw new Error('Network error');
-        return response.json();
-    } catch (error) {
-        console.error('API Request Error:', error);
-        return { success: false, message: error.message };
-    }
-}
-
-// CORRECTED: This generic function is now used for all *authenticated* requests (after login).
 async function apiRequest(payload) {
     try {
         const authenticatedPayload = { ...payload, password: adminState.adminPassword };
@@ -336,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const password = dom.passwordInput.value;
-        const result = await verifyAdminPassword(password); // Use the corrected, dedicated login function
+        const result = await verifyAdminPassword(password);
 
         if (result.success) {
             adminState.isAuthenticated = true;
@@ -448,8 +431,8 @@ document.addEventListener('DOMContentLoaded', () => {
             dom.editUserModal.classList.add('hidden');
         }
     });
-
-    // Add event listeners for the new user modal elements
+    
+    // Handle "Add User" modal events
     dom.addUserBtn.addEventListener('click', () => {
         dom.addUserModal.classList.remove('hidden');
     });
@@ -461,7 +444,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
         
-        // Add client-side validation if needed
         if (!data.Username || !data.Password || !data.Name) {
             alert("Name, Username, and Password are required.");
             return;
