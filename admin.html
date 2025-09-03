@@ -16,16 +16,35 @@
         .sidebar-link:hover { background-color: #f3f4f6; }
         html.dark .sidebar-link:hover { background-color: #374151; }
         html.dark .sidebar-link.active { background-color: #3b82f6; }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
     </style>
 </head>
 <body class="bg-slate-100 dark:bg-slate-900">
 
     <div id="admin-login-screen" class="flex items-center justify-center min-h-screen">
         <div class="w-full max-w-md p-8 space-y-6 bg-white dark:bg-slate-800 rounded-lg shadow-md">
-            <h2 class="text-2xl font-bold text-center text-slate-900 dark:text-white">Admin Console Login</h2>
+            <img src="https://raw.githubusercontent.com/doctorbishoy/Plasticology-/main/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-20 mx-auto mb-4 dark:invert">
+            <h2 class="text-xl font-bold text-center text-slate-900 dark:text-white">Admin Console Login</h2>
             <form id="admin-login-form">
                 <div class="space-y-4">
-                    <input type="password" id="admin-password" class="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="Password" required>
+                    <div>
+                        <label for="admin-username" class="sr-only">Username</label>
+                        <input type="text" id="admin-username" autocomplete="username" class="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="Admin Username" required>
+                    </div>
+                    <div>
+                        <label for="admin-password" class="sr-only">Password</label>
+                        <input type="password" id="admin-password" autocomplete="current-password" class="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="Password" required>
+                    </div>
                     <p id="admin-login-error" class="text-red-500 text-sm hidden"></p>
                     <button type="submit" class="w-full px-4 py-2 font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Login</button>
                 </div>
@@ -36,9 +55,14 @@
     <div id="admin-console" class="hidden">
         <div class="flex h-screen bg-slate-100 dark:bg-slate-900">
             <div class="w-64 bg-white dark:bg-slate-800 shadow-md flex-shrink-0">
-                <div class="p-4 border-b dark:border-slate-700">
-                    <h1 class="text-xl font-bold text-slate-800 dark:text-white">Plasticology</h1>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">Admin Panel</p>
+                <div class="p-4 border-b dark:border-slate-700 flex justify-between items-center">
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-800 dark:text-white">Plasticology</h1>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Admin Panel</p>
+                    </div>
+                    <button id="admin-logout-btn" title="Logout" class="text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400">
+                        <i class="fas fa-sign-out-alt fa-lg"></i>
+                    </button>
                 </div>
                 <nav class="p-4 space-y-2">
                     <a href="#" id="nav-dashboard" class="sidebar-link active flex items-center px-4 py-2 rounded-lg text-slate-700 dark:text-slate-200">
@@ -69,6 +93,7 @@
                             <i class="fas fa-plus-circle"></i> Add New User
                         </button>
                     </div>
+                    <label for="user-search" class="sr-only">Search Users</label>
                     <input type="text" id="user-search" class="w-full md:w-1/3 px-4 py-2 border rounded-lg mb-4 dark:bg-slate-700 dark:text-white" placeholder="Search by name, username, or email...">
                     <div class="overflow-x-auto bg-white dark:bg-slate-800 rounded-lg shadow">
                         <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
@@ -91,6 +116,7 @@
                      <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow">
                         <h3 class="text-lg font-semibold mb-2 dark:text-white">Add New Announcement</h3>
                         <form id="add-announcement-form" class="flex flex-col md:flex-row gap-4 items-center">
+                            <label for="announcement-text" class="sr-only">Announcement Message</label>
                             <input type="text" id="announcement-text" class="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:text-white" placeholder="Announcement message..." required>
                             <div class="flex items-center">
                                 <input type="checkbox" id="announcement-active" class="h-4 w-4" checked>
@@ -112,27 +138,40 @@
     <div id="edit-user-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white dark:bg-slate-800 rounded-lg p-8 shadow-xl max-w-lg w-full">
             <h3 class="text-xl font-bold mb-6 text-slate-800 dark:text-white">Edit User: <span id="edit-user-name"></span></h3>
-            <form id="edit-user-form" class="space-y-4">
-                </form>
+            <form id="edit-user-form" class="space-y-4"></form>
         </div>
     </div>
-
     <div id="add-user-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white dark:bg-slate-800 rounded-lg p-8 shadow-xl max-w-lg w-full">
             <h3 class="text-xl font-bold mb-6 text-slate-800 dark:text-white">Add New User</h3>
             <form id="add-user-form" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="text" name="Name" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="Full Name" required>
-                    <input type="text" name="Username" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="Username" required>
-                    <input type="text" name="Password" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="Password" required>
-                    <input type="email" name="E-Mail" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="Email">
-                    <select name="Role" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white">
-                        <option value="Full Course">Full Course</option>
-                        <option value="Trial">Trial</option>
-                    </select>
                     <div>
-                        <label class="block mb-1 text-sm dark:text-slate-300">Subscription End Date</label>
-                        <input type="date" name="SubscriptionEndDate" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white">
+                        <label for="add-user-name" class="sr-only">Full Name</label>
+                        <input type="text" id="add-user-name" name="Name" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="Full Name" required>
+                    </div>
+                    <div>
+                        <label for="add-user-username" class="sr-only">Username</label>
+                        <input type="text" id="add-user-username" name="Username" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="Username" required>
+                    </div>
+                    <div>
+                        <label for="add-user-password" class="sr-only">Password</label>
+                        <input type="text" id="add-user-password" name="Password" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="Password" required>
+                    </div>
+                    <div>
+                        <label for="add-user-email" class="sr-only">Email</label>
+                        <input type="email" id="add-user-email" name="E-Mail" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="Email">
+                    </div>
+                    <div>
+                        <label for="add-user-role" class="sr-only">Role</label>
+                        <select id="add-user-role" name="Role" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white">
+                            <option value="Full Course">Full Course</option>
+                            <option value="Trial">Trial</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="add-user-sub-date" class="block mb-1 text-sm dark:text-slate-300">Subscription End Date</label>
+                        <input type="date" id="add-user-sub-date" name="SubscriptionEndDate" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white">
                     </div>
                 </div>
                 <div class="flex justify-end gap-4 pt-4">
