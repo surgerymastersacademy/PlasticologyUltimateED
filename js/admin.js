@@ -1,4 +1,4 @@
-// js/admin.js (FINAL VERSION - With Announcements & Add User)
+// js/admin.js (FINAL VERSION - With Modern Dashboard & Username/Password Auth)
 
 // NOTE: This should be the same URL from your state.js file
 const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
@@ -7,6 +7,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dls
 const dom = {
     loginScreen: document.getElementById('admin-login-screen'),
     loginForm: document.getElementById('admin-login-form'),
+    usernameInput: document.getElementById('admin-username'),
     passwordInput: document.getElementById('admin-password'),
     loginError: document.getElementById('admin-login-error'),
     adminConsole: document.getElementById('admin-console'),
@@ -44,19 +45,20 @@ const dom = {
 // --- APP STATE ---
 const adminState = {
     isAuthenticated: false,
-    adminPassword: '',
+    adminCredentials: { username: '', password: '' },
     currentView: 'dashboard',
     allUsers: [],
     allMessages: [],
     allLogs: [],
     allAnnouncements: [],
+    chartInstance: null
 };
 
 // --- API FUNCTIONS ---
 
 async function apiRequest(payload) {
     try {
-        const authenticatedPayload = { ...payload, password: adminState.adminPassword };
+        const authenticatedPayload = { ...payload, ...adminState.adminCredentials };
         const response = await fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify(authenticatedPayload),
@@ -74,7 +76,8 @@ async function fetchAdminData() {
     dom.loader.classList.remove('hidden');
     Object.values(dom.sections).forEach(s => s.classList.add('hidden'));
     try {
-        const response = await fetch(`${API_URL}?request=adminData&password=${adminState.adminPassword}`);
+        const { username, password } = adminState.adminCredentials;
+        const response = await fetch(`${API_URL}?request=adminData&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`);
         if (!response.ok) throw new Error('Network error');
         const data = await response.json();
         if(data.error) throw new Error(data.error);
@@ -145,24 +148,106 @@ function renderDashboard() {
     const totalUsers = adminState.allUsers.length;
     const trialUsers = adminState.allUsers.filter(u => u.Role === 'Trial').length;
     const activeSubscriptions = adminState.allUsers.filter(u => u.Role !== 'Trial' && String(u.AccessGranted) === 'true').length;
+    const unreadMessages = adminState.allMessages.filter(m => !m.AdminReply).length;
 
     dom.sections.dashboard.innerHTML = `
-        <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-4">Dashboard</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="p-6 bg-white dark:bg-slate-800 rounded-lg shadow">
-                <h3 class="text-slate-500 dark:text-slate-400">Total Users</h3>
-                <p class="text-3xl font-bold text-slate-800 dark:text-white">${totalUsers}</p>
+        <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-4">Dashboard Overview</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="p-4 bg-white dark:bg-slate-800 rounded-lg shadow flex items-center gap-4">
+                <i class="fas fa-users fa-2x text-blue-500"></i>
+                <div>
+                    <h3 class="text-slate-500 dark:text-slate-400">Total Users</h3>
+                    <p class="text-2xl font-bold text-slate-800 dark:text-white">${totalUsers}</p>
+                </div>
             </div>
-            <div class="p-6 bg-white dark:bg-slate-800 rounded-lg shadow">
-                <h3 class="text-slate-500 dark:text-slate-400">Trial Accounts</h3>
-                <p class="text-3xl font-bold text-slate-800 dark:text-white">${trialUsers}</p>
+            <div class="p-4 bg-white dark:bg-slate-800 rounded-lg shadow flex items-center gap-4">
+                <i class="fas fa-user-clock fa-2x text-orange-500"></i>
+                <div>
+                    <h3 class="text-slate-500 dark:text-slate-400">Trial Accounts</h3>
+                    <p class="text-2xl font-bold text-slate-800 dark:text-white">${trialUsers}</p>
+                </div>
             </div>
-            <div class="p-6 bg-white dark:bg-slate-800 rounded-lg shadow">
-                <h3 class="text-slate-500 dark:text-slate-400">Active Subscriptions</h3>
-                <p class="text-3xl font-bold text-slate-800 dark:text-white">${activeSubscriptions}</p>
+            <div class="p-4 bg-white dark:bg-slate-800 rounded-lg shadow flex items-center gap-4">
+                <i class="fas fa-check-circle fa-2x text-green-500"></i>
+                <div>
+                    <h3 class="text-slate-500 dark:text-slate-400">Active Subs</h3>
+                    <p class="text-2xl font-bold text-slate-800 dark:text-white">${activeSubscriptions}</p>
+                </div>
+            </div>
+            <div class="p-4 bg-white dark:bg-slate-800 rounded-lg shadow flex items-center gap-4">
+                <i class="fas fa-inbox fa-2x text-red-500"></i>
+                <div>
+                    <h3 class="text-slate-500 dark:text-slate-400">Unread Messages</h3>
+                    <p class="text-2xl font-bold text-slate-800 dark:text-white">${unreadMessages}</p>
+                </div>
             </div>
         </div>
+        <div class="mt-6 bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+            <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-2">New User Registrations (Last 7 Days)</h3>
+            <canvas id="user-chart"></canvas>
+        </div>
     `;
+    renderUserRegistrationChart();
+}
+
+function renderUserRegistrationChart() {
+    const chartCanvas = document.getElementById('user-chart');
+    if (!chartCanvas) return;
+
+    if (adminState.chartInstance) {
+        adminState.chartInstance.destroy();
+    }
+
+    const labels = [];
+    const data = [];
+    const userCountsByDay = {};
+
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().split('T')[0];
+        labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        userCountsByDay[key] = 0;
+    }
+
+    adminState.allUsers.forEach(user => {
+        if (user.AdditionTimeStamp) {
+            const regDate = new Date(user.AdditionTimeStamp).toISOString().split('T')[0];
+            if (userCountsByDay[regDate] !== undefined) {
+                userCountsByDay[regDate]++;
+            }
+        }
+    });
+
+    for(const key in userCountsByDay) {
+        data.push(userCountsByDay[key]);
+    }
+
+    adminState.chartInstance = new Chart(chartCanvas, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'New Users',
+                data: data,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
 }
 
 function renderMessages() {
@@ -317,17 +402,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle Admin Login
     dom.loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const username = dom.usernameInput.value;
         const password = dom.passwordInput.value;
-        const result = await apiRequest({ eventType: 'adminLogin', password: password });
+        
+        const result = await apiRequest({ eventType: 'adminLogin', username, password });
 
         if (result.success) {
             adminState.isAuthenticated = true;
-            adminState.adminPassword = password;
+            adminState.adminCredentials = { username, password };
             dom.loginScreen.classList.add('hidden');
             dom.adminConsole.classList.remove('hidden');
             await initializeConsole();
         } else {
-            dom.loginError.textContent = result.message || 'Incorrect password.';
+            dom.loginError.textContent = result.message || 'Incorrect username, password, or role.';
             dom.loginError.classList.remove('hidden');
         }
     });
@@ -456,6 +543,16 @@ document.addEventListener('DOMContentLoaded', () => {
             await initializeConsole();
         } else {
             alert('Error adding user: ' + result.message);
+        }
+    });
+
+    // Handle user table clicks for edit/progress using event delegation
+    dom.usersTableBody.addEventListener('click', (e) => {
+        if (e.target.classList.contains('edit-user-btn')) {
+            handleEditUserClick(e);
+        }
+        if (e.target.classList.contains('view-progress-btn')) {
+            handleViewProgressClick(e);
         }
     });
 });
