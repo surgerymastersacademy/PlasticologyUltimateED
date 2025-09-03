@@ -2,7 +2,7 @@
 
 // NOTE: This should be the same URL from your state.js file
 const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
-
+// js/admin.js (CORRECTED VERSION)
 // --- DOM ELEMENTS ---
 const dom = {
     loginScreen: document.getElementById('admin-login-screen'),
@@ -36,7 +36,6 @@ const dom = {
         activeCheckbox: document.getElementById('announcement-active'),
         list: document.getElementById('announcements-list'),
     },
-    // Add User Modal Elements (assuming they will be created dynamically or exist in HTML)
     addUserModal: document.getElementById('add-user-modal'),
     addUserForm: document.getElementById('add-user-form'),
     addUserCancelBtn: document.getElementById('add-user-cancel-btn'),
@@ -55,6 +54,24 @@ const adminState = {
 
 // --- API FUNCTIONS ---
 
+// CORRECTED: A dedicated function for login, which is a special case.
+async function verifyAdminPassword(password) {
+    const payload = { eventType: 'adminLogin', password: password };
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            redirect: 'follow'
+        });
+        if (!response.ok) throw new Error('Network error');
+        return response.json();
+    } catch (error) {
+        console.error('API Request Error:', error);
+        return { success: false, message: error.message };
+    }
+}
+
+// CORRECTED: This generic function is now used for all *authenticated* requests (after login).
 async function apiRequest(payload) {
     try {
         const authenticatedPayload = { ...payload, password: adminState.adminPassword };
@@ -219,7 +236,6 @@ function renderAnnouncements() {
         return;
     }
     
-    // Sort by most recent first
     const sortedAnnouncements = [...adminState.allAnnouncements].sort((a,b) => new Date(b.TimeStamp) - new Date(a.TimeStamp));
 
     sortedAnnouncements.forEach(ann => {
@@ -320,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const password = dom.passwordInput.value;
-        const result = await apiRequest({ eventType: 'adminLogin', password: password });
+        const result = await verifyAdminPassword(password); // Use the corrected, dedicated login function
 
         if (result.success) {
             adminState.isAuthenticated = true;
@@ -430,6 +446,35 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.editUserModal.addEventListener('click', (e) => {
         if (e.target.id === 'edit-user-modal' || e.target.id === 'edit-user-cancel') {
             dom.editUserModal.classList.add('hidden');
+        }
+    });
+
+    // Add event listeners for the new user modal elements
+    dom.addUserBtn.addEventListener('click', () => {
+        dom.addUserModal.classList.remove('hidden');
+    });
+    dom.addUserCancelBtn.addEventListener('click', () => {
+        dom.addUserModal.classList.add('hidden');
+    });
+    dom.addUserForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        
+        // Add client-side validation if needed
+        if (!data.Username || !data.Password || !data.Name) {
+            alert("Name, Username, and Password are required.");
+            return;
+        }
+
+        const result = await apiRequest({ eventType: 'admin_addUser', userData: data });
+        if (result.success) {
+            dom.addUserModal.classList.add('hidden');
+            dom.addUserForm.reset();
+            alert('User added successfully!');
+            await initializeConsole();
+        } else {
+            alert('Error adding user: ' + result.message);
         }
     });
 });
