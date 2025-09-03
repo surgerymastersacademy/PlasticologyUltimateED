@@ -319,7 +319,9 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const password = dom.passwordInput.value;
-        const result = await verifyAdminPassword(password);
+        
+        // --- CORRECTED LINE ---
+        const result = await apiRequest({ eventType: 'adminLogin', password: password });
 
         if (result.success) {
             adminState.isAuthenticated = true;
