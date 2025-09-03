@@ -1,7 +1,7 @@
-// js/admin.js (FINAL VERSION FOR PHASE 1)
+// js/admin.js (FINAL VERSION - With Announcements & Add User)
 
 // NOTE: This should be the same URL from your state.js file
-const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlWVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec';
 
 // --- DOM ELEMENTS ---
 const dom = {
@@ -25,10 +25,21 @@ const dom = {
     },
     usersTableBody: document.getElementById('users-table-body'),
     userSearchInput: document.getElementById('user-search'),
+    addUserBtn: document.getElementById('add-user-btn'),
     messagesList: document.getElementById('messages-list'),
     editUserModal: document.getElementById('edit-user-modal'),
     editUserForm: document.getElementById('edit-user-form'),
     editUserName: document.getElementById('edit-user-name'),
+    announcements: {
+        form: document.getElementById('add-announcement-form'),
+        textInput: document.getElementById('announcement-text'),
+        activeCheckbox: document.getElementById('announcement-active'),
+        list: document.getElementById('announcements-list'),
+    },
+    // Add User Modal Elements (assuming they will be created dynamically or exist in HTML)
+    addUserModal: document.getElementById('add-user-modal'),
+    addUserForm: document.getElementById('add-user-form'),
+    addUserCancelBtn: document.getElementById('add-user-cancel-btn'),
 };
 
 // --- APP STATE ---
@@ -38,14 +49,14 @@ const adminState = {
     currentView: 'dashboard',
     allUsers: [],
     allMessages: [],
-    allLogs: [], // For progress tracking
+    allLogs: [],
+    allAnnouncements: [],
 };
 
 // --- API FUNCTIONS ---
 
 async function apiRequest(payload) {
     try {
-        // Add the admin password to every request for authentication
         const authenticatedPayload = { ...payload, password: adminState.adminPassword };
         const response = await fetch(API_URL, {
             method: 'POST',
@@ -62,21 +73,29 @@ async function apiRequest(payload) {
 
 async function fetchAdminData() {
     dom.loader.classList.remove('hidden');
+    Object.values(dom.sections).forEach(s => s.classList.add('hidden'));
     try {
         const response = await fetch(`${API_URL}?request=adminData&password=${adminState.adminPassword}`);
         if (!response.ok) throw new Error('Network error');
         const data = await response.json();
         if(data.error) throw new Error(data.error);
-        dom.loader.classList.add('hidden');
         return data;
     } catch (error) {
         console.error('Fetch Admin Data Error:', error);
-        dom.loader.classList.add('hidden');
         return { error: error.message };
+    } finally {
+        dom.loader.classList.add('hidden');
     }
 }
 
 // --- RENDERING FUNCTIONS ---
+function renderAll() {
+    renderDashboard();
+    renderUsersTable(adminState.allUsers);
+    renderMessages();
+    renderAnnouncements();
+    showSection(adminState.currentView);
+}
 
 function renderUsersTable(usersToRender) {
     dom.usersTableBody.innerHTML = '';
@@ -121,9 +140,6 @@ function renderUsersTable(usersToRender) {
         `;
         dom.usersTableBody.appendChild(row);
     });
-
-    document.querySelectorAll('.edit-user-btn').forEach(btn => btn.addEventListener('click', handleEditUserClick));
-    document.querySelectorAll('.view-progress-btn').forEach(btn => btn.addEventListener('click', handleViewProgressClick));
 }
 
 function renderDashboard() {
@@ -196,6 +212,36 @@ function renderMessages() {
     }
 }
 
+function renderAnnouncements() {
+    dom.announcements.list.innerHTML = '';
+    if (!adminState.allAnnouncements || adminState.allAnnouncements.length === 0) {
+        dom.announcements.list.innerHTML = `<p class="text-slate-500">No announcements yet.</p>`;
+        return;
+    }
+    
+    // Sort by most recent first
+    const sortedAnnouncements = [...adminState.allAnnouncements].sort((a,b) => new Date(b.TimeStamp) - new Date(a.TimeStamp));
+
+    sortedAnnouncements.forEach(ann => {
+        const item = document.createElement('div');
+        item.className = 'flex justify-between items-center p-3 border-b dark:border-slate-700';
+        const isActive = String(ann.IsActive).toLowerCase() === 'true';
+        
+        item.innerHTML = `
+            <div>
+                <p class="dark:text-white">${ann.UpdateMessage}</p>
+                <p class="text-xs text-slate-400">${new Date(ann.TimeStamp).toLocaleString()}</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="toggle-status-btn px-3 py-1 text-sm rounded ${isActive ? 'bg-green-500 text-white' : 'bg-slate-300'}" data-id="${ann.UniqueID}" data-status="${!isActive}">
+                    ${isActive ? 'Active' : 'Inactive'}
+                </button>
+                <button class="delete-ann-btn text-red-500 hover:text-red-700" data-id="${ann.UniqueID}"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+        dom.announcements.list.appendChild(item);
+    });
+}
 
 // --- EVENT HANDLERS & LOGIC ---
 
@@ -239,26 +285,20 @@ function handleEditUserClick(event) {
         </div>
     `;
     dom.editUserModal.classList.remove('hidden');
-    
-    document.getElementById('edit-user-cancel').addEventListener('click', () => {
-        dom.editUserModal.classList.add('hidden');
-    });
 }
 
 function handleViewProgressClick(event) {
     const userId = event.target.dataset.userid;
     const user = adminState.allUsers.find(u => u.UniqueID === userId);
     const userLogs = adminState.allLogs.filter(log => log.UserID === userId);
-    
     if (!user) return;
 
     const totalScore = userLogs.reduce((acc, log) => acc + (parseInt(log.Score, 10) || 0), 0);
     const quizCount = userLogs.length;
     const avgScore = quizCount > 0 ? (totalScore / quizCount).toFixed(1) : 0;
-
+    
     alert(`Progress for ${user.Name}:\n- Quizzes Taken: ${quizCount}\n- Total Score: ${totalScore}\n- Average Score: ${avgScore}`);
 }
-
 
 async function initializeConsole() {
     const data = await fetchAdminData();
@@ -269,10 +309,9 @@ async function initializeConsole() {
     adminState.allUsers = data.users || [];
     adminState.allMessages = data.messages || [];
     adminState.allLogs = data.logs || [];
+    adminState.allAnnouncements = data.announcements || [];
 
-    renderDashboard();
-    renderUsersTable(adminState.allUsers);
-    renderMessages();
+    renderAll();
 }
 
 // --- INITIALIZATION ---
@@ -320,37 +359,77 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
         
-        const result = await apiRequest({
-            eventType: 'admin_updateUser',
-            userData: data
-        });
+        const result = await apiRequest({ eventType: 'admin_updateUser', userData: data });
 
         if (result.success) {
             dom.editUserModal.classList.add('hidden');
             alert('User updated successfully!');
-            await initializeConsole(); // Refresh all data
+            await initializeConsole();
         } else {
             alert('Error updating user: ' + result.message);
         }
     });
     
-    // Handle message reply form submission
+    // Handle message reply form submission (using event delegation)
     dom.messagesList.addEventListener('submit', async (e) => {
         if (!e.target.classList.contains('reply-form')) return;
         e.preventDefault();
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
         
-        const result = await apiRequest({
-            eventType: 'admin_replyToMessage',
-            replyData: data
-        });
+        const result = await apiRequest({ eventType: 'admin_replyToMessage', replyData: data });
 
         if (result.success) {
             alert('Reply sent!');
-            await initializeConsole(); // Refresh all data
+            await initializeConsole();
         } else {
             alert('Error sending reply: ' + result.message);
+        }
+    });
+
+    // Handle Add Announcement form
+    dom.announcements.form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const annData = {
+            message: dom.announcements.textInput.value.trim(),
+            isActive: dom.announcements.activeCheckbox.checked
+        };
+        if (!annData.message) return;
+
+        const result = await apiRequest({ eventType: 'admin_addAnnouncement', announcementData: annData });
+        if (result.success) {
+            dom.announcements.form.reset();
+            await initializeConsole();
+        } else {
+            alert('Error adding announcement: ' + result.message);
+        }
+    });
+
+    // Handle Announcement list actions (delete, toggle status)
+    dom.announcements.list.addEventListener('click', async (e) => {
+        const target = e.target.closest('button');
+        if (!target) return;
+
+        const id = target.dataset.id;
+        if (target.classList.contains('delete-ann-btn')) {
+            if (!confirm('Are you sure you want to delete this announcement?')) return;
+            const result = await apiRequest({ eventType: 'admin_deleteAnnouncement', announcementId: id });
+            if (result.success) await initializeConsole();
+            else alert('Error: ' + result.message);
+        }
+
+        if (target.classList.contains('toggle-status-btn')) {
+            const status = target.dataset.status === 'true';
+            const result = await apiRequest({ eventType: 'admin_toggleAnnouncementStatus', announcementId: id, status: status });
+            if (result.success) await initializeConsole();
+            else alert('Error: ' + result.message);
+        }
+    });
+
+    // Handle clicks inside the modal to cancel it
+    dom.editUserModal.addEventListener('click', (e) => {
+        if (e.target.id === 'edit-user-modal' || e.target.id === 'edit-user-cancel') {
+            dom.editUserModal.classList.add('hidden');
         }
     });
 });
