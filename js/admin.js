@@ -1,6 +1,5 @@
-// js/admin.js (FINAL VERSION - With Modern Dashboard & Username/Password Auth)
+// js/admin.js (FINAL VERSION - With Role-Check Diagnostic)
 
-// NOTE: This should be the same URL from your state.js file
 const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
 
 // --- DOM ELEMENTS ---
@@ -10,6 +9,7 @@ const dom = {
     usernameInput: document.getElementById('admin-username'),
     passwordInput: document.getElementById('admin-password'),
     loginError: document.getElementById('admin-login-error'),
+    adminRoleDisplay: document.getElementById('admin-role-display'), // NEW
     adminConsole: document.getElementById('admin-console'),
     loader: document.getElementById('loader'),
     navLinks: {
@@ -105,41 +105,16 @@ function renderUsersTable(usersToRender) {
         dom.usersTableBody.innerHTML = `<tr><td colspan="7" class="p-4 text-center">No users found.</td></tr>`;
         return;
     }
-
-    const tableHeaders = `
-        <tr>
-            <th class="p-3">Name</th>
-            <th class="p-3">Username</th>
-            <th class="p-3">Role</th>
-            <th class="p-3">Subscription End</th>
-            <th class="p-3">Access</th>
-            <th class="p-3">Total Score</th>
-            <th class="p-3">Actions</th>
-        </tr>`;
+    const tableHeaders = `<tr><th class="p-3">Name</th><th class="p-3">Username</th><th class="p-3">Role</th><th class="p-3">Subscription End</th><th class="p-3">Access</th><th class="p-3">Total Score</th><th class="p-3">Actions</th></tr>`;
     dom.usersTableBody.parentElement.querySelector('thead').innerHTML = tableHeaders;
-
     usersToRender.forEach(user => {
         const row = document.createElement('tr');
         row.className = 'border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600';
-        
         const expiryDate = user.SubscriptionEndDate ? new Date(user.SubscriptionEndDate).toLocaleDateString('en-GB') : 'N/A';
         const isExpired = user.SubscriptionEndDate && new Date() > new Date(user.SubscriptionEndDate);
-        
         const userLogs = adminState.allLogs.filter(log => log.UserID === user.UniqueID);
         const totalScore = userLogs.reduce((acc, log) => acc + (parseInt(log.Score, 10) || 0), 0);
-
-        row.innerHTML = `
-            <td class="p-3 font-semibold text-slate-800 dark:text-white">${user.Name || 'N/A'}</td>
-            <td class="p-3 font-mono">${user.Username}</td>
-            <td class="p-3 font-semibold ${user.Role === 'Trial' ? 'text-orange-500' : ''}">${user.Role}</td>
-            <td class="p-3 ${isExpired ? 'text-red-500 font-bold' : ''}">${expiryDate}</td>
-            <td class="p-3">${String(user.AccessGranted) === 'true' ? '<span class="text-green-500 font-semibold">Enabled</span>' : '<span class="text-red-500 font-semibold">Disabled</span>'}</td>
-            <td class="p-3 font-bold text-blue-600">${totalScore}</td>
-            <td class="p-3">
-                <button class="edit-user-btn text-blue-500 hover:underline" data-userid="${user.UniqueID}">Edit</button>
-                <button class="view-progress-btn text-green-500 hover:underline ml-2" data-userid="${user.UniqueID}">Progress</button>
-            </td>
-        `;
+        row.innerHTML = `<td class="p-3 font-semibold text-slate-800 dark:text-white">${user.Name || 'N/A'}</td><td class="p-3 font-mono">${user.Username}</td><td class="p-3 font-semibold ${user.Role === 'Trial' ? 'text-orange-500' : ''}">${user.Role}</td><td class="p-3 ${isExpired ? 'text-red-500 font-bold' : ''}">${expiryDate}</td><td class="p-3">${String(user.AccessGranted) === 'true' ? '<span class="text-green-500 font-semibold">Enabled</span>' : '<span class="text-red-500 font-semibold">Disabled</span>'}</td><td class="p-3 font-bold text-blue-600">${totalScore}</td><td class="p-3"><button class="edit-user-btn text-blue-500 hover:underline" data-userid="${user.UniqueID}">Edit</button><button class="view-progress-btn text-green-500 hover:underline ml-2" data-userid="${user.UniqueID}">Progress</button></td>`;
         dom.usersTableBody.appendChild(row);
     });
 }
@@ -149,59 +124,17 @@ function renderDashboard() {
     const trialUsers = adminState.allUsers.filter(u => u.Role === 'Trial').length;
     const activeSubscriptions = adminState.allUsers.filter(u => u.Role !== 'Trial' && String(u.AccessGranted) === 'true').length;
     const unreadMessages = adminState.allMessages.filter(m => !m.AdminReply).length;
-
-    dom.sections.dashboard.innerHTML = `
-        <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-4">Dashboard Overview</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div class="p-4 bg-white dark:bg-slate-800 rounded-lg shadow flex items-center gap-4">
-                <i class="fas fa-users fa-2x text-blue-500"></i>
-                <div>
-                    <h3 class="text-slate-500 dark:text-slate-400">Total Users</h3>
-                    <p class="text-2xl font-bold text-slate-800 dark:text-white">${totalUsers}</p>
-                </div>
-            </div>
-            <div class="p-4 bg-white dark:bg-slate-800 rounded-lg shadow flex items-center gap-4">
-                <i class="fas fa-user-clock fa-2x text-orange-500"></i>
-                <div>
-                    <h3 class="text-slate-500 dark:text-slate-400">Trial Accounts</h3>
-                    <p class="text-2xl font-bold text-slate-800 dark:text-white">${trialUsers}</p>
-                </div>
-            </div>
-            <div class="p-4 bg-white dark:bg-slate-800 rounded-lg shadow flex items-center gap-4">
-                <i class="fas fa-check-circle fa-2x text-green-500"></i>
-                <div>
-                    <h3 class="text-slate-500 dark:text-slate-400">Active Subs</h3>
-                    <p class="text-2xl font-bold text-slate-800 dark:text-white">${activeSubscriptions}</p>
-                </div>
-            </div>
-            <div class="p-4 bg-white dark:bg-slate-800 rounded-lg shadow flex items-center gap-4">
-                <i class="fas fa-inbox fa-2x text-red-500"></i>
-                <div>
-                    <h3 class="text-slate-500 dark:text-slate-400">Unread Messages</h3>
-                    <p class="text-2xl font-bold text-slate-800 dark:text-white">${unreadMessages}</p>
-                </div>
-            </div>
-        </div>
-        <div class="mt-6 bg-white dark:bg-slate-800 rounded-lg shadow p-4">
-            <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-2">New User Registrations (Last 7 Days)</h3>
-            <canvas id="user-chart"></canvas>
-        </div>
-    `;
+    dom.sections.dashboard.innerHTML = `<h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-4">Dashboard Overview</h2><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"><div class="p-4 bg-white dark:bg-slate-800 rounded-lg shadow flex items-center gap-4"><i class="fas fa-users fa-2x text-blue-500"></i><div><h3 class="text-slate-500 dark:text-slate-400">Total Users</h3><p class="text-2xl font-bold text-slate-800 dark:text-white">${totalUsers}</p></div></div><div class="p-4 bg-white dark:bg-slate-800 rounded-lg shadow flex items-center gap-4"><i class="fas fa-user-clock fa-2x text-orange-500"></i><div><h3 class="text-slate-500 dark:text-slate-400">Trial Accounts</h3><p class="text-2xl font-bold text-slate-800 dark:text-white">${trialUsers}</p></div></div><div class="p-4 bg-white dark:bg-slate-800 rounded-lg shadow flex items-center gap-4"><i class="fas fa-check-circle fa-2x text-green-500"></i><div><h3 class="text-slate-500 dark:text-slate-400">Active Subs</h3><p class="text-2xl font-bold text-slate-800 dark:text-white">${activeSubscriptions}</p></div></div><div class="p-4 bg-white dark:bg-slate-800 rounded-lg shadow flex items-center gap-4"><i class="fas fa-inbox fa-2x text-red-500"></i><div><h3 class="text-slate-500 dark:text-slate-400">Unread Messages</h3><p class="text-2xl font-bold text-slate-800 dark:text-white">${unreadMessages}</p></div></div></div><div class="mt-6 bg-white dark:bg-slate-800 rounded-lg shadow p-4"><h3 class="text-lg font-bold text-slate-800 dark:text-white mb-2">New User Registrations (Last 7 Days)</h3><canvas id="user-chart"></canvas></div>`;
     renderUserRegistrationChart();
 }
 
 function renderUserRegistrationChart() {
     const chartCanvas = document.getElementById('user-chart');
     if (!chartCanvas) return;
-
-    if (adminState.chartInstance) {
-        adminState.chartInstance.destroy();
-    }
-
+    if (adminState.chartInstance) { adminState.chartInstance.destroy(); }
     const labels = [];
     const data = [];
     const userCountsByDay = {};
-
     for (let i = 6; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
@@ -209,44 +142,20 @@ function renderUserRegistrationChart() {
         labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
         userCountsByDay[key] = 0;
     }
-
     adminState.allUsers.forEach(user => {
         if (user.AdditionTimeStamp) {
             const regDate = new Date(user.AdditionTimeStamp).toISOString().split('T')[0];
-            if (userCountsByDay[regDate] !== undefined) {
-                userCountsByDay[regDate]++;
-            }
+            if (userCountsByDay[regDate] !== undefined) { userCountsByDay[regDate]++; }
         }
     });
-
-    for(const key in userCountsByDay) {
-        data.push(userCountsByDay[key]);
-    }
-
+    for(const key in userCountsByDay) { data.push(userCountsByDay[key]); }
     adminState.chartInstance = new Chart(chartCanvas, {
         type: 'line',
         data: {
             labels: labels,
-            datasets: [{
-                label: 'New Users',
-                data: data,
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                fill: true,
-                tension: 0.3
-            }]
+            datasets: [{ label: 'New Users', data: data, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.3 }]
         },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
-                    }
-                }
-            }
-        }
+        options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
     });
 }
 
@@ -256,42 +165,24 @@ function renderMessages() {
         dom.messagesList.innerHTML = `<p class="text-center text-slate-500">No messages found.</p>`
         return;
     }
-
     const groupedMessages = adminState.allMessages.reduce((acc, msg) => {
         if (!msg.UserID) return acc;
-        if (!acc[msg.UserID]) {
-            acc[msg.UserID] = { name: msg.UserName, messages: [] };
-        }
+        if (!acc[msg.UserID]) { acc[msg.UserID] = { name: msg.UserName, messages: [] }; }
         acc[msg.UserID].messages.push(msg);
         return acc;
     }, {});
-
     for (const userId in groupedMessages) {
         const conversation = groupedMessages[userId];
         const container = document.createElement('div');
         container.className = "bg-white dark:bg-slate-800 rounded-lg shadow p-4";
-        
         let messagesHtml = conversation.messages.map(msg => {
             const date = new Date(msg.Timestamp).toLocaleString('en-GB');
             let html = '';
-            if (msg.UserMessage) {
-                html += `<div class="mb-2"><p class="font-semibold">${conversation.name || 'User'} <span class="text-xs text-slate-400">(${date})</span>:</p><p class="pl-2">${msg.UserMessage}</p></div>`;
-            }
-            if (msg.AdminReply) {
-                html += `<div class="mb-2 bg-blue-50 dark:bg-slate-700 p-2 rounded"><p class="font-semibold">Your Reply:</p><p class="pl-2">${msg.AdminReply}</p></div>`;
-            }
+            if (msg.UserMessage) { html += `<div class="mb-2"><p class="font-semibold">${conversation.name || 'User'} <span class="text-xs text-slate-400">(${date})</span>:</p><p class="pl-2">${msg.UserMessage}</p></div>`; }
+            if (msg.AdminReply) { html += `<div class="mb-2 bg-blue-50 dark:bg-slate-700 p-2 rounded"><p class="font-semibold">Your Reply:</p><p class="pl-2">${msg.AdminReply}</p></div>`; }
             return html;
         }).join('');
-
-        container.innerHTML = `
-            <h3 class="text-lg font-bold border-b pb-2 mb-2 dark:text-white dark:border-slate-600">${conversation.name} (${userId})</h3>
-            <div class="max-h-60 overflow-y-auto p-2 bg-slate-50 dark:bg-slate-700/50 rounded">${messagesHtml}</div>
-            <form class="reply-form mt-4 flex gap-2">
-                <input type="hidden" name="UserID" value="${userId}">
-                <input type="text" name="AdminReply" class="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600" placeholder="Type your reply..." required>
-                <button type="submit" class="px-4 py-2 font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Send</button>
-            </form>
-        `;
+        container.innerHTML = `<h3 class="text-lg font-bold border-b pb-2 mb-2 dark:text-white dark:border-slate-600">${conversation.name} (${userId})</h3><div class="max-h-60 overflow-y-auto p-2 bg-slate-50 dark:bg-slate-700/50 rounded">${messagesHtml}</div><form class="reply-form mt-4 flex gap-2"><input type="hidden" name="UserID" value="${userId}"><input type="text" name="AdminReply" class="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600" placeholder="Type your reply..." required><button type="submit" class="px-4 py-2 font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Send</button></form>`;
         dom.messagesList.appendChild(container);
     }
 }
@@ -302,26 +193,12 @@ function renderAnnouncements() {
         dom.announcements.list.innerHTML = `<p class="text-slate-500">No announcements yet.</p>`;
         return;
     }
-    
     const sortedAnnouncements = [...adminState.allAnnouncements].sort((a,b) => new Date(b.TimeStamp) - new Date(a.TimeStamp));
-
     sortedAnnouncements.forEach(ann => {
         const item = document.createElement('div');
         item.className = 'flex justify-between items-center p-3 border-b dark:border-slate-700';
         const isActive = String(ann.IsActive).toLowerCase() === 'true';
-        
-        item.innerHTML = `
-            <div>
-                <p class="dark:text-white">${ann.UpdateMessage}</p>
-                <p class="text-xs text-slate-400">${new Date(ann.TimeStamp).toLocaleString()}</p>
-            </div>
-            <div class="flex items-center gap-4">
-                <button class="toggle-status-btn px-3 py-1 text-sm rounded ${isActive ? 'bg-green-500 text-white' : 'bg-slate-300'}" data-id="${ann.UniqueID}" data-status="${!isActive}">
-                    ${isActive ? 'Active' : 'Inactive'}
-                </button>
-                <button class="delete-ann-btn text-red-500 hover:text-red-700" data-id="${ann.UniqueID}"><i class="fas fa-trash"></i></button>
-            </div>
-        `;
+        item.innerHTML = `<div><p class="dark:text-white">${ann.UpdateMessage}</p><p class="text-xs text-slate-400">${new Date(ann.TimeStamp).toLocaleString()}</p></div><div class="flex items-center gap-4"><button class="toggle-status-btn px-3 py-1 text-sm rounded ${isActive ? 'bg-green-500 text-white' : 'bg-slate-300'}" data-id="${ann.UniqueID}" data-status="${!isActive}">${isActive ? 'Active' : 'Inactive'}</button><button class="delete-ann-btn text-red-500 hover:text-red-700" data-id="${ann.UniqueID}"><i class="fas fa-trash"></i></button></div>`;
         dom.announcements.list.appendChild(item);
     });
 }
@@ -340,33 +217,8 @@ function handleEditUserClick(event) {
     const userId = event.target.dataset.userid;
     const user = adminState.allUsers.find(u => u.UniqueID === userId);
     if (!user) return;
-
     dom.editUserName.textContent = user.Name || user.Username;
-    dom.editUserForm.innerHTML = `
-        <input type="hidden" name="UniqueID" value="${user.UniqueID}">
-        <div>
-            <label class="block mb-1 dark:text-slate-300">Role</label>
-            <select name="Role" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white">
-                <option value="Trial" ${user.Role === 'Trial' ? 'selected' : ''}>Trial</option>
-                <option value="Full Course" ${user.Role === 'Full Course' ? 'selected' : ''}>Full Course</option>
-            </select>
-        </div>
-        <div>
-            <label class="block mb-1 dark:text-slate-300">Subscription End Date</label>
-            <input type="date" name="SubscriptionEndDate" value="${user.SubscriptionEndDate ? new Date(user.SubscriptionEndDate).toISOString().split('T')[0] : ''}" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white">
-        </div>
-        <div>
-            <label class="block mb-1 dark:text-slate-300">Access Granted</label>
-            <select name="AccessGranted" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white">
-                <option value="TRUE" ${String(user.AccessGranted) === 'true' ? 'selected' : ''}>Enabled</option>
-                <option value="FALSE" ${String(user.AccessGranted) !== 'true' ? 'selected' : ''}>Disabled</option>
-            </select>
-        </div>
-        <div class="flex justify-end gap-4 pt-4">
-            <button type="button" id="edit-user-cancel" class="px-4 py-2 bg-gray-300 dark:bg-slate-600 rounded">Cancel</button>
-            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Save Changes</button>
-        </div>
-    `;
+    dom.editUserForm.innerHTML = `<input type="hidden" name="UniqueID" value="${user.UniqueID}"><div><label class="block mb-1 dark:text-slate-300">Role</label><select name="Role" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white"><option value="Trial" ${user.Role === 'Trial' ? 'selected' : ''}>Trial</option><option value="Full Course" ${user.Role === 'Full Course' ? 'selected' : ''}>Full Course</option></select></div><div><label class="block mb-1 dark:text-slate-300">Subscription End Date</label><input type="date" name="SubscriptionEndDate" value="${user.SubscriptionEndDate ? new Date(user.SubscriptionEndDate).toISOString().split('T')[0] : ''}" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white"></div><div><label class="block mb-1 dark:text-slate-300">Access Granted</label><select name="AccessGranted" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white"><option value="TRUE" ${String(user.AccessGranted) === 'true' ? 'selected' : ''}>Enabled</option><option value="FALSE" ${String(user.AccessGranted) !== 'true' ? 'selected' : ''}>Disabled</option></select></div><div class="flex justify-end gap-4 pt-4"><button type="button" id="edit-user-cancel" class="px-4 py-2 bg-gray-300 dark:bg-slate-600 rounded">Cancel</button><button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Save Changes</button></div>`;
     dom.editUserModal.classList.remove('hidden');
 }
 
@@ -375,11 +227,9 @@ function handleViewProgressClick(event) {
     const user = adminState.allUsers.find(u => u.UniqueID === userId);
     const userLogs = adminState.allLogs.filter(log => log.UserID === userId);
     if (!user) return;
-
     const totalScore = userLogs.reduce((acc, log) => acc + (parseInt(log.Score, 10) || 0), 0);
     const quizCount = userLogs.length;
     const avgScore = quizCount > 0 ? (totalScore / quizCount).toFixed(1) : 0;
-    
     alert(`Progress for ${user.Name}:\n- Quizzes Taken: ${quizCount}\n- Total Score: ${totalScore}\n- Average Score: ${avgScore}`);
 }
 
@@ -393,20 +243,50 @@ async function initializeConsole() {
     adminState.allMessages = data.messages || [];
     adminState.allLogs = data.logs || [];
     adminState.allAnnouncements = data.announcements || [];
-
     renderAll();
 }
 
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
+    
+    // NEW: Add blur event listener for username input to check role
+    dom.usernameInput.addEventListener('blur', async () => {
+        const username = dom.usernameInput.value.trim();
+        if (username.length < 2) {
+            dom.adminRoleDisplay.textContent = '';
+            return;
+        }
+        dom.adminRoleDisplay.textContent = 'Checking...';
+        dom.adminRoleDisplay.className = 'text-xs text-center mt-1 h-4 text-slate-400';
+
+        try {
+            const response = await fetch(`${API_URL}?request=getUserRole&username=${encodeURIComponent(username)}`);
+            const data = await response.json();
+            
+            if (data.found) {
+                const role = data.role;
+                dom.adminRoleDisplay.textContent = `Role: ${role}`;
+                if (role === 'Admin') {
+                    dom.adminRoleDisplay.className = 'text-xs text-center mt-1 h-4 text-green-500 font-bold';
+                } else {
+                    dom.adminRoleDisplay.className = 'text-xs text-center mt-1 h-4 text-orange-500 font-bold';
+                }
+            } else {
+                dom.adminRoleDisplay.textContent = data.role; // e.g., "User Not Found"
+                dom.adminRoleDisplay.className = 'text-xs text-center mt-1 h-4 text-red-500 font-bold';
+            }
+        } catch (error) {
+            dom.adminRoleDisplay.textContent = 'Error checking role.';
+            dom.adminRoleDisplay.className = 'text-xs text-center mt-1 h-4 text-red-500 font-bold';
+        }
+    });
+
     // Handle Admin Login
     dom.loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const username = dom.usernameInput.value;
         const password = dom.passwordInput.value;
-        
         const result = await apiRequest({ eventType: 'adminLogin', username, password });
-
         if (result.success) {
             adminState.isAuthenticated = true;
             adminState.adminCredentials = { username, password };
@@ -430,11 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // User search
     dom.userSearchInput.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
-        const filteredUsers = adminState.allUsers.filter(user => 
-            (user.Name && user.Name.toLowerCase().includes(searchTerm)) ||
-            (user.Username && user.Username.toLowerCase().includes(searchTerm)) ||
-            (user['E-Mail'] && user['E-Mail'].toLowerCase().includes(searchTerm))
-        );
+        const filteredUsers = adminState.allUsers.filter(user => (user.Name && user.Name.toLowerCase().includes(searchTerm)) || (user.Username && user.Username.toLowerCase().includes(searchTerm)) || (user['E-Mail'] && user['E-Mail'].toLowerCase().includes(searchTerm)));
         renderUsersTable(filteredUsers);
     });
 
@@ -443,9 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
-        
         const result = await apiRequest({ eventType: 'admin_updateUser', userData: data });
-
         if (result.success) {
             dom.editUserModal.classList.add('hidden');
             alert('User updated successfully!');
@@ -455,15 +329,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Handle message reply form submission (using event delegation)
+    // Handle message reply form submission
     dom.messagesList.addEventListener('submit', async (e) => {
         if (!e.target.classList.contains('reply-form')) return;
         e.preventDefault();
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
-        
         const result = await apiRequest({ eventType: 'admin_replyToMessage', replyData: data });
-
         if (result.success) {
             alert('Reply sent!');
             await initializeConsole();
@@ -475,12 +347,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle Add Announcement form
     dom.announcements.form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const annData = {
-            message: dom.announcements.textInput.value.trim(),
-            isActive: dom.announcements.activeCheckbox.checked
-        };
+        const annData = { message: dom.announcements.textInput.value.trim(), isActive: dom.announcements.activeCheckbox.checked };
         if (!annData.message) return;
-
         const result = await apiRequest({ eventType: 'admin_addAnnouncement', announcementData: annData });
         if (result.success) {
             dom.announcements.form.reset();
@@ -490,28 +358,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle Announcement list actions (delete, toggle status)
+    // Handle Announcement list actions
     dom.announcements.list.addEventListener('click', async (e) => {
         const target = e.target.closest('button');
         if (!target) return;
-
         const id = target.dataset.id;
         if (target.classList.contains('delete-ann-btn')) {
             if (!confirm('Are you sure you want to delete this announcement?')) return;
             const result = await apiRequest({ eventType: 'admin_deleteAnnouncement', announcementId: id });
-            if (result.success) await initializeConsole();
-            else alert('Error: ' + result.message);
+            if (result.success) await initializeConsole(); else alert('Error: ' + result.message);
         }
-
         if (target.classList.contains('toggle-status-btn')) {
             const status = target.dataset.status === 'true';
             const result = await apiRequest({ eventType: 'admin_toggleAnnouncementStatus', announcementId: id, status: status });
-            if (result.success) await initializeConsole();
-            else alert('Error: ' + result.message);
+            if (result.success) await initializeConsole(); else alert('Error: ' + result.message);
         }
     });
 
-    // Handle clicks inside the modal to cancel it
+    // Modal cancellation
     dom.editUserModal.addEventListener('click', (e) => {
         if (e.target.id === 'edit-user-modal' || e.target.id === 'edit-user-cancel') {
             dom.editUserModal.classList.add('hidden');
@@ -519,22 +383,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Handle "Add User" modal events
-    dom.addUserBtn.addEventListener('click', () => {
-        dom.addUserModal.classList.remove('hidden');
-    });
-    dom.addUserCancelBtn.addEventListener('click', () => {
-        dom.addUserModal.classList.add('hidden');
-    });
+    dom.addUserBtn.addEventListener('click', () => { dom.addUserModal.classList.remove('hidden'); });
+    dom.addUserCancelBtn.addEventListener('click', () => { dom.addUserModal.classList.add('hidden'); });
     dom.addUserForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
-        
-        if (!data.Username || !data.Password || !data.Name) {
-            alert("Name, Username, and Password are required.");
-            return;
-        }
-
+        if (!data.Username || !data.Password || !data.Name) { alert("Name, Username, and Password are required."); return; }
         const result = await apiRequest({ eventType: 'admin_addUser', userData: data });
         if (result.success) {
             dom.addUserModal.classList.add('hidden');
@@ -546,13 +401,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle user table clicks for edit/progress using event delegation
+    // Handle user table clicks
     dom.usersTableBody.addEventListener('click', (e) => {
-        if (e.target.classList.contains('edit-user-btn')) {
-            handleEditUserClick(e);
-        }
-        if (e.target.classList.contains('view-progress-btn')) {
-            handleViewProgressClick(e);
-        }
+        if (e.target.classList.contains('edit-user-btn')) { handleEditUserClick(e); }
+        if (e.target.classList.contains('view-progress-btn')) { handleViewProgressClick(e); }
     });
 });
