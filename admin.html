@@ -28,6 +28,10 @@
             white-space: nowrap;
             border-width: 0;
         }
+        /* Style for sortable table headers */
+        .sortable-header { cursor: pointer; }
+        .sortable-header:hover { color: #3b82f6; }
+        .sort-icon { margin-left: 5px; opacity: 0.5; }
     </style>
 </head>
 <body class="bg-slate-100 dark:bg-slate-900">
@@ -79,6 +83,9 @@
                     <a href="#" id="nav-announcements" class="sidebar-link flex items-center px-4 py-2 rounded-lg text-slate-700 dark:text-slate-200">
                         <i class="fas fa-bullhorn w-6"></i><span>Announcements</span>
                     </a>
+                    <a href="#" id="nav-financials" class="sidebar-link flex items-center px-4 py-2 rounded-lg text-slate-700 dark:text-slate-200">
+                        <i class="fas fa-wallet w-6"></i><span>Financials</span>
+                    </a>
                 </nav>
             </div>
 
@@ -97,6 +104,19 @@
                     </div>
                     <label for="user-search" class="sr-only">Search Users</label>
                     <input type="text" id="user-search" class="w-full md:w-1/3 px-4 py-2 border rounded-lg mb-4 dark:bg-slate-700 dark:text-white" placeholder="Search by name, username, or email...">
+                    
+                    <div id="bulk-action-bar" class="hidden my-4 p-3 bg-slate-200 dark:bg-slate-700 rounded-lg flex flex-col md:flex-row items-center gap-4">
+                        <p class="font-bold text-sm dark:text-white"><span id="selected-user-count">0</span> user(s) selected</p>
+                        <select id="bulk-action-select" class="w-full md:w-auto p-2 border rounded dark:bg-slate-600 dark:text-white">
+                            <option value="">-- Select Bulk Action --</option>
+                            <option value="changeRole_Full Course">Change Role to: Full Course</option>
+                            <option value="changeRole_Trial">Change Role to: Trial</option>
+                            <option value="changeAccess_TRUE">Set Access to: Enabled</option>
+                            <option value="changeAccess_FALSE">Set Access to: Disabled</option>
+                        </select>
+                        <button id="bulk-action-apply-btn" class="w-full md:w-auto px-4 py-2 font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Apply</button>
+                    </div>
+
                     <div class="overflow-x-auto bg-white dark:bg-slate-800 rounded-lg shadow">
                         <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
                             <thead class="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-400">
@@ -109,6 +129,16 @@
 
                 <div id="messages-section" class="hidden">
                     <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-4">User Messages</h2>
+                    
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow mb-6">
+                        <h3 class="text-lg font-semibold mb-2 dark:text-white">Broadcast a Message to All Users</h3>
+                        <form id="broadcast-message-form" class="flex flex-col md:flex-row gap-4 items-center">
+                            <label for="broadcast-message-text" class="sr-only">Broadcast Message</label>
+                            <input type="text" id="broadcast-message-text" class="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:text-white" placeholder="Broadcast message..." required>
+                            <button type="submit" class="w-full md:w-auto px-6 py-2 font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-700">Broadcast</button>
+                        </form>
+                    </div>
+
                     <div id="messages-list" class="space-y-4">
                         </div>
                 </div>
@@ -133,6 +163,19 @@
                             </div>
                      </div>
                 </div>
+                
+                <div id="financials-section" class="hidden">
+                    <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-4">Financials Overview</h2>
+                    <div class="overflow-x-auto bg-white dark:bg-slate-800 rounded-lg shadow">
+                        <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                            <thead id="financials-table-header" class="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-400">
+                                </thead>
+                            <tbody id="financials-table-body">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </main>
         </div>
     </div>
@@ -164,6 +207,10 @@
                         <label for="add-user-email" class="sr-only">Email</label>
                         <input type="email" id="add-user-email" name="E-Mail" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="Email">
                     </div>
+                     <div>
+                        <label for="add-user-study-type" class="sr-only">Study Type</label>
+                        <input type="text" id="add-user-study-type" name="StudyType" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="Study Type">
+                    </div>
                     <div>
                         <label for="add-user-role" class="sr-only">Role</label>
                         <select id="add-user-role" name="Role" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white">
@@ -171,7 +218,7 @@
                             <option value="Trial">Trial</option>
                         </select>
                     </div>
-                    <div>
+                    <div class="md:col-span-2">
                         <label for="add-user-sub-date" class="block mb-1 text-sm dark:text-slate-300">Subscription End Date</label>
                         <input type="date" id="add-user-sub-date" name="SubscriptionEndDate" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white">
                     </div>
