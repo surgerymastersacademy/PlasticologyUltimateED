@@ -1,4 +1,4 @@
-// js/admin.js (FINAL VERSION - With Role-Check Diagnostic)
+// js/admin.js (FINAL VERSION - With Role-Check Diagnostic and Login Fix)
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
 
@@ -9,7 +9,7 @@ const dom = {
     usernameInput: document.getElementById('admin-username'),
     passwordInput: document.getElementById('admin-password'),
     loginError: document.getElementById('admin-login-error'),
-    adminRoleDisplay: document.getElementById('admin-role-display'), // NEW
+    adminRoleDisplay: document.getElementById('admin-role-display'),
     adminConsole: document.getElementById('admin-console'),
     loader: document.getElementById('loader'),
     navLinks: {
@@ -58,7 +58,10 @@ const adminState = {
 
 async function apiRequest(payload) {
     try {
-        const authenticatedPayload = { ...payload, ...adminState.adminCredentials };
+        // ===== START: CORRECTED LINE =====
+        const authenticatedPayload = { ...adminState.adminCredentials, ...payload };
+        // ===== END: CORRECTED LINE =====
+        
         const response = await fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify(authenticatedPayload),
@@ -249,7 +252,6 @@ async function initializeConsole() {
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
     
-    // NEW: Add blur event listener for username input to check role
     dom.usernameInput.addEventListener('blur', async () => {
         const username = dom.usernameInput.value.trim();
         if (username.length < 2) {
@@ -281,7 +283,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle Admin Login
     dom.loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const username = dom.usernameInput.value;
@@ -299,7 +300,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Sidebar navigation
     Object.keys(dom.navLinks).forEach(key => {
         dom.navLinks[key].addEventListener('click', (e) => {
             e.preventDefault();
@@ -307,14 +307,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // User search
     dom.userSearchInput.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
         const filteredUsers = adminState.allUsers.filter(user => (user.Name && user.Name.toLowerCase().includes(searchTerm)) || (user.Username && user.Username.toLowerCase().includes(searchTerm)) || (user['E-Mail'] && user['E-Mail'].toLowerCase().includes(searchTerm)));
         renderUsersTable(filteredUsers);
     });
 
-    // Handle user edit form submission
     dom.editUserForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
@@ -329,7 +327,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Handle message reply form submission
     dom.messagesList.addEventListener('submit', async (e) => {
         if (!e.target.classList.contains('reply-form')) return;
         e.preventDefault();
@@ -344,7 +341,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle Add Announcement form
     dom.announcements.form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const annData = { message: dom.announcements.textInput.value.trim(), isActive: dom.announcements.activeCheckbox.checked };
@@ -358,7 +354,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle Announcement list actions
     dom.announcements.list.addEventListener('click', async (e) => {
         const target = e.target.closest('button');
         if (!target) return;
@@ -375,14 +370,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Modal cancellation
     dom.editUserModal.addEventListener('click', (e) => {
         if (e.target.id === 'edit-user-modal' || e.target.id === 'edit-user-cancel') {
             dom.editUserModal.classList.add('hidden');
         }
     });
     
-    // Handle "Add User" modal events
     dom.addUserBtn.addEventListener('click', () => { dom.addUserModal.classList.remove('hidden'); });
     dom.addUserCancelBtn.addEventListener('click', () => { dom.addUserModal.classList.add('hidden'); });
     dom.addUserForm.addEventListener('submit', async (e) => {
@@ -401,7 +394,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle user table clicks
     dom.usersTableBody.addEventListener('click', (e) => {
         if (e.target.classList.contains('edit-user-btn')) { handleEditUserClick(e); }
         if (e.target.classList.contains('view-progress-btn')) { handleViewProgressClick(e); }
