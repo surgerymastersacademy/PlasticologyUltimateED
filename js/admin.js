@@ -1,4 +1,4 @@
-// js/admin.js (FINAL VERSION - With Role-Check Diagnostic and Login Fix)
+// js/admin.js (FINAL VERSION - With Bulk Edit, Messaging, Sorting, and Financials)
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
 
@@ -17,14 +17,17 @@ const dom = {
         users: document.getElementById('nav-users'),
         messages: document.getElementById('nav-messages'),
         announcements: document.getElementById('nav-announcements'),
+        financials: document.getElementById('nav-financials'), // NEW
     },
     sections: {
         dashboard: document.getElementById('dashboard-section'),
         users: document.getElementById('users-section'),
         messages: document.getElementById('messages-section'),
         announcements: document.getElementById('announcements-section'),
+        financials: document.getElementById('financials-section'), // NEW
     },
     usersTableBody: document.getElementById('users-table-body'),
+    usersTableHeader: document.querySelector('#users-section table thead'), // NEW
     userSearchInput: document.getElementById('user-search'),
     addUserBtn: document.getElementById('add-user-btn'),
     messagesList: document.getElementById('messages-list'),
@@ -40,6 +43,21 @@ const dom = {
     addUserModal: document.getElementById('add-user-modal'),
     addUserForm: document.getElementById('add-user-form'),
     addUserCancelBtn: document.getElementById('add-user-cancel-btn'),
+    // NEW Elements
+    financials: {
+        tableHeader: document.getElementById('financials-table-header'),
+        tableBody: document.getElementById('financials-table-body'),
+    },
+    bulkActions: {
+        bar: document.getElementById('bulk-action-bar'),
+        count: document.getElementById('selected-user-count'),
+        select: document.getElementById('bulk-action-select'),
+        applyBtn: document.getElementById('bulk-action-apply-btn'),
+    },
+    messaging: {
+        broadcastForm: document.getElementById('broadcast-message-form'),
+        broadcastInput: document.getElementById('broadcast-message-text'),
+    }
 };
 
 // --- APP STATE ---
@@ -51,17 +69,17 @@ const adminState = {
     allMessages: [],
     allLogs: [],
     allAnnouncements: [],
-    chartInstance: null
+    allFinances: [], // NEW
+    chartInstance: null,
+    selectedUserIds: new Set(), // NEW
+    sortState: { key: 'Name', direction: 'asc' } // NEW
 };
 
 // --- API FUNCTIONS ---
 
 async function apiRequest(payload) {
     try {
-        // ===== START: CORRECTED LINE =====
         const authenticatedPayload = { ...adminState.adminCredentials, ...payload };
-        // ===== END: CORRECTED LINE =====
-        
         const response = await fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify(authenticatedPayload),
@@ -83,7 +101,7 @@ async function fetchAdminData() {
         const response = await fetch(`${API_URL}?request=adminData&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`);
         if (!response.ok) throw new Error('Network error');
         const data = await response.json();
-        if(data.error) throw new Error(data.error);
+        if (data.error) throw new Error(data.error);
         return data;
     } catch (error) {
         console.error('Fetch Admin Data Error:', error);
@@ -95,29 +113,79 @@ async function fetchAdminData() {
 
 // --- RENDERING FUNCTIONS ---
 function renderAll() {
+    sortUsers(); // Sort data before rendering
     renderDashboard();
     renderUsersTable(adminState.allUsers);
     renderMessages();
     renderAnnouncements();
+    renderFinancialsTable();
     showSection(adminState.currentView);
 }
 
 function renderUsersTable(usersToRender) {
+    // Calculate payment totals once
+    const paymentTotals = adminState.allFinances.reduce((acc, item) => {
+        const userId = item.UniqueID;
+        const payment = parseFloat(item.Payment) || 0;
+        acc[userId] = (acc[userId] || 0) + payment;
+        return acc;
+    }, {});
+
+    // Define headers for sorting
+    const headers = [
+        { key: 'select', label: `<input type="checkbox" id="select-all-users">`, sortable: false },
+        { key: 'Name', label: 'Name', sortable: true },
+        { key: 'Username', label: 'Username', sortable: true },
+        { key: 'StudyType', label: 'Study Type', sortable: true },
+        { key: 'Role', label: 'Role', sortable: true },
+        { key: 'SubscriptionEndDate', label: 'Subscription End', sortable: true },
+        { key: 'AccessGranted', label: 'Access', sortable: true },
+        { key: 'totalScore', label: 'Total Score', sortable: true },
+        { key: 'totalPaid', label: 'Total Paid', sortable: true },
+        { key: 'Actions', label: 'Actions', sortable: false }
+    ];
+
+    // Render table headers
+    dom.usersTableHeader.innerHTML = `<tr>${headers.map(h => {
+        const sortIcon = h.sortable ? `<i class="fas fa-sort sort-icon"></i>` : '';
+        return `<th class="p-3 ${h.sortable ? 'sortable-header' : ''}" data-key="${h.key}">${h.label}${sortIcon}</th>`
+    }).join('')}</tr>`;
+
     dom.usersTableBody.innerHTML = '';
     if (!usersToRender || usersToRender.length === 0) {
-        dom.usersTableBody.innerHTML = `<tr><td colspan="7" class="p-4 text-center">No users found.</td></tr>`;
+        dom.usersTableBody.innerHTML = `<tr><td colspan="${headers.length}" class="p-4 text-center">No users found.</td></tr>`;
         return;
     }
-    const tableHeaders = `<tr><th class="p-3">Name</th><th class="p-3">Username</th><th class="p-3">Role</th><th class="p-3">Subscription End</th><th class="p-3">Access</th><th class="p-3">Total Score</th><th class="p-3">Actions</th></tr>`;
-    dom.usersTableBody.parentElement.querySelector('thead').innerHTML = tableHeaders;
+
     usersToRender.forEach(user => {
         const row = document.createElement('tr');
         row.className = 'border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600';
         const expiryDate = user.SubscriptionEndDate ? new Date(user.SubscriptionEndDate).toLocaleDateString('en-GB') : 'N/A';
         const isExpired = user.SubscriptionEndDate && new Date() > new Date(user.SubscriptionEndDate);
+        
         const userLogs = adminState.allLogs.filter(log => log.UserID === user.UniqueID);
         const totalScore = userLogs.reduce((acc, log) => acc + (parseInt(log.Score, 10) || 0), 0);
-        row.innerHTML = `<td class="p-3 font-semibold text-slate-800 dark:text-white">${user.Name || 'N/A'}</td><td class="p-3 font-mono">${user.Username}</td><td class="p-3 font-semibold ${user.Role === 'Trial' ? 'text-orange-500' : ''}">${user.Role}</td><td class="p-3 ${isExpired ? 'text-red-500 font-bold' : ''}">${expiryDate}</td><td class="p-3">${String(user.AccessGranted) === 'true' ? '<span class="text-green-500 font-semibold">Enabled</span>' : '<span class="text-red-500 font-semibold">Disabled</span>'}</td><td class="p-3 font-bold text-blue-600">${totalScore}</td><td class="p-3"><button class="edit-user-btn text-blue-500 hover:underline" data-userid="${user.UniqueID}">Edit</button><button class="view-progress-btn text-green-500 hover:underline ml-2" data-userid="${user.UniqueID}">Progress</button></td>`;
+        user.totalScore = totalScore; // Attach for sorting
+
+        const totalPaid = paymentTotals[user.UniqueID] || 0;
+        user.totalPaid = totalPaid; // Attach for sorting
+
+        row.innerHTML = `
+            <td class="p-3 text-center"><input type="checkbox" class="user-checkbox" data-userid="${user.UniqueID}"></td>
+            <td class="p-3 font-semibold text-slate-800 dark:text-white">${user.Name || 'N/A'}</td>
+            <td class="p-3 font-mono">${user.Username}</td>
+            <td class="p-3">${user.StudyType || 'N/A'}</td>
+            <td class="p-3 font-semibold ${user.Role === 'Trial' ? 'text-orange-500' : ''}">${user.Role}</td>
+            <td class="p-3 ${isExpired ? 'text-red-500 font-bold' : ''}">${expiryDate}</td>
+            <td class="p-3">${String(user.AccessGranted) === 'true' ? '<span class="text-green-500 font-semibold">Enabled</span>' : '<span class="text-red-500 font-semibold">Disabled</span>'}</td>
+            <td class="p-3 font-bold text-blue-600">${totalScore}</td>
+            <td class="p-3 font-bold text-green-600">${totalPaid.toFixed(2)}</td>
+            <td class="p-3 text-lg flex gap-3">
+                <button class="message-user-btn text-purple-500 hover:underline" data-userid="${user.UniqueID}" title="Send Message"><i class="fas fa-paper-plane"></i></button>
+                <button class="edit-user-btn text-blue-500 hover:underline" data-userid="${user.UniqueID}" title="Edit User"><i class="fas fa-edit"></i></button>
+                <button class="view-progress-btn text-green-500 hover:underline" data-userid="${user.UniqueID}" title="View Progress"><i class="fas fa-chart-line"></i></button>
+            </td>
+        `;
         dom.usersTableBody.appendChild(row);
     });
 }
@@ -126,7 +194,7 @@ function renderDashboard() {
     const totalUsers = adminState.allUsers.length;
     const trialUsers = adminState.allUsers.filter(u => u.Role === 'Trial').length;
     const activeSubscriptions = adminState.allUsers.filter(u => u.Role !== 'Trial' && String(u.AccessGranted) === 'true').length;
-    const unreadMessages = adminState.allMessages.filter(m => !m.AdminReply).length;
+    const unreadMessages = adminState.allMessages.filter(m => !m.AdminReply && m.UserMessage).length;
     dom.sections.dashboard.innerHTML = `<h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-4">Dashboard Overview</h2><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"><div class="p-4 bg-white dark:bg-slate-800 rounded-lg shadow flex items-center gap-4"><i class="fas fa-users fa-2x text-blue-500"></i><div><h3 class="text-slate-500 dark:text-slate-400">Total Users</h3><p class="text-2xl font-bold text-slate-800 dark:text-white">${totalUsers}</p></div></div><div class="p-4 bg-white dark:bg-slate-800 rounded-lg shadow flex items-center gap-4"><i class="fas fa-user-clock fa-2x text-orange-500"></i><div><h3 class="text-slate-500 dark:text-slate-400">Trial Accounts</h3><p class="text-2xl font-bold text-slate-800 dark:text-white">${trialUsers}</p></div></div><div class="p-4 bg-white dark:bg-slate-800 rounded-lg shadow flex items-center gap-4"><i class="fas fa-check-circle fa-2x text-green-500"></i><div><h3 class="text-slate-500 dark:text-slate-400">Active Subs</h3><p class="text-2xl font-bold text-slate-800 dark:text-white">${activeSubscriptions}</p></div></div><div class="p-4 bg-white dark:bg-slate-800 rounded-lg shadow flex items-center gap-4"><i class="fas fa-inbox fa-2x text-red-500"></i><div><h3 class="text-slate-500 dark:text-slate-400">Unread Messages</h3><p class="text-2xl font-bold text-slate-800 dark:text-white">${unreadMessages}</p></div></div></div><div class="mt-6 bg-white dark:bg-slate-800 rounded-lg shadow p-4"><h3 class="text-lg font-bold text-slate-800 dark:text-white mb-2">New User Registrations (Last 7 Days)</h3><canvas id="user-chart"></canvas></div>`;
     renderUserRegistrationChart();
 }
@@ -151,7 +219,7 @@ function renderUserRegistrationChart() {
             if (userCountsByDay[regDate] !== undefined) { userCountsByDay[regDate]++; }
         }
     });
-    for(const key in userCountsByDay) { data.push(userCountsByDay[key]); }
+    for (const key in userCountsByDay) { data.push(userCountsByDay[key]); }
     adminState.chartInstance = new Chart(chartCanvas, {
         type: 'line',
         data: {
@@ -182,7 +250,7 @@ function renderMessages() {
             const date = new Date(msg.Timestamp).toLocaleString('en-GB');
             let html = '';
             if (msg.UserMessage) { html += `<div class="mb-2"><p class="font-semibold">${conversation.name || 'User'} <span class="text-xs text-slate-400">(${date})</span>:</p><p class="pl-2">${msg.UserMessage}</p></div>`; }
-            if (msg.AdminReply) { html += `<div class="mb-2 bg-blue-50 dark:bg-slate-700 p-2 rounded"><p class="font-semibold">Your Reply:</p><p class="pl-2">${msg.AdminReply}</p></div>`; }
+            if (msg.AdminReply) { html += `<div class="mb-2 bg-blue-50 dark:bg-slate-700 p-2 rounded"><p class="font-semibold">Admin Reply:</p><p class="pl-2">${msg.AdminReply}</p></div>`; }
             return html;
         }).join('');
         container.innerHTML = `<h3 class="text-lg font-bold border-b pb-2 mb-2 dark:text-white dark:border-slate-600">${conversation.name} (${userId})</h3><div class="max-h-60 overflow-y-auto p-2 bg-slate-50 dark:bg-slate-700/50 rounded">${messagesHtml}</div><form class="reply-form mt-4 flex gap-2"><input type="hidden" name="UserID" value="${userId}"><input type="text" name="AdminReply" class="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600" placeholder="Type your reply..." required><button type="submit" class="px-4 py-2 font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Send</button></form>`;
@@ -196,7 +264,7 @@ function renderAnnouncements() {
         dom.announcements.list.innerHTML = `<p class="text-slate-500">No announcements yet.</p>`;
         return;
     }
-    const sortedAnnouncements = [...adminState.allAnnouncements].sort((a,b) => new Date(b.TimeStamp) - new Date(a.TimeStamp));
+    const sortedAnnouncements = [...adminState.allAnnouncements].sort((a, b) => new Date(b.TimeStamp) - new Date(a.TimeStamp));
     sortedAnnouncements.forEach(ann => {
         const item = document.createElement('div');
         item.className = 'flex justify-between items-center p-3 border-b dark:border-slate-700';
@@ -205,6 +273,33 @@ function renderAnnouncements() {
         dom.announcements.list.appendChild(item);
     });
 }
+
+function renderFinancialsTable() {
+    dom.financials.tableBody.innerHTML = '';
+    const headers = ["Username", "Payment Timestamp", "Amount", "Method", "Notes", "Exam Results"];
+    dom.financials.tableHeader.innerHTML = `<tr>${headers.map(h => `<th class="p-3">${h}</th>`).join('')}</tr>`;
+
+    if (!adminState.allFinances || adminState.allFinances.length === 0) {
+        dom.financials.tableBody.innerHTML = `<tr><td colspan="${headers.length}" class="p-4 text-center">No financial records found.</td></tr>`;
+        return;
+    }
+
+    const sortedFinances = [...adminState.allFinances].sort((a, b) => new Date(b.PaymentTimeStamp) - new Date(a.PaymentTimeStamp));
+    sortedFinances.forEach(record => {
+        const row = document.createElement('tr');
+        row.className = 'border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600';
+        row.innerHTML = `
+            <td class="p-3 font-semibold text-slate-800 dark:text-white">${record.Username}</td>
+            <td class="p-3">${new Date(record.PaymentTimeStamp).toLocaleString('en-GB')}</td>
+            <td class="p-3 font-bold text-green-600">${parseFloat(record.Payment || 0).toFixed(2)}</td>
+            <td class="p-3">${record.PaymentMethod || 'N/A'}</td>
+            <td class="p-3">${record.PaymentNotes || ''}</td>
+            <td class="p-3">${record['Exam Results'] || ''}</td>
+        `;
+        dom.financials.tableBody.appendChild(row);
+    });
+}
+
 
 // --- EVENT HANDLERS & LOGIC ---
 
@@ -216,24 +311,37 @@ function showSection(sectionId) {
     dom.navLinks[sectionId].classList.add('active');
 }
 
-function handleEditUserClick(event) {
-    const userId = event.target.dataset.userid;
-    const user = adminState.allUsers.find(u => u.UniqueID === userId);
-    if (!user) return;
-    dom.editUserName.textContent = user.Name || user.Username;
-    dom.editUserForm.innerHTML = `<input type="hidden" name="UniqueID" value="${user.UniqueID}"><div><label class="block mb-1 dark:text-slate-300">Role</label><select name="Role" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white"><option value="Trial" ${user.Role === 'Trial' ? 'selected' : ''}>Trial</option><option value="Full Course" ${user.Role === 'Full Course' ? 'selected' : ''}>Full Course</option></select></div><div><label class="block mb-1 dark:text-slate-300">Subscription End Date</label><input type="date" name="SubscriptionEndDate" value="${user.SubscriptionEndDate ? new Date(user.SubscriptionEndDate).toISOString().split('T')[0] : ''}" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white"></div><div><label class="block mb-1 dark:text-slate-300">Access Granted</label><select name="AccessGranted" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white"><option value="TRUE" ${String(user.AccessGranted) === 'true' ? 'selected' : ''}>Enabled</option><option value="FALSE" ${String(user.AccessGranted) !== 'true' ? 'selected' : ''}>Disabled</option></select></div><div class="flex justify-end gap-4 pt-4"><button type="button" id="edit-user-cancel" class="px-4 py-2 bg-gray-300 dark:bg-slate-600 rounded">Cancel</button><button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Save Changes</button></div>`;
-    dom.editUserModal.classList.remove('hidden');
+function sortUsers() {
+    const { key, direction } = adminState.sortState;
+    adminState.allUsers.sort((a, b) => {
+        let valA = a[key];
+        let valB = b[key];
+
+        // Handle date strings
+        if (key === 'SubscriptionEndDate') {
+            valA = valA ? new Date(valA).getTime() : 0;
+            valB = valB ? new Date(valB).getTime() : 0;
+        }
+
+        if (typeof valA === 'string') {
+            valA = valA.toLowerCase();
+            valB = (valB || '').toLowerCase();
+        }
+
+        if (valA < valB) return direction === 'asc' ? -1 : 1;
+        if (valA > valB) return direction === 'asc' ? 1 : -1;
+        return 0;
+    });
 }
 
-function handleViewProgressClick(event) {
-    const userId = event.target.dataset.userid;
-    const user = adminState.allUsers.find(u => u.UniqueID === userId);
-    const userLogs = adminState.allLogs.filter(log => log.UserID === userId);
-    if (!user) return;
-    const totalScore = userLogs.reduce((acc, log) => acc + (parseInt(log.Score, 10) || 0), 0);
-    const quizCount = userLogs.length;
-    const avgScore = quizCount > 0 ? (totalScore / quizCount).toFixed(1) : 0;
-    alert(`Progress for ${user.Name}:\n- Quizzes Taken: ${quizCount}\n- Total Score: ${totalScore}\n- Average Score: ${avgScore}`);
+function updateBulkActionBar() {
+    const count = adminState.selectedUserIds.size;
+    dom.bulkActions.count.textContent = count;
+    if (count > 0) {
+        dom.bulkActions.bar.classList.remove('hidden');
+    } else {
+        dom.bulkActions.bar.classList.add('hidden');
+    }
 }
 
 async function initializeConsole() {
@@ -246,45 +354,16 @@ async function initializeConsole() {
     adminState.allMessages = data.messages || [];
     adminState.allLogs = data.logs || [];
     adminState.allAnnouncements = data.announcements || [];
+    adminState.allFinances = data.finances || [];
     renderAll();
 }
 
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
     
-    dom.usernameInput.addEventListener('blur', async () => {
-        const username = dom.usernameInput.value.trim();
-        if (username.length < 2) {
-            dom.adminRoleDisplay.textContent = '';
-            return;
-        }
-        dom.adminRoleDisplay.textContent = 'Checking...';
-        dom.adminRoleDisplay.className = 'text-xs text-center mt-1 h-4 text-slate-400';
-
-        try {
-            const response = await fetch(`${API_URL}?request=getUserRole&username=${encodeURIComponent(username)}`);
-            const data = await response.json();
-            
-            if (data.found) {
-                const role = data.role;
-                dom.adminRoleDisplay.textContent = `Role: ${role}`;
-                if (role === 'Admin') {
-                    dom.adminRoleDisplay.className = 'text-xs text-center mt-1 h-4 text-green-500 font-bold';
-                } else {
-                    dom.adminRoleDisplay.className = 'text-xs text-center mt-1 h-4 text-orange-500 font-bold';
-                }
-            } else {
-                dom.adminRoleDisplay.textContent = data.role; // e.g., "User Not Found"
-                dom.adminRoleDisplay.className = 'text-xs text-center mt-1 h-4 text-red-500 font-bold';
-            }
-        } catch (error) {
-            dom.adminRoleDisplay.textContent = 'Error checking role.';
-            dom.adminRoleDisplay.className = 'text-xs text-center mt-1 h-4 text-red-500 font-bold';
-        }
-    });
-
     dom.loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        dom.loginError.classList.add('hidden');
         const username = dom.usernameInput.value;
         const password = dom.passwordInput.value;
         const result = await apiRequest({ eventType: 'adminLogin', username, password });
@@ -300,6 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Sidebar navigation
     Object.keys(dom.navLinks).forEach(key => {
         dom.navLinks[key].addEventListener('click', (e) => {
             e.preventDefault();
@@ -307,12 +387,138 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // User search
     dom.userSearchInput.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
         const filteredUsers = adminState.allUsers.filter(user => (user.Name && user.Name.toLowerCase().includes(searchTerm)) || (user.Username && user.Username.toLowerCase().includes(searchTerm)) || (user['E-Mail'] && user['E-Mail'].toLowerCase().includes(searchTerm)));
         renderUsersTable(filteredUsers);
     });
 
+    // Handle user table clicks (delegated)
+    dom.usersTableBody.addEventListener('click', (e) => {
+        const target = e.target.closest('button, input');
+        if (!target) return;
+
+        if (target.classList.contains('edit-user-btn')) {
+            const user = adminState.allUsers.find(u => u.UniqueID === target.dataset.userid);
+            if (!user) return;
+            dom.editUserName.textContent = user.Name || user.Username;
+            dom.editUserForm.innerHTML = `<input type="hidden" name="UniqueID" value="${user.UniqueID}"><div><label class="block mb-1 dark:text-slate-300">Role</label><select name="Role" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white"><option value="Trial" ${user.Role === 'Trial' ? 'selected' : ''}>Trial</option><option value="Full Course" ${user.Role === 'Full Course' ? 'selected' : ''}>Full Course</option></select></div><div><label class="block mb-1 dark:text-slate-300">Subscription End Date</label><input type="date" name="SubscriptionEndDate" value="${user.SubscriptionEndDate ? new Date(user.SubscriptionEndDate).toISOString().split('T')[0] : ''}" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white"></div><div><label class="block mb-1 dark:text-slate-300">Access Granted</label><select name="AccessGranted" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white"><option value="TRUE" ${String(user.AccessGranted) === 'true' ? 'selected' : ''}>Enabled</option><option value="FALSE" ${String(user.AccessGranted) !== 'true' ? 'selected' : ''}>Disabled</option></select></div><div class="flex justify-end gap-4 pt-4"><button type="button" id="edit-user-cancel" class="px-4 py-2 bg-gray-300 dark:bg-slate-600 rounded">Cancel</button><button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Save Changes</button></div>`;
+            dom.editUserModal.classList.remove('hidden');
+        }
+        if (target.classList.contains('view-progress-btn')) {
+            const userId = target.dataset.userid;
+            const user = adminState.allUsers.find(u => u.UniqueID === userId);
+            const userLogs = adminState.allLogs.filter(log => log.UserID === userId);
+            if (!user) return;
+            const totalScore = userLogs.reduce((acc, log) => acc + (parseInt(log.Score, 10) || 0), 0);
+            const quizCount = userLogs.length;
+            const avgScore = quizCount > 0 ? (totalScore / quizCount).toFixed(1) : 0;
+            alert(`Progress for ${user.Name}:\n- Quizzes Taken: ${quizCount}\n- Total Score: ${totalScore}\n- Average Score: ${avgScore}`);
+        }
+        if (target.classList.contains('message-user-btn')) {
+            const userId = target.dataset.userid;
+            const user = adminState.allUsers.find(u => u.UniqueID === userId);
+            const message = prompt(`Enter message for ${user.Name}:`);
+            if (message && message.trim()) {
+                apiRequest({
+                    eventType: 'admin_sendMessage',
+                    messageData: { userId, message: message.trim() }
+                }).then(result => {
+                    if(result.success) alert(result.message); else alert('Error: ' + result.message);
+                });
+            }
+        }
+        if (target.classList.contains('user-checkbox')) {
+            const userId = target.dataset.userid;
+            if (target.checked) {
+                adminState.selectedUserIds.add(userId);
+            } else {
+                adminState.selectedUserIds.delete(userId);
+            }
+            updateBulkActionBar();
+        }
+    });
+
+    // Handle sorting
+    dom.usersTableHeader.addEventListener('click', (e) => {
+        const target = e.target.closest('.sortable-header');
+        if (!target) return;
+        const key = target.dataset.key;
+        if (adminState.sortState.key === key) {
+            adminState.sortState.direction = adminState.sortState.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            adminState.sortState.key = key;
+            adminState.sortState.direction = 'asc';
+        }
+        sortUsers();
+        renderUsersTable(adminState.allUsers);
+    });
+    
+    // Handle "Select All" checkbox
+    dom.usersTableHeader.addEventListener('change', (e) => {
+        if(e.target.id === 'select-all-users') {
+            const isChecked = e.target.checked;
+            dom.usersTableBody.querySelectorAll('.user-checkbox').forEach(box => {
+                box.checked = isChecked;
+                const userId = box.dataset.userid;
+                if(isChecked) adminState.selectedUserIds.add(userId);
+                else adminState.selectedUserIds.delete(userId);
+            });
+            updateBulkActionBar();
+        }
+    });
+
+    // Handle Bulk Actions
+    dom.bulkActions.applyBtn.addEventListener('click', async () => {
+        const selectedAction = dom.bulkActions.select.value;
+        const userIds = Array.from(adminState.selectedUserIds);
+        if (!selectedAction || userIds.length === 0) {
+            alert("Please select an action and at least one user.");
+            return;
+        }
+
+        const [action, value] = selectedAction.split('_');
+        
+        if (confirm(`Are you sure you want to apply this action to ${userIds.length} user(s)?`)) {
+            const result = await apiRequest({
+                eventType: 'admin_bulkUpdate',
+                updateData: { userIds, action, value }
+            });
+
+            if (result.success) {
+                alert(result.message);
+                adminState.selectedUserIds.clear();
+                updateBulkActionBar();
+                await initializeConsole(); // Refresh data
+            } else {
+                alert('Error: ' + result.message);
+            }
+        }
+    });
+    
+    // Handle broadcast form
+    dom.messaging.broadcastForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const message = dom.messaging.broadcastInput.value.trim();
+        if (!message) return;
+        
+        if(confirm(`Are you sure you want to send this message to ALL users?`)) {
+            const result = await apiRequest({
+                eventType: 'admin_sendMessage',
+                messageData: { userId: 'BROADCAST_ALL', message }
+            });
+            if(result.success) {
+                alert(result.message);
+                dom.messaging.broadcastInput.value = '';
+            } else {
+                alert('Error: ' + result.message);
+            }
+        }
+    });
+
+    // --- Other Event Listeners (Modals, etc.) ---
+    
     dom.editUserForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
@@ -392,10 +598,5 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             alert('Error adding user: ' + result.message);
         }
-    });
-
-    dom.usersTableBody.addEventListener('click', (e) => {
-        if (e.target.classList.contains('edit-user-btn')) { handleEditUserClick(e); }
-        if (e.target.classList.contains('view-progress-btn')) { handleViewProgressClick(e); }
     });
 });
