@@ -1,4 +1,4 @@
-// js/admin.js (FINAL VERSION - With All New Features)
+// js/admin.js (FINAL VERSION - With All New Features Added)
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
 
@@ -122,7 +122,7 @@ function renderAll() {
     renderMessages();
     renderAnnouncements();
     renderFinancialsTable();
-    filterAndRenderUsers(); // This now handles sorting and rendering
+    filterAndRenderUsers();
     showSection(adminState.currentView);
 }
 
@@ -145,7 +145,6 @@ function filterAndRenderUsers() {
     const searchTerm = dom.userSearchInput.value.toLowerCase();
     let filteredUsers = adminState.allUsers;
 
-    // Apply subscription filter
     if (adminState.currentFilter === 'active') {
         filteredUsers = filteredUsers.filter(user => {
             const endDate = new Date(user.SubscriptionEndDate);
@@ -158,7 +157,6 @@ function filterAndRenderUsers() {
         });
     }
 
-    // Apply search term
     if (searchTerm) {
         filteredUsers = filteredUsers.filter(user => 
             (user.Name && user.Name.toLowerCase().includes(searchTerm)) || 
@@ -174,8 +172,8 @@ function filterAndRenderUsers() {
 function sortUsers(usersArray) {
     const { key, direction } = adminState.sortState;
     usersArray.sort((a, b) => {
-        let valA = a[key];
-        let valB = b[key];
+        let valA = a[key] || '';
+        let valB = b[key] || '';
 
         if (key === 'SubscriptionEndDate') {
             valA = valA ? new Date(valA).getTime() : 0;
@@ -184,10 +182,7 @@ function sortUsers(usersArray) {
 
         if (typeof valA === 'string') {
             valA = valA.toLowerCase();
-            valB = (valB || '').toLowerCase();
-        } else {
-            valA = valA || 0;
-            valB = valB || 0;
+            valB = valB.toLowerCase();
         }
 
         if (valA < valB) return direction === 'asc' ? -1 : 1;
@@ -240,7 +235,6 @@ function renderUsersTable(usersToRender) {
             <td class="p-3 text-lg flex gap-3">
                 <button class="message-user-btn text-purple-500 hover:text-purple-400" data-userid="${user.UniqueID}" title="Send Message"><i class="fas fa-paper-plane"></i></button>
                 <button class="edit-user-btn text-blue-500 hover:text-blue-400" data-userid="${user.UniqueID}" title="Edit User"><i class="fas fa-edit"></i></button>
-                <button class="view-progress-btn text-green-500 hover:text-green-400" data-userid="${user.UniqueID}" title="View Progress"><i class="fas fa-chart-line"></i></button>
             </td>
         `;
         dom.usersTableBody.appendChild(row);
@@ -369,6 +363,7 @@ function renderFinancialsTable() {
     });
 }
 
+
 // --- EVENT HANDLERS & LOGIC ---
 
 function showSection(sectionId) {
@@ -405,7 +400,6 @@ async function initializeConsole() {
 // --- INITIALIZATION & EVENT LISTENERS ---
 document.addEventListener('DOMContentLoaded', () => {
     
-    // Login
     dom.loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         dom.loginError.classList.add('hidden');
@@ -424,7 +418,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Sidebar navigation
     Object.keys(dom.navLinks).forEach(key => {
         dom.navLinks[key].addEventListener('click', (e) => {
             e.preventDefault();
@@ -432,7 +425,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // User search & filtering
     dom.userSearchInput.addEventListener('input', filterAndRenderUsers);
     dom.userFilterButtons.addEventListener('click', (e) => {
         if (e.target.tagName === 'BUTTON') {
@@ -443,7 +435,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // User table interactions (delegated)
     dom.usersTableBody.addEventListener('click', (e) => {
         const button = e.target.closest('button');
         if (!button) return;
@@ -453,11 +444,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!user) return;
             const roleOptions = adminState.allRoles.map(r => `<option value="${r.Role}" ${user.Role === r.Role ? 'selected' : ''}>${r.Role}</option>`).join('');
             dom.editUserName.textContent = user.Name || user.Username;
-            dom.editUserForm.innerHTML = `<input type="hidden" name="UniqueID" value="${user.UniqueID}"><div><label class="block mb-1 dark:text-slate-300">Role</label><select name="Role" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white">${roleOptions}</select></div><div><label class="block mb-1 dark:text-slate-300">Subscription End Date</label><input type="date" name="SubscriptionEndDate" value="${user.SubscriptionEndDate ? new Date(user.SubscriptionEndDate).toISOString().split('T')[0] : ''}" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white"></div><div><label class="block mb-1 dark:text-slate-300">Access Granted</label><select name="AccessGranted" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white"><option value="TRUE" ${String(user.AccessGranted) === 'true' ? 'selected' : ''}>Enabled</option><option value="FALSE" ${String(user.AccessGranted) !== 'true' ? 'selected' : ''}>Disabled</option></select></div><div class="flex justify-end gap-4 pt-4"><button type="button" id="edit-user-cancel" class="px-4 py-2 bg-gray-300 dark:bg-slate-600 rounded">Cancel</button><button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Save Changes</button></div>`;
+            dom.editUserForm.innerHTML = `<input type="hidden" name="UniqueID" value="${user.UniqueID}">
+                <div><label class="block mb-1 dark:text-slate-300">Role</label><select name="Role" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white">${roleOptions}</select></div>
+                <div><label class="block mb-1 dark:text-slate-300">Subscription End Date</label><input type="date" name="SubscriptionEndDate" value="${user.SubscriptionEndDate ? new Date(user.SubscriptionEndDate).toISOString().split('T')[0] : ''}" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white"></div>
+                <div><label class="block mb-1 dark:text-slate-300">Access Granted</label><select name="AccessGranted" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white"><option value="TRUE" ${String(user.AccessGranted) === 'true' ? 'selected' : ''}>Enabled</option><option value="FALSE" ${String(user.AccessGranted) !== 'true' ? 'selected' : ''}>Disabled</option></select></div>
+                <div><label class="block mb-1 dark:text-slate-300">Admin Notes</label><textarea name="AdminNotes" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="Admin Notes...">${user.AdminNotes || ''}</textarea></div>
+                <div class="flex justify-end gap-4 pt-4"><button type="button" id="edit-user-cancel" class="px-4 py-2 bg-gray-300 dark:bg-slate-600 rounded">Cancel</button><button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Save Changes</button></div>`;
             dom.editUserModal.classList.remove('hidden');
-        }
-        if (button.classList.contains('view-progress-btn')) {
-            // Logic for viewing progress
         }
         if (button.classList.contains('message-user-btn')) {
             const userId = button.dataset.userid;
@@ -477,7 +470,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // User table header interactions (sorting, select all)
     dom.usersTableHeader.addEventListener('click', (e) => {
         const target = e.target.closest('.sortable-header, #select-all-users');
         if (!target) return;
@@ -507,7 +499,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // User table body for checkbox selection
     dom.usersTableBody.addEventListener('change', (e) => {
         if (e.target.matches('.user-checkbox')) {
              const userId = e.target.dataset.userid;
@@ -517,7 +508,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Bulk Actions
     dom.bulkActions.applyBtn.addEventListener('click', async () => {
         const selectedAction = dom.bulkActions.select.value;
         const userIds = Array.from(adminState.selectedUserIds);
@@ -541,7 +531,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Messaging forms
     dom.messaging.broadcastForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const message = dom.messaging.broadcastInput.value.trim();
@@ -554,7 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(result.success) {
                 alert(result.message);
                 dom.messaging.broadcastInput.value = '';
-                await initializeConsole(); // Refresh messages
+                await initializeConsole();
             } else {
                 alert('Error: ' + (result.error || result.message));
             }
@@ -575,7 +564,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // All other forms and modals...
     dom.editUserForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
@@ -627,11 +615,26 @@ document.addEventListener('DOMContentLoaded', () => {
     
     dom.addUserBtn.addEventListener('click', () => { dom.addUserModal.classList.remove('hidden'); });
     dom.addUserCancelBtn.addEventListener('click', () => { dom.addUserModal.classList.add('hidden'); });
+    
     dom.addUserForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
+    
         if (!data.Username || !data.Password || !data.Name) { return alert("Name, Username, and Password are required.");}
+    
+        // Calculate SubscriptionEndDate from duration
+        const duration = data.SubscriptionDuration;
+        const endDate = new Date();
+        if (duration === '24h') endDate.setHours(endDate.getHours() + 24);
+        if (duration === '1m') endDate.setMonth(endDate.getMonth() + 1);
+        if (duration === '3m') endDate.setMonth(endDate.getMonth() + 3);
+        if (duration === '6m') endDate.setMonth(endDate.getMonth() + 6);
+        if (duration === '1y') endDate.setFullYear(endDate.getFullYear() + 1);
+        
+        data.SubscriptionEndDate = endDate.toISOString().split('T')[0];
+        delete data.SubscriptionDuration;
+
         const result = await apiRequest({ eventType: 'admin_addUser', userData: data });
         if (result.success) {
             dom.addUserModal.classList.add('hidden');
