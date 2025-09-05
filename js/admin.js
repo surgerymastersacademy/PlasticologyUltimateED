@@ -275,6 +275,7 @@ function renderUsersTable(usersToRender) {
             <td class="p-3 text-lg flex gap-3">
                 <button class="message-user-btn text-purple-500 hover:text-purple-400" data-userid="${user.UniqueID}" title="Send Message"><i class="fas fa-paper-plane"></i></button>
                 <button class="edit-user-btn text-blue-500 hover:text-blue-400" data-userid="${user.UniqueID}" title="Edit User"><i class="fas fa-edit"></i></button>
+                <button class="view-progress-btn text-green-500 hover:text-green-400" data-userid="${user.UniqueID}" title="View Progress"><i class="fas fa-chart-line"></i></button>
             </td>`;
         dom.usersTableBody.appendChild(row);
     });
@@ -409,8 +410,6 @@ function renderFinancialsTable() {
     });
 }
 
-// --- EVENT HANDLERS & LOGIC ---
-
 function showSection(sectionId) {
     adminState.currentView = sectionId;
     Object.values(dom.sections).forEach(s => s && s.classList.add('hidden'));
@@ -439,7 +438,6 @@ async function initializeConsole() {
     adminState.allRoles = data.roles || [];
     adminState.allQuestions = data.questions || [];
     adminState.allIncorrectQuestions = data.incorrectQuestions || [];
-
     processDataForAnalytics();
     renderAll();
 }
@@ -472,14 +470,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     dom.userSearchInput.addEventListener('input', filterAndRenderUsers);
-    dom.userFilterButtons.addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON') {
-            dom.userFilterButtons.querySelector('.active').classList.remove('active');
-            e.target.classList.add('active');
-            adminState.currentFilter = e.target.dataset.filter;
-            filterAndRenderUsers();
-        }
-    });
+    if(dom.userFilterButtons) {
+        dom.userFilterButtons.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                dom.userFilterButtons.querySelector('.active').classList.remove('active');
+                e.target.classList.add('active');
+                adminState.currentFilter = e.target.dataset.filter;
+                filterAndRenderUsers();
+            }
+        });
+    }
 
     dom.usersTableBody.addEventListener('click', (e) => {
         const button = e.target.closest('button');
@@ -509,6 +509,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     else alert('Error: ' + result.message);
                 });
             }
+        }
+        if (button.classList.contains('view-progress-btn')) {
+            const userId = button.dataset.userid;
+            const user = adminState.allUsers.find(u => u.UniqueID === userId);
+            if (!user) return;
+            const quizCount = adminState.allLogs.filter(log => log.UserID === userId && log.EventType === 'FinishQuiz').length;
+            alert(`Progress for ${user.Name}:\n- Quizzes Taken: ${quizCount}\n- Total Score: ${user.totalScore}\n- Total Paid: ${user.totalPaid.toFixed(2)}`);
         }
     });
     
@@ -678,7 +685,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     dom.financials.addPaymentBtn.addEventListener('click', () => {
-        const userOptions = adminState.allUsers.map(u => `<option value="${u.UniqueID}">${u.Name} (${u.Username})</option>`).join('');
+        const userOptions = adminState.allUsers
+            .sort((a,b) => a.Name.toLowerCase().localeCompare(b.Name.toLowerCase()))
+            .map(u => `<option value="${u.UniqueID}">${u.Name} (${u.Username})</option>`).join('');
         dom.addPaymentModal.userSelect.innerHTML = `<option value="">-- Select a User --</option>${userOptions}`;
         dom.addPaymentModal.modal.classList.remove('hidden');
     });
