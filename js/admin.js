@@ -1,4 +1,4 @@
-// js/admin.js (FINAL & COMPLETE VERSION - With All Advanced Features & Fixes)
+// js/admin.js (FINAL & COMPLETE VERSION - With Subscription Extension Logic)
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
 
@@ -34,7 +34,7 @@ const dom = {
     addUserBtn: document.getElementById('add-user-btn'),
     messagesList: document.getElementById('messages-list'),
     editUserModal: document.getElementById('edit-user-modal'),
-    editUserForm: document.getElementById('edit-user-form'),
+    editUserFormContainer: document.getElementById('edit-user-form-container'),
     editUserName: document.getElementById('edit-user-name'),
     announcements: {
         form: document.getElementById('add-announcement-form'),
@@ -148,13 +148,11 @@ function processDataForAnalytics() {
         acc[userId] = (acc[userId] || 0) + payment;
         return acc;
     }, {});
-
     adminState.allUsers.forEach(user => {
         const userLogs = adminState.allLogs.filter(log => log.UserID === user.UniqueID);
         user.totalScore = userLogs.reduce((acc, log) => acc + (parseInt(log.Score, 10) || 0), 0);
         user.totalPaid = paymentTotals[user.UniqueID] || 0;
     });
-
     const totalRevenue = adminState.allFinances.reduce((acc, item) => acc + (parseFloat(item.Payment) || 0), 0);
     const revenueLast30Days = adminState.allFinances.filter(item => {
         if (!item.PaymentTimeStamp) return false;
@@ -163,7 +161,6 @@ function processDataForAnalytics() {
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         return paymentDate >= thirtyDaysAgo;
     }).reduce((acc, item) => acc + (parseFloat(item.Payment) || 0), 0);
-
     const questionMap = new Map((adminState.allQuestions || []).map(q => [q.UniqueID, q]));
     const incorrectCounts = (adminState.allIncorrectQuestions || []).reduce((acc, item) => {
         const question = questionMap.get(item.QuestionID);
@@ -174,7 +171,6 @@ function processDataForAnalytics() {
         return acc;
     }, {});
     const weakestTopics = Object.entries(incorrectCounts).sort(([, a], [, b]) => b - a).slice(0, 5);
-
     const userActivity = adminState.allLogs.reduce((acc, log) => {
         if (log.EventType === 'FinishQuiz') {
             const userId = log.UserID;
@@ -187,7 +183,6 @@ function processDataForAnalytics() {
             const user = adminState.allUsers.find(u => u.UniqueID === userId);
             return { name: user ? user.Name : 'Unknown', count };
         });
-
     adminState.analytics = { totalRevenue, revenueLast30Days, weakestTopics, topUsers };
 }
 
@@ -275,7 +270,6 @@ function renderUsersTable(usersToRender) {
             <td class="p-3 text-lg flex gap-3">
                 <button class="message-user-btn text-purple-500 hover:text-purple-400" data-userid="${user.UniqueID}" title="Send Message"><i class="fas fa-paper-plane"></i></button>
                 <button class="edit-user-btn text-blue-500 hover:text-blue-400" data-userid="${user.UniqueID}" title="Edit User"><i class="fas fa-edit"></i></button>
-                <button class="view-progress-btn text-green-500 hover:text-green-400" data-userid="${user.UniqueID}" title="View Progress"><i class="fas fa-chart-line"></i></button>
             </td>`;
         dom.usersTableBody.appendChild(row);
     });
@@ -442,6 +436,7 @@ async function initializeConsole() {
     renderAll();
 }
 
+// --- INITIALIZATION & EVENT LISTENERS ---
 document.addEventListener('DOMContentLoaded', () => {
     
     dom.loginForm.addEventListener('submit', async (e) => {
@@ -490,12 +485,52 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!user) return;
             const roleOptions = adminState.allRoles.map(r => `<option value="${r.Role}" ${user.Role === r.Role ? 'selected' : ''}>${r.Role}</option>`).join('');
             dom.editUserName.textContent = user.Name || user.Username;
-            dom.editUserForm.innerHTML = `<input type="hidden" name="UniqueID" value="${user.UniqueID}">
+            
+            // Build Edit Form Dynamically
+            const formHtml = `
+            <form id="edit-user-form" class="space-y-4">
+                <input type="hidden" name="UniqueID" value="${user.UniqueID}">
                 <div><label class="block mb-1 dark:text-slate-300">Role</label><select name="Role" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white">${roleOptions}</select></div>
-                <div><label class="block mb-1 dark:text-slate-300">Subscription End Date</label><input type="date" name="SubscriptionEndDate" value="${user.SubscriptionEndDate ? new Date(user.SubscriptionEndDate).toISOString().split('T')[0] : ''}" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white"></div>
                 <div><label class="block mb-1 dark:text-slate-300">Access Granted</label><select name="AccessGranted" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white"><option value="TRUE" ${String(user.AccessGranted) === 'true' ? 'selected' : ''}>Enabled</option><option value="FALSE" ${String(user.AccessGranted) !== 'true' ? 'selected' : ''}>Disabled</option></select></div>
                 <div><label class="block mb-1 dark:text-slate-300">Admin Notes</label><textarea name="AdminNotes" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="Admin Notes...">${user.AdminNotes || ''}</textarea></div>
-                <div class="flex justify-end gap-4 pt-4"><button type="button" id="edit-user-cancel" class="px-4 py-2 bg-gray-300 dark:bg-slate-600 rounded">Cancel</button><button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Save Changes</button></div>`;
+                <div class="flex justify-end gap-4 pt-4"><button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Save Changes</button></div>
+            </form>
+            <div class="mt-6 pt-4 border-t dark:border-slate-600">
+                <h4 class="text-lg font-semibold mb-3 dark:text-white">Extend Subscription</h4>
+                <form id="extend-subscription-form" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block mb-1 text-sm dark:text-slate-300">Duration</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" name="extendValue" class="w-1/3 p-2 border rounded dark:bg-slate-700 dark:text-white" value="1">
+                                <select name="extendUnit" class="w-2/3 p-2 border rounded dark:bg-slate-700 dark:text-white">
+                                    <option value="months">Months</option><option value="days">Days</option><option value="weeks">Weeks</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                             <label class="block mb-1 text-sm dark:text-slate-300">Payment Amount (0 for free)</label>
+                             <input type="number" name="Payment" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="0.00" step="0.01">
+                        </div>
+                    </div>
+                     <div>
+                        <label class="block mb-1 text-sm dark:text-slate-300">Payment Method</label>
+                        <select name="PaymentMethod" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white">
+                            <option value="">-- Select Method --</option><option value="Vodafone Cash">Vodafone Cash</option><option value="Bank Transfer">Bank Transfer</option><option value="Cash">Cash</option><option value="Other">Other</option>
+                        </select>
+                    </div>
+                     <div>
+                        <label class="block mb-1 text-sm dark:text-slate-300">Payment Notes</label>
+                        <textarea name="PaymentNotes" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="e.g., Renewal..."></textarea>
+                     </div>
+                    <div class="flex justify-end gap-4 pt-4">
+                         <button type="button" id="edit-user-cancel" class="px-4 py-2 bg-gray-300 dark:bg-slate-600 rounded">Close</button>
+                         <button type="submit" class="px-6 py-2 bg-green-600 text-white font-bold rounded">Extend</button>
+                    </div>
+                </form>
+            </div>
+            `;
+            dom.editUserFormContainer.innerHTML = formHtml;
             dom.editUserModal.classList.remove('hidden');
         }
         if (button.classList.contains('message-user-btn')) {
@@ -509,13 +544,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     else alert('Error: ' + result.message);
                 });
             }
-        }
-        if (button.classList.contains('view-progress-btn')) {
-            const userId = button.dataset.userid;
-            const user = adminState.allUsers.find(u => u.UniqueID === userId);
-            if (!user) return;
-            const quizCount = adminState.allLogs.filter(log => log.UserID === userId && log.EventType === 'FinishQuiz').length;
-            alert(`Progress for ${user.Name}:\n- Quizzes Taken: ${quizCount}\n- Total Score: ${user.totalScore}\n- Total Paid: ${user.totalPaid.toFixed(2)}`);
         }
     });
     
@@ -604,17 +632,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    dom.editUserForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const data = Object.fromEntries(formData.entries());
-        const result = await apiRequest({ eventType: 'admin_updateUser', userData: data });
-        if (result.success) {
+    dom.editUserModal.addEventListener('click', async (e) => {
+        if (e.target.id === 'edit-user-cancel') {
             dom.editUserModal.classList.add('hidden');
-            alert('User updated successfully!');
-            await initializeConsole();
-        } else {
-            alert('Error updating user: ' + result.message);
+        }
+        if (e.target.closest('form')?.id === 'edit-user-form') {
+            e.preventDefault();
+            const formData = new FormData(e.target.closest('form'));
+            const data = Object.fromEntries(formData.entries());
+            const result = await apiRequest({ eventType: 'admin_updateUser', userData: data });
+            if (result.success) {
+                alert('User details updated!');
+                await initializeConsole();
+            } else {
+                alert('Error updating user: ' + result.message);
+            }
+        }
+        if (e.target.closest('form')?.id === 'extend-subscription-form') {
+            e.preventDefault();
+            const form = e.target.closest('form');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            const user = adminState.allUsers.find(u => u.UniqueID === document.querySelector('#edit-user-form input[name="UniqueID"]').value);
+            data.UniqueID = user.UniqueID;
+            
+            if (!data.extendValue || data.extendValue <= 0) {
+                return alert('Please enter a valid duration value.');
+            }
+
+            const result = await apiRequest({ eventType: 'admin_extendSubscription', extensionData: data });
+            if (result.success) {
+                alert(result.message);
+                dom.editUserModal.classList.add('hidden');
+                await initializeConsole();
+            } else {
+                alert('Error extending subscription: ' + (result.error || result.message));
+            }
         }
     });
     
@@ -647,12 +700,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    dom.editUserModal.addEventListener('click', (e) => {
-        if (e.target.id === 'edit-user-modal' || e.target.id === 'edit-user-cancel') {
-            dom.editUserModal.classList.add('hidden');
-        }
-    });
-    
     dom.addUserModal.cancelBtn.addEventListener('click', () => { dom.addUserModal.modal.classList.add('hidden'); });
     dom.addUserBtn.addEventListener('click', () => { dom.addUserModal.modal.classList.remove('hidden'); });
     
@@ -662,16 +709,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = Object.fromEntries(formData.entries());
         if (!data.Username || !data.Password || !data.Name) { return alert("Name, Username, and Password are required.");}
     
-        const duration = data.SubscriptionDuration;
+        const value = parseInt(data.extendValue, 10);
+        const unit = data.extendUnit;
         const endDate = new Date();
-        if (duration === '24h') endDate.setHours(endDate.getHours() + 24);
-        if (duration === '1m') endDate.setMonth(endDate.getMonth() + 1);
-        if (duration === '3m') endDate.setMonth(endDate.getMonth() + 3);
-        if (duration === '6m') endDate.setMonth(endDate.getMonth() + 6);
-        if (duration === '1y') endDate.setFullYear(endDate.getFullYear() + 1);
+        if (unit === 'days') endDate.setDate(endDate.getDate() + value);
+        if (unit === 'weeks') endDate.setDate(endDate.getDate() + (value * 7));
+        if (unit === 'months') endDate.setMonth(endDate.getMonth() + value);
         
         data.SubscriptionEndDate = endDate.toISOString().split('T')[0];
-        delete data.SubscriptionDuration;
+        delete data.extendValue;
+        delete data.extendUnit;
 
         const result = await apiRequest({ eventType: 'admin_addUser', userData: data });
         if (result.success) {
@@ -686,7 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     dom.financials.addPaymentBtn.addEventListener('click', () => {
         const userOptions = adminState.allUsers
-            .sort((a,b) => a.Name.toLowerCase().localeCompare(b.Name.toLowerCase()))
+            .sort((a,b) => (a.Name || '').toLowerCase().localeCompare((b.Name || '').toLowerCase()))
             .map(u => `<option value="${u.UniqueID}">${u.Name} (${u.Username})</option>`).join('');
         dom.addPaymentModal.userSelect.innerHTML = `<option value="">-- Select a User --</option>${userOptions}`;
         dom.addPaymentModal.modal.classList.remove('hidden');
