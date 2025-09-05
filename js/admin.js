@@ -1,4 +1,4 @@
-// js/admin.js (FINAL & COMPLETE VERSION - With All Advanced Features)
+// js/admin.js (FINAL & COMPLETE VERSION - With All Advanced Features & Fixes)
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
 
@@ -157,15 +157,15 @@ function processDataForAnalytics() {
 
     const totalRevenue = adminState.allFinances.reduce((acc, item) => acc + (parseFloat(item.Payment) || 0), 0);
     const revenueLast30Days = adminState.allFinances.filter(item => {
-        if(!item.PaymentTimeStamp) return false;
+        if (!item.PaymentTimeStamp) return false;
         const paymentDate = new Date(item.PaymentTimeStamp);
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         return paymentDate >= thirtyDaysAgo;
     }).reduce((acc, item) => acc + (parseFloat(item.Payment) || 0), 0);
 
-    const questionMap = new Map(adminState.allQuestions.map(q => [q.UniqueID, q]));
-    const incorrectCounts = adminState.allIncorrectQuestions.reduce((acc, item) => {
+    const questionMap = new Map((adminState.allQuestions || []).map(q => [q.UniqueID, q]));
+    const incorrectCounts = (adminState.allIncorrectQuestions || []).reduce((acc, item) => {
         const question = questionMap.get(item.QuestionID);
         if (question) {
             const chapter = question.Chapter || 'Uncategorized';
@@ -203,16 +203,16 @@ function filterAndRenderUsers() {
         });
     } else if (adminState.currentFilter === 'expired') {
         filteredUsers = filteredUsers.filter(user => {
-             if (!user.SubscriptionEndDate) return false;
-             const endDate = new Date(user.SubscriptionEndDate);
-             return !(endDate >= new Date());
+            if (!user.SubscriptionEndDate) return false;
+            const endDate = new Date(user.SubscriptionEndDate);
+            return !(endDate >= new Date());
         });
     }
 
     if (searchTerm) {
-        filteredUsers = filteredUsers.filter(user => 
-            (user.Name && user.Name.toLowerCase().includes(searchTerm)) || 
-            (user.Username && user.Username.toLowerCase().includes(searchTerm)) || 
+        filteredUsers = filteredUsers.filter(user =>
+            (user.Name && user.Name.toLowerCase().includes(searchTerm)) ||
+            (user.Username && user.Username.toLowerCase().includes(searchTerm)) ||
             (user['E-Mail'] && user['E-Mail'].toLowerCase().includes(searchTerm))
         );
     }
@@ -265,7 +265,7 @@ function renderUsersTable(usersToRender) {
         const isExpired = user.SubscriptionEndDate && new Date() > new Date(user.SubscriptionEndDate);
         row.innerHTML = `
             <td class="p-3 text-center"><input type="checkbox" class="user-checkbox" data-userid="${user.UniqueID}"></td>
-            <td class="p-3 font-semibold text-slate-800 dark:text-white"><button class="view-detail-btn text-blue-600 dark:text-blue-400 hover:underline" data-userid="${user.UniqueID}">${user.Name || 'N/A'}</button></td>
+            <td class="p-3 font-semibold text-slate-800 dark:text-white">${user.Name || 'N/A'}</td>
             <td class="p-3 font-mono">${user.Username}</td> <td class="p-3">${user.StudyType || 'N/A'}</td>
             <td class="p-3 font-semibold ${user.Role === 'Trial' ? 'text-orange-500' : ''}">${user.Role}</td>
             <td class="p-3 ${isExpired ? 'text-red-500 font-bold' : ''}">${expiryDate}</td>
@@ -409,6 +409,8 @@ function renderFinancialsTable() {
     });
 }
 
+// --- EVENT HANDLERS & LOGIC ---
+
 function showSection(sectionId) {
     adminState.currentView = sectionId;
     Object.values(dom.sections).forEach(s => s && s.classList.add('hidden'));
@@ -497,7 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dom.editUserModal.classList.remove('hidden');
         }
         if (button.classList.contains('message-user-btn')) {
-            const userId = button.dataset.userid;
+             const userId = button.dataset.userid;
             const user = adminState.allUsers.find(u => u.UniqueID === userId);
             const message = prompt(`Enter message for ${user.Name}:`);
             if (message && message.trim()) {
@@ -646,6 +648,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     dom.addUserModal.cancelBtn.addEventListener('click', () => { dom.addUserModal.modal.classList.add('hidden'); });
     dom.addUserBtn.addEventListener('click', () => { dom.addUserModal.modal.classList.remove('hidden'); });
+    
     dom.addUserForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
