@@ -119,8 +119,7 @@
                         <p class="font-bold text-sm dark:text-white"><span id="selected-user-count">0</span> user(s) selected</p>
                         <select id="bulk-action-select" class="w-full md:w-auto p-2 border rounded dark:bg-slate-600 dark:text-white">
                             <option value="">-- Select Bulk Action --</option>
-                            <optgroup label="Change Role">
-                            </optgroup>
+                            <optgroup label="Change Role"></optgroup>
                             <optgroup label="Change Access">
                                 <option value="changeAccess_TRUE">Set Access to: Enabled</option>
                                 <option value="changeAccess_FALSE">Set Access to: Disabled</option>
@@ -131,10 +130,8 @@
 
                     <div class="overflow-x-auto bg-white dark:bg-slate-800 rounded-lg shadow">
                         <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
-                            <thead class="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-400">
-                            </thead>
-                            <tbody id="users-table-body">
-                            </tbody>
+                            <thead class="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-400"></thead>
+                            <tbody id="users-table-body"></tbody>
                         </table>
                     </div>
                 </div>
@@ -150,9 +147,7 @@
                             <button type="submit" class="w-full md:w-auto px-6 py-2 font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-700">Broadcast</button>
                         </form>
                     </div>
-
-                    <div id="messages-list" class="space-y-4">
-                    </div>
+                    <div id="messages-list" class="space-y-4"></div>
                 </div>
 
                 <div id="announcements-section" class="hidden space-y-6">
@@ -162,17 +157,13 @@
                         <form id="add-announcement-form" class="flex flex-col md:flex-row gap-4 items-center">
                             <label for="announcement-text" class="sr-only">Announcement Message</label>
                             <input type="text" id="announcement-text" class="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:text-white" placeholder="Announcement message..." required>
-                            <div class="flex items-center">
-                                <input type="checkbox" id="announcement-active" class="h-4 w-4" checked>
-                                <label for="announcement-active" class="ml-2 dark:text-slate-300">Active</label>
-                            </div>
+                            <div class="flex items-center"><input type="checkbox" id="announcement-active" class="h-4 w-4" checked><label for="announcement-active" class="ml-2 dark:text-slate-300">Active</label></div>
                             <button type="submit" class="w-full md:w-auto px-6 py-2 font-bold text-white bg-green-600 rounded-lg hover:bg-green-700">Add</button>
                         </form>
                      </div>
                      <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow">
                         <h3 class="text-lg font-semibold mb-2 dark:text-white">Existing Announcements</h3>
-                        <div id="announcements-list" class="space-y-2">
-                        </div>
+                        <div id="announcements-list" class="space-y-2"></div>
                      </div>
                 </div>
                 
@@ -185,21 +176,23 @@
                     </div>
                     <div class="overflow-x-auto bg-white dark:bg-slate-800 rounded-lg shadow">
                         <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
-                            <thead id="financials-table-header" class="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-400">
-                            </thead>
-                            <tbody id="financials-table-body">
-                            </tbody>
+                            <thead id="financials-table-header" class="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-400"></thead>
+                            <tbody id="financials-table-body"></tbody>
                         </table>
                     </div>
                 </div>
+
+                <div id="user-detail-section" class="hidden p-4 md:p-6 bg-white dark:bg-slate-800 rounded-lg shadow">
+                    </div>
             </main>
         </div>
     </div>
     
     <div id="edit-user-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white dark:bg-slate-800 rounded-lg p-8 shadow-xl max-w-lg w-full">
+        <div class="bg-white dark:bg-slate-800 rounded-lg p-8 shadow-xl max-w-2xl w-full">
             <h3 class="text-xl font-bold mb-6 text-slate-800 dark:text-white">Edit User: <span id="edit-user-name"></span></h3>
-            <form id="edit-user-form" class="space-y-4"></form>
+            <div id="edit-user-form-container">
+                </div>
         </div>
     </div>
 
@@ -213,21 +206,20 @@
                     <input type="text" name="Password" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="Password" required>
                     <input type="email" name="E-Mail" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="Email">
                     <input type="text" name="StudyType" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="Study Type">
-                    
                     <div>
                         <label for="add-user-role" class="block mb-1 text-sm dark:text-slate-300">Role</label>
                         <select id="add-user-role" name="Role" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white"></select>
                     </div>
-
-                    <div>
-                        <label for="add-user-duration" class="block mb-1 text-sm dark:text-slate-300">Subscription Duration</label>
-                        <select id="add-user-duration" name="SubscriptionDuration" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white">
-                            <option value="24h">Trial (24 Hours)</option>
-                            <option value="1m">1 Month</option>
-                            <option value="3m">3 Months</option>
-                            <option value="6m">6 Months</option>
-                            <option value="1y">1 Year</option>
-                        </select>
+                    <div class="md:col-span-2">
+                        <label class="block mb-1 text-sm dark:text-slate-300">Subscription Duration</label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" name="extendValue" class="w-1/3 p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="e.g., 3" value="3">
+                            <select name="extendUnit" class="w-2/3 p-2 border rounded dark:bg-slate-700 dark:text-white">
+                                <option value="months">Months</option>
+                                <option value="days">Days</option>
+                                <option value="weeks">Weeks</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="md:col-span-2">
                         <textarea name="AdminNotes" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" placeholder="Admin Notes..."></textarea>
@@ -258,8 +250,7 @@
             <form id="add-payment-form" class="space-y-4">
                  <div>
                     <label for="payment-user-select" class="block mb-1 text-sm dark:text-slate-300">Select User</label>
-                    <select id="payment-user-select" name="UniqueID" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" required>
-                    </select>
+                    <select id="payment-user-select" name="UniqueID" class="w-full p-2 border rounded dark:bg-slate-700 dark:text-white" required></select>
                 </div>
                 <div>
                     <label for="payment-amount" class="block mb-1 text-sm dark:text-slate-300">Payment Amount</label>
