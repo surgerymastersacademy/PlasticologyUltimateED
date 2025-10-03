@@ -89,19 +89,13 @@
                     <div id="login-loader" class="loader hidden"></div>
                     <p id="login-loading-text" class="text-center text-slate-500 hidden">Loading data for guests...</p>
                     <form id="login-form" class="space-y-6">
-                        <div>
-                            <label for="username" class="sr-only">Username</label>
-                            <div class="input-with-icon-container">
-                                <i class="fas fa-user input-icon"></i>
-                                <input type="text" id="username" autocomplete="username" class="input-with-icon shadow-sm appearance-none border rounded-lg w-full py-3 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Username" required>
-                            </div>
+                        <div class="input-with-icon-container">
+                            <i class="fas fa-user input-icon"></i>
+                            <input type="text" id="username" autocomplete="off" class="input-with-icon shadow-sm appearance-none border rounded-lg w-full py-3 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Username" required>
                         </div>
-                        <div>
-                            <label for="password" class="sr-only">Password</label>
-                            <div class="input-with-icon-container">
-                                <i class="fas fa-lock input-icon"></i>
-                                <input type="password" id="password" autocomplete="current-password" class="input-with-icon shadow-sm appearance-none border rounded-lg w-full py-3 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Password" required>
-                            </div>
+                        <div class="input-with-icon-container">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input type="password" id="password" autocomplete="off" class="input-with-icon shadow-sm appearance-none border rounded-lg w-full py-3 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Password" required>
                         </div>
                         <p id="login-error" class="text-red-500 text-xs italic !mt-2 hidden">Invalid username or password.</p>
                         <button type="submit" id="login-submit-btn" class="action-btn w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline text-lg">
@@ -227,13 +221,12 @@
                     <h2 class="text-xl md:text-2xl font-bold text-slate-800">Lectures</h2>
                     <div class="w-16"></div> </div>
                 <div class="p-4 md:p-6">
-                    <div class="relative">
-                        <label for="lecture-search-input" class="sr-only">Search by chapter or topic</label>
+                    <div class="relative mb-6">
                         <input type="text" id="lecture-search-input" placeholder="Search by chapter or topic..." class="w-full p-3 pl-10 border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
                         <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                     </div>
                     <div id="lectures-loader" class="loader"></div>
-                    <div id="lectures-list" class="space-y-4 mt-6">
+                    <div id="lectures-list" class="space-y-4">
                     </div>
                 </div>
             </div>
@@ -249,7 +242,6 @@
                     <div class="mb-6">
                         <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-search text-indigo-500 mr-3"></i>Search for a Topic</h3>
                         <div class="flex flex-col sm:flex-row items-center gap-4">
-                            <label for="qbank-search-input" class="sr-only">Search for a topic</label>
                             <input type="text" id="qbank-search-input" class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g., Flaps, Burns...">
                             <button id="qbank-search-btn" class="action-btn w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">
                                 Search
@@ -276,7 +268,6 @@
                         <button id="qbank-clear-search-btn" class="mb-4 text-sm text-blue-600 hover:underline">← Back to All Options</button>
                         <p id="qbank-search-results-info" class="mb-4"></p>
                         <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                            <label for="qbank-search-q-count" class="sr-only">Number of questions</label>
                             <input type="number" id="qbank-search-q-count" class="shadow-sm appearance-none border rounded w-full sm:w-1/3 py-2 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="# of Qs (optional)">
                             <button id="qbank-start-search-quiz-btn" class="action-btn w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg">
                                 Start Quiz
@@ -313,12 +304,10 @@
                                         <p id="loading-text" class="text-slate-500 mt-2 text-center hidden">Loading questions...</p>
                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                                             <div class="relative">
-                                                <label for="mock-q-count" class="sr-only">Number of questions</label>
                                                 <i class="fas fa-list-ol absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                                                 <input type="number" id="mock-q-count" class="shadow-sm appearance-none border rounded w-full py-2 pl-10 pr-3 text-slate-700" placeholder="# of Qs" min="1">
                                             </div>
                                             <div class="relative">
-                                                <label for="custom-timer-input" class="sr-only">Time per question in seconds</label>
                                                 <i class="fas fa-clock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                                                 <input type="number" id="custom-timer-input" class="shadow-sm appearance-none border rounded w-full py-2 pl-10 pr-3 text-slate-700" placeholder="Time/Q (sec)" min="5">
                                             </div>
@@ -412,9 +401,7 @@
                     <div class="p-6 md:p-8">
                         <h3 class="text-2xl font-bold text-slate-800 mb-4 text-center">Custom OSCE</h3>
                         <div class="flex flex-col sm:flex-row items-center gap-4">
-                            <label for="osce-case-count" class="sr-only">Number of cases</label>
                             <input type="number" id="osce-case-count" class="shadow appearance-none border rounded w-full sm:w-1/2 py-2 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="# of Cases" min="1">
-                            <label for="osce-time-per-q" class="sr-only">Minutes per question</label>
                             <input type="number" id="osce-time-per-q" class="shadow appearance-none border rounded w-full sm:w-1/2 py-2 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Mins/Question (Default: 1)" min="1">
                             <button id="toggle-osce-options-btn" class="action-btn w-full sm:w-auto bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">
                                 Customize
@@ -815,19 +802,19 @@
             <p class="text-center text-slate-500 mb-6">Register for a 24-hour free trial.</p>
             <form id="registration-form" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="text" id="register-name" name="Name" autocomplete="name" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Full Name (Required)" required>
-                    <input type="text" id="register-username" name="Username" autocomplete="username" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Username (Required)" required>
-                    <input type="email" id="register-email" name="Email" autocomplete="email" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Email (Required)" required>
-                    <input type="tel" id="register-mobile" name="MobileNumber" autocomplete="tel" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Mobile Number (Required)" required>
-                    <input type="password" id="register-password" name="Password" autocomplete="new-password" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Password (Required)" required>
-                    <input type="password" id="register-confirm-password" autocomplete="new-password" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Confirm Password (Required)" required>
-                    <input type="text" id="register-country" name="Country" autocomplete="country" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Country (Required)" required>
+                    <input type="text" id="register-name" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Full Name (Required)" required>
+                    <input type="text" id="register-username" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Username (Required)" required>
+                    <input type="email" id="register-email" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Email (Required)" required>
+                    <input type="text" id="register-mobile" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Mobile Number (Required)" required>
+                    <input type="password" id="register-password" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Password (Required)" required>
+                    <input type="password" id="register-confirm-password" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Confirm Password (Required)" required>
+                    <input type="text" id="register-country" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Country (Required)" required>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-                     <input type="text" id="register-study-type" name="StudyType" autocomplete="off" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Study Type (Optional)">
+                     <input type="text" id="register-study-type" class="shadow-sm border rounded-lg w-full py-2 px-3" placeholder="Study Type (Optional)">
                     <div>
                         <label for="register-exam-date" class="block text-sm font-medium text-slate-500 mb-1">Closest Exam Date (Optional)</label>
-                        <input type="date" id="register-exam-date" name="ExamDate" autocomplete="off" class="shadow-sm border rounded-lg w-full py-2 px-3 text-slate-500">
+                        <input type="date" id="register-exam-date" class="shadow-sm border rounded-lg w-full py-2 px-3 text-slate-500">
                     </div>
                 </div>
                 
