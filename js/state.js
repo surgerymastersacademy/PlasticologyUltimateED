@@ -1,6 +1,6 @@
 // js/state.js (FINAL CORRECTED VERSION FOR MULTI-PLANNER)
 
-export const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlWVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec'; // <-- Don't forget to put your NEW URL here!
+export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec'; // <-- Don't forget to put your NEW URL here!
 
 export const SIMULATION_Q_COUNT = 100;
 export const SIMULATION_TOTAL_TIME_MINUTES = 120;
@@ -89,6 +89,15 @@ export const appState = {
         title: '',
         timerInterval: null
     },
+
+    // NEW: Add matching game session state
+    currentMatchingGame: {
+        questions: [], // The 5 full question objects
+        premises: [],  // Array of { text, uniqueId, hint }
+        answers: [],   // Array of { text, uniqueId } shuffled
+        userMatches: {}, // { premiseId: answerId }
+        score: 0,
+        flaggedIndices: new Set(),
+        chapter: '',
+    },
 };
-
-
