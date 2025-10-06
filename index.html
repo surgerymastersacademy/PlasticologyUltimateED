@@ -11,6 +11,29 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
+    <!-- NEW: Styles for the Matching Game -->
+    <style>
+        .premise-slot, .answer-item {
+            transition: all 0.2s ease-in-out;
+        }
+        .premise-slot.over {
+            background-color: #cceeff;
+            border-style: dashed;
+        }
+        .answer-item.dragging {
+            opacity: 0.5;
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        .matched-correct {
+            background-color: #d1fae5; /* green-100 */
+            border-color: #10b981; /* green-500 */
+        }
+        .matched-incorrect {
+            background-color: #fee2e2; /* red-100 */
+            border-color: #ef4444; /* red-500 */
+        }
+    </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-2 sm:p-4">
 
@@ -33,7 +56,7 @@
         <header id="global-header" class="p-4 md:p-6 bg-slate-800 text-white flex justify-between items-center hidden">
             <a href="https://www.surgerymastersacademy.com" target="_blank" title="Back to Main Website">
                 <img id="header-logo" 
- src="https://raw.githubusercontent.com/doctorbishoy/Plasticology-/main/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-10">
+ src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-10">
             </a>
             <div class="flex items-center gap-4">
                 <button id="user-profile-header-btn" class="flex items-center gap-2 text-white hover:text-slate-300 transition-colors" title="My Profile" aria-label="My Profile">
@@ -81,7 +104,7 @@
         <main id="main-content">
             <div id="login-container" class="w-full max-w-sm mx-auto">
                 <div class="login-card p-8 rounded-2xl shadow-xl">
-                    <img id="login-logo" src="https://raw.githubusercontent.com/doctorbishoy/Plasticology-/main/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-20 mx-auto mb-4">
+                    <img id="login-logo" src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-20 mx-auto mb-4">
                     <div class="text-center mb-8">
                         <h1 class="text-2xl font-bold text-slate-800">Welcome To Plasticology</h1>
                         <p class="text-slate-500 mt-1">Please log in to your account.</p>
@@ -160,6 +183,12 @@
                             <span class="text-2xl font-bold">Learning Mode</span>
                             <span class="font-light">Study Questions</span>
                         </button>
+                        <!-- NEW: Matching Bank Button -->
+                        <button id="matching-btn" class="main-menu-btn flex flex-col items-center justify-center p-8 rounded-xl text-white bg-gradient-to-r from-pink-500 to-rose-600">
+                            <i class="fas fa-random text-5xl mb-4"></i>
+                            <span class="text-2xl font-bold">Matching Bank</span>
+                            <span class="font-light">Connect Concepts</span>
+                        </button>
                         <button id="theory-btn" class="main-menu-btn flex flex-col items-center justify-center p-8 rounded-xl text-white bg-gradient-to-r from-yellow-500 to-orange-600">
                             <i class="fas fa-book-medical text-5xl mb-4"></i>
                             <span class="text-2xl font-bold">Theory Bank</span>
@@ -185,7 +214,39 @@
                             <span class="text-2xl font-bold">Study Planner</span>
                             <span class="font-light">Organize Your Study</span>
                         </button>
-                        <div class="col-span-2 md:col-span-1"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NEW: Matching Game Container -->
+            <div id="matching-container" class="w-full hidden">
+                <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
+                    <button id="matching-back-btn" class="text-slate-700 hover:text-blue-600 transition-colors" title="Back"><i class="fas fa-arrow-left"></i> Back</button>
+                    <h2 id="matching-title" class="text-xl md:text-2xl font-bold text-slate-800">Matching Game</h2>
+                    <div class="w-16"></div> 
+                </div>
+                <div class="p-4 md:p-6">
+                    <div class="flex justify-between items-center mb-1 text-sm font-medium text-slate-600">
+                        <span>Progress</span>
+                        <span id="matching-score-progress-text">Score: 0/0</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                        <div id="matching-progress-bar" class="bg-pink-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%;"></div>
+                    </div>
+                    <div id="matching-game-area" class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+                        <div id="premises-column" class="space-y-3">
+                            <!-- Premises will be injected here -->
+                        </div>
+                        <div id="answers-column" class="space-y-3 bg-slate-50 p-3 rounded-lg border">
+                            <!-- Draggable answers will be injected here -->
+                        </div>
+                    </div>
+                    <div id="matching-results-area" class="hidden mt-4">
+                        <!-- Results and rationales will be shown here -->
+                    </div>
+                    <div class="mt-8 flex justify-center">
+                        <button id="check-matching-answers-btn" class="action-btn bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg hidden">Check Answers</button>
+                        <button id="matching-home-btn" class="action-btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg hidden">Go to Home</button>
                     </div>
                 </div>
             </div>
