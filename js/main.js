@@ -1,4 +1,4 @@
-// js/main.js (FINAL VERSION - With Registration Logic)
+// js/main.js (Version 1.1 - Integrated Custom Matching Exam)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -19,10 +19,9 @@ import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.j
 import { showLeaderboardScreen } from './features/leaderboard.js';
 import { analyzePerformanceByChapter } from './features/performance.js';
 import { showTheoryMenuScreen, launchTheorySession } from './features/theory.js';
-// --- NEW: Import registration handlers ---
 import { showRegistrationModal, hideRegistrationModal, handleRegistrationSubmit } from './features/registration.js';
 // --- NEW: Import matching game handlers ---
-import { showMatchingBrowseScreen, addMatchingEventListeners } from './features/matching.js';
+import { showMatchingMenuScreen, addMatchingEventListeners } from './features/matching.js';
 
 
 // SHARED & EXPORTED FUNCTIONS
@@ -189,15 +188,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     dom.freeTestBtn.addEventListener('click', startFreeTest);
     [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn, dom.theoryBackBtn, dom.matchingBackBtn].forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (appState.navigationHistory.length > 1) {
-                appState.navigationHistory.pop();
-                const previousScreen = appState.navigationHistory[appState.navigationHistory.length - 1];
-                if (typeof previousScreen === 'function') previousScreen();
-            } else {
-                showMainMenuScreen();
-            }
-        });
+        if(btn) { // Check if button exists before adding listener
+            btn.addEventListener('click', () => {
+                if (appState.navigationHistory.length > 1) {
+                    appState.navigationHistory.pop();
+                    const previousScreen = appState.navigationHistory[appState.navigationHistory.length - 1];
+                    if (typeof previousScreen === 'function') previousScreen();
+                } else {
+                    showMainMenuScreen();
+                }
+            });
+        }
     });
 
     // Main Menu & Header
@@ -209,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.libraryBtn.addEventListener('click', () => { if (checkPermission('Library')) { ui.renderBooks(); ui.showScreen(dom.libraryContainer); appState.navigationHistory.push(() => ui.showScreen(dom.libraryContainer)); } });
     dom.studyPlannerBtn.addEventListener('click', () => { if (checkPermission('StudyPlanner')) showStudyPlannerScreen(); });
     // NEW: Add event listener for Matching Bank
-    dom.matchingBtn.addEventListener('click', () => { if(checkPermission('MatchingBank')) showMatchingBrowseScreen(); });
+    dom.matchingBtn.addEventListener('click', () => { if(checkPermission('MatchingBank')) showMatchingMenuScreen(); });
     dom.userProfileHeaderBtn.addEventListener('click', () => showUserCardModal(false));
     dom.editProfileBtn.addEventListener('click', () => toggleProfileEditMode(true));
     dom.cancelEditProfileBtn.addEventListener('click', () => toggleProfileEditMode(false));
@@ -371,3 +372,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initializeApp();
 });
+
