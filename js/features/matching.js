@@ -1,4 +1,4 @@
-// js/features/matching.js (CORRECTED FILE)
+// js/features/matching.js (Version 1.1 - Corrected Chapter Loading & UI)
 
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
