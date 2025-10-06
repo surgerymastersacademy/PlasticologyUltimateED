@@ -1,4 +1,5 @@
-// js/main.js (FINAL VERSION - With Registration Logic)
+// V.1.1 - 2025-10-06
+// js/main.js
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -19,8 +20,9 @@ import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.j
 import { showLeaderboardScreen } from './features/leaderboard.js';
 import { analyzePerformanceByChapter } from './features/performance.js';
 import { showTheoryMenuScreen, launchTheorySession } from './features/theory.js';
-// --- NEW: Import registration handlers ---
 import { showRegistrationModal, hideRegistrationModal, handleRegistrationSubmit } from './features/registration.js';
+// --- NEW: Import matching feature handler ---
+import { handleStartMatchingExam } from './features/matching.js';
 
 
 // SHARED & EXPORTED FUNCTIONS
@@ -60,7 +62,9 @@ function populateAllFilters() {
         return acc;
     }, {});
     ui.populateFilterOptions(dom.sourceSelectMock, allSources, 'mock-source', sourceCounts);
-    updateChapterFilter();
+    // --- NEW: Populate filters for Matching Bank ---
+    ui.populateFilterOptions(dom.sourceSelectMatching, allSources, 'matching-source', sourceCounts);
+    updateChapterFilter(); // This will now update both mock and matching chapter filters
 
     // For OSCE
     const osceChapters = [...new Set(appState.allOsceCases.map(c => c.Chapter || 'Uncategorized'))].sort();
@@ -186,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     dom.freeTestBtn.addEventListener('click', startFreeTest);
-    [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn, dom.theoryBackBtn].forEach(btn => {
+    [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn, dom.theoryBackBtn, dom.matchingBackBtn].forEach(btn => {
         btn.addEventListener('click', () => {
             if (appState.navigationHistory.length > 1) {
                 appState.navigationHistory.pop();
@@ -206,6 +210,10 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.osceBtn.addEventListener('click', () => { if (checkPermission('OSCEBank')) { ui.showScreen(dom.osceContainer); appState.navigationHistory.push(() => ui.showScreen(dom.osceContainer)); } });
     dom.libraryBtn.addEventListener('click', () => { if (checkPermission('Library')) { ui.renderBooks(); ui.showScreen(dom.libraryContainer); appState.navigationHistory.push(() => ui.showScreen(dom.libraryContainer)); } });
     dom.studyPlannerBtn.addEventListener('click', () => { if (checkPermission('StudyPlanner')) showStudyPlannerScreen(); });
+    dom.leaderboardBtn.addEventListener('click', () => checkPermission('LeadersBoard') && showLeaderboardScreen());
+    // --- NEW: Matching Bank Button ---
+    dom.matchingBtn.addEventListener('click', () => { if (checkPermission('MCQBank')) { ui.showScreen(dom.matchingMenuContainer); appState.navigationHistory.push(() => ui.showScreen(dom.matchingMenuContainer)); } });
+
     dom.userProfileHeaderBtn.addEventListener('click', () => showUserCardModal(false));
     dom.editProfileBtn.addEventListener('click', () => toggleProfileEditMode(true));
     dom.cancelEditProfileBtn.addEventListener('click', () => toggleProfileEditMode(false));
@@ -216,7 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.messengerBtn.addEventListener('click', showMessengerModal);
     dom.sendMessageBtn.addEventListener('click', handleSendMessageBtn);
     dom.lectureSearchInput.addEventListener('keyup', (e) => renderLectures(e.target.value));
-    dom.leaderboardBtn.addEventListener('click', () => checkPermission('LeadersBoard') && showLeaderboardScreen());
     
     // Notes & Activity Log
     dom.notesBtn.addEventListener('click', showNotesScreen);
@@ -283,6 +290,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if(tab) tab.addEventListener('click', () => switchQBankTab(index));
     });
     if(qbankTabs[0]) switchQBankTab(0);
+
+    // --- NEW: Matching Bank Listeners ---
+    dom.startMatchingExamBtn.addEventListener('click', handleStartMatchingExam);
+    dom.sourceSelectMatching.addEventListener('change', updateChapterFilter);
+    dom.selectAllSourcesMatching.addEventListener('change', (e) => {
+        dom.sourceSelectMatching.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
+        updateChapterFilter();
+    });
+    dom.selectAllChaptersMatching.addEventListener('change', (e) => {
+        dom.chapterSelectMatching.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
+    });
 
     // In-Quiz Listeners
     dom.endQuizBtn.addEventListener('click', triggerEndQuiz);
