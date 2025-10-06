@@ -91,7 +91,7 @@ function renderMatchingGame() {
     dom.answersColumn.innerHTML = '';
     dom.matchingResultsArea.innerHTML = '';
     dom.matchingResultsArea.classList.add('hidden');
-    dom.checkMatchingAnswersBtn.classList.remove('hidden'); // Ensure button is visible on new game
+    dom.checkMatchingAnswersBtn.classList.add('hidden'); 
     dom.matchingHomeBtn.classList.add('hidden');
     updateProgressBar();
 
