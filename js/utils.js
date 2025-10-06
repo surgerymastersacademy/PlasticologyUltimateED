@@ -1,14 +1,25 @@
-// V.1.7 - 2025-10-06
+// V.1.8 - 2025-10-06
 // js/utils.js
 
-/**
- * NEW: Add the missing formatTime function.
- */
 export function formatTime(seconds) {
     if (isNaN(seconds) || seconds < 0) return "00:00";
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+/**
+ * NEW: Add the missing calculateDaysLeft function back.
+ */
+export function calculateDaysLeft(dateString) {
+    if (!dateString) return null;
+    const today = new Date();
+    const expiryDate = new Date(dateString);
+    today.setHours(0, 0, 0, 0);
+    expiryDate.setHours(0, 0, 0, 0);
+    const diffTime = expiryDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
 }
 
 export function groupLecturesByChapter(lectures) {
