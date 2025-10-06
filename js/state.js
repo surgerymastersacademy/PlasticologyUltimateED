@@ -1,7 +1,7 @@
 // V.1.1 - 2025-10-06
 // js/state.js
 
-export const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlWVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec'; // <-- Don't forget to put your NEW URL here!
+export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec'; // <-- Don't forget to put your NEW URL here!
 
 export const SIMULATION_Q_COUNT = 100;
 export const SIMULATION_TOTAL_TIME_MINUTES = 120;
@@ -99,3 +99,4 @@ export const appState = {
         isReviewMode: false
     },
 };
+
