@@ -9,9 +9,6 @@ import { logUserActivity } from '../api.js';
 
 let draggedAnswer = null; 
 
-/**
- * REBUILT: Standalone chapter filter, logic copied from working quiz.js implementation.
- */
 export function updateMatchingChapterFilter() {
     const selectedSources = Array.from(dom.sourceSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
 
@@ -30,11 +27,7 @@ export function updateMatchingChapterFilter() {
     ui.populateFilterOptions(dom.chapterSelectMatching, chapterNames, 'matching-chapter', chapterCounts);
 }
 
-/**
- * REBUILT: Main handler, logic copied from working quiz.js implementation and adapted.
- */
 export function handleStartMatchingExam() {
-    // Default values are applied if the input is empty or invalid
     const setCount = parseInt(dom.matchingSetCount.value, 10) || 10;
     const timePerSet = parseInt(dom.matchingTimerInput.value, 10) || 60;
     dom.matchingError.classList.add('hidden');
@@ -42,7 +35,6 @@ export function handleStartMatchingExam() {
     const selectedChapters = Array.from(dom.chapterSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
     const selectedSources = Array.from(dom.sourceSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
 
-    // Use a clean, robust filtering approach
     let filteredQuestions = appState.allQuestions.filter(q => q.question && q.CorrectAnswer);
 
     if (selectedChapters.length > 0) {
@@ -63,6 +55,7 @@ export function handleStartMatchingExam() {
     const examSets = [];
     for (let i = 0; i < setCount; i++) {
         const setQuestions = shuffledPool.splice(0, 5);
+        // FIX: Ensure we use the now-consistent 'question' and 'CorrectAnswer' keys
         const premises = setQuestions.map(q => ({ question: q.question, uniqueId: q.UniqueID }));
         let answers = setQuestions.map(q => ({ CorrectAnswer: q.CorrectAnswer, uniqueId: q.UniqueID }));
         
@@ -75,9 +68,8 @@ export function handleStartMatchingExam() {
     launchMatchingExam(`Custom Matching Exam`, examSets, totalTime);
 }
 
-// --- The rest of the file remains the same ---
-
 function launchMatchingExam(title, sets, totalTime) {
+    console.log("Data Sent to UI:", sets[0]); // Debugging: Check data before rendering
     appState.currentMatching = {
         sets: sets,
         setIndex: 0,
@@ -112,6 +104,7 @@ function renderCurrentSet() {
     restoreUserMatchesForCurrentSet();
 }
 
+// ... (The rest of the file from startMatchingTimer() to the end remains unchanged)
 function startMatchingTimer() {
     if (appState.currentMatching.timerInterval) {
         clearInterval(appState.currentMatching.timerInterval);
