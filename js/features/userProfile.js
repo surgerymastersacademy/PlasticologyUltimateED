@@ -128,6 +128,7 @@ export function applyRolePermissions() {
         'Library': dom.libraryBtn,
         'StudyPlanner': dom.studyPlannerBtn,
         'TheoryBank': dom.theoryBtn,
+        'MatchingBank': dom.matchingBtn, // NEW: Add Matching Bank button to permissions check
     };
 
     for (const feature in featureElements) {
