@@ -1,302 +1,259 @@
-// js/features/matching.js (NEW FILE - COMPLETE)
+// js/main.js (FINAL VERSION - With Matching Feature Logic)
 
-import { appState } from '../state.js';
-import * as dom from '../dom.js';
-import * as ui from '../ui.js';
-import { logUserActivity } from '../api.js';
-import { formatTime } from '../utils.js';
-import { showMainMenuScreen } from '../main.js';
+import { appState } from './state.js';
+import * as dom from './dom.js';
+import * as ui from './ui.js';
+import * as utils from './utils.js';
+import { fetchContentData, fetchUserData, logTheoryActivity } from './api.js';
+import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
+import {
+    launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz,
+    toggleBookmark, toggleFlag, showHint, showQuestionNavigator, startQuizBrowse, restartCurrentQuiz, reviewIncorrectAnswers, startSimulationReview
+} from './features/quiz.js';
+import { renderLectures, saveUserProgress, fetchAndShowLastActivity } from './features/lectures.js';
+import { startOsceSlayer, startCustomOsce, endOsceQuiz, handleOsceNext, handleOscePrevious, showOsceNavigator } from './features/osce.js';
+import { showStudyPlannerScreen, handleCreatePlan } from './features/planner.js';
+import { showLearningModeBrowseScreen, handleLearningSearch, handleLearningNext, handleLearningPrevious, startLearningBrowse, startLearningMistakes, startLearningBookmarked } from './features/learningMode.js';
+import { showTheoryMenuScreen, handleTheorySearch, launchTheorySession, showTheoryListScreen } from './features/theory.js';
+import { handleRegistrationSubmit, showRegistrationModal, hideRegistrationModal } from './features/registration.js';
+import { showActivityLog, renderFilteredLog } from './features/activityLog.js';
+import { showNotesScreen, renderNotes, deleteNote } from './features/notes.js';
+import { showLeaderboardScreen } from './features/leaderboard.js';
+// --- NEW: Import matching feature functions ---
+import { showMatchingMenuScreen, handleStartMatchingExam, handleNextSet } from './features/matching.js';
 
-let draggedAnswer = null; // Variable to hold the dragged element info
+// Global export for inline HTML onclicks
+window.app = {
+    renderFilteredLog,
+    renderNotes,
+    deleteNote
+};
 
-/**
- * Shows the matching bank menu and populates filters.
- */
-export function showMatchingMenuScreen() {
-    ui.showScreen(dom.matchingMenuContainer);
-    appState.navigationHistory.push(showMatchingMenuScreen);
-    dom.matchingError.classList.add('hidden');
+// ===============================================================
+// ============== INITIALIZATION & MAIN LOGIC ====================
+// ===============================================================
 
-    // Populate filters
-    const chapters = [...new Set(appState.allQuestions.map(q => q.chapter || 'Uncategorized'))].sort();
-    const sources = [...new Set(appState.allQuestions.map(q => q.source || 'Uncategorized'))].sort();
-    const chapterCounts = appState.allQuestions.reduce((acc, q) => {
-        const chapter = q.chapter || 'Uncategorized';
-        acc[chapter] = (acc[chapter] || 0) + 1;
-        return acc;
-    }, {});
-    const sourceCounts = appState.allQuestions.reduce((acc, q) => {
-        const source = q.source || 'Uncategorized';
-        acc[source] = (acc[source] || 0) + 1;
-        return acc;
-    }, {});
-
-    ui.populateFilterOptions(dom.chapterSelectMatching, chapters, 'chapter-matching', chapterCounts);
-    ui.populateFilterOptions(dom.sourceSelectMatching, sources, 'source-matching', sourceCounts);
-}
-
-/**
- * Gathers user input, filters questions, and creates the exam sets.
- */
-export function handleStartMatchingExam() {
-    // 1. Collect user inputs
-    const requestedSetCount = parseInt(dom.matchingSetCount.value, 10);
-    const timePerSet = parseInt(dom.matchingTimerInput.value, 10);
-    const selectedChapters = Array.from(dom.chapterSelectMatching.querySelectorAll('input:checked')).map(el => el.value);
-    const selectedSources = Array.from(dom.sourceSelectMatching.querySelectorAll('input:checked')).map(el => el.value);
-
-    // 2. Filter questions
-    let filteredQuestions = appState.allQuestions;
-    if (selectedChapters.length > 0) {
-        filteredQuestions = filteredQuestions.filter(q => selectedChapters.includes(q.chapter));
-    }
-    if (selectedSources.length > 0) {
-        filteredQuestions = filteredQuestions.filter(q => selectedSources.includes(q.source));
-    }
-
-    // 3. Validate if enough questions are available
-    const requiredQuestions = requestedSetCount * 5;
-    if (filteredQuestions.length < requiredQuestions) {
-        dom.matchingError.textContent = `Not enough questions found. You need ${requiredQuestions}, but only found ${filteredQuestions.length} matching your criteria.`;
-        dom.matchingError.classList.remove('hidden');
-        return;
-    }
-     dom.matchingError.classList.add('hidden');
-
-    // 4. Create exam sets
-    const shuffledPool = [...filteredQuestions].sort(() => Math.random() - 0.5);
-    const examSets = [];
-    for (let i = 0; i < requestedSetCount; i++) {
-        const setQuestions = shuffledPool.splice(0, 5);
-        const premises = setQuestions.map(q => ({
-            uniqueId: q.UniqueID,
-            text: q.Question
-        }));
-        let answers = setQuestions.map(q => {
-            const correctAnswer = q.answerOptions.find(opt => opt.isCorrect);
-            return {
-                uniqueId: q.UniqueID,
-                text: correctAnswer ? correctAnswer.text : 'N/A'
-            };
-        });
-        
-        // Shuffle the answers for this set
-        answers = answers.sort(() => Math.random() - 0.5);
-
-        examSets.push({ premises, answers });
-    }
+document.addEventListener('DOMContentLoaded', async () => {
     
-    // 5. Launch the exam
-    const examTitle = `Matching Exam (${requestedSetCount} Set${requestedSetCount > 1 ? 's' : ''})`;
-    launchMatchingExam(examTitle, examSets, timePerSet);
-}
-
-
-/**
- * Initializes the exam state and launches the UI.
- * @param {string} title
- * @param {Array} sets
- * @param {number} timePerSet
- */
-function launchMatchingExam(title, sets, timePerSet) {
-    const totalTime = sets.length * timePerSet;
-    const totalQuestions = sets.length * 5;
-
-    appState.currentMatchingExam = {
-        title,
-        sets,
-        currentSetIndex: 0,
-        userMatches: sets.map(set => new Array(set.premises.length).fill(null)),
-        timerInterval: null,
-        totalTime,
-        score: 0
-    };
+    // --- Initial Setup ---
+    setupDarkMode();
     
-    ui.showScreen(dom.matchingContainer);
-    appState.navigationHistory.push(() => launchMatchingExam(title, sets, timePerSet));
-    dom.matchingExamTitle.textContent = title;
-    dom.matchingTotal.textContent = totalQuestions;
-    dom.matchingScore.textContent = 0;
-    
-    dom.matchingCheckAnswersBtn.classList.remove('hidden');
-    dom.matchingNextSetBtn.classList.add('hidden');
-    dom.matchingCheckAnswersBtn.disabled = false;
-    dom.matchingCheckAnswersBtn.textContent = 'Check Answers';
-    dom.matchingCheckAnswersBtn.onclick = handleCheckAnswers;
-
-    startMatchingTimer();
-    renderCurrentSet();
-}
-
-/**
- * Renders the current set of premises and answers.
- */
-function renderCurrentSet() {
-    const { sets, currentSetIndex } = appState.currentMatchingExam;
-    const currentSet = sets[currentSetIndex];
-
-    dom.premisesContainer.innerHTML = '';
-    dom.answersContainer.innerHTML = '';
-
-    // Render Premises (Drop Zones)
-    currentSet.premises.forEach((premise, index) => {
-        const premiseEl = document.createElement('div');
-        premiseEl.className = 'premise-slot';
-        premiseEl.dataset.premiseIndex = index;
-        premiseEl.innerHTML = `
-            <span class="premise-question-text">${index + 1}. ${premise.text}</span>
-            <div class="premise-drop-zone" data-premise-id="${premise.uniqueId}">Drop here</div>
-        `;
-        premiseEl.addEventListener('dragover', handleDragOver);
-        premiseEl.addEventListener('drop', handleDrop);
-        dom.premisesContainer.appendChild(premiseEl);
-    });
-
-    // Render Answers (Draggable)
-    currentSet.answers.forEach((answer, index) => {
-        const answerEl = document.createElement('div');
-        answerEl.className = 'answer-option';
-        answerEl.draggable = true;
-        answerEl.dataset.answerId = answer.uniqueId;
-        answerEl.textContent = answer.text;
-        answerEl.addEventListener('dragstart', handleDragStart);
-        dom.answersContainer.appendChild(answerEl);
-    });
-
-    dom.matchingSetIndicator.textContent = `Set ${currentSetIndex + 1} of ${sets.length}`;
-}
-
-// --- DRAG & DROP LOGIC ---
-
-function handleDragStart(e) {
-    draggedAnswer = {
-        id: e.target.dataset.answerId,
-        text: e.target.textContent,
-        element: e.target
-    };
-    e.dataTransfer.effectAllowed = 'move';
-}
-
-function handleDragOver(e) {
-    e.preventDefault();
-    const dropZone = e.target.closest('.premise-drop-zone');
-    if (dropZone) {
-         // Add a visual indicator
-        dom.premisesContainer.querySelectorAll('.premise-slot').forEach(el => el.classList.remove('drag-over'));
-        e.target.closest('.premise-slot').classList.add('drag-over');
-    }
-}
-
-function handleDrop(e) {
-    e.preventDefault();
-    dom.premisesContainer.querySelectorAll('.premise-slot').forEach(el => el.classList.remove('drag-over'));
-
-    const dropZone = e.target.closest('.premise-drop-zone');
-    if (dropZone && draggedAnswer) {
-        // Update state
-        const premiseIndex = parseInt(e.target.closest('.premise-slot').dataset.premiseIndex, 10);
-        const { currentSetIndex } = appState.currentMatchingExam;
-        appState.currentMatchingExam.userMatches[currentSetIndex][premiseIndex] = draggedAnswer.id;
-
-        // Update UI
-        dropZone.textContent = draggedAnswer.text;
-        dropZone.classList.add('filled');
-        
-        // Hide the dragged answer
-        draggedAnswer.element.style.display = 'none';
-        
-        // Return any previously dropped answer back to the list
-        const previousAnswerId = dropZone.dataset.previousAnswer;
-        if (previousAnswerId) {
-             const previousAnswerEl = dom.answersContainer.querySelector(`[data-answer-id="${previousAnswerId}"]`);
-             if(previousAnswerEl) previousAnswerEl.style.display = 'flex';
-        }
-        dropZone.dataset.previousAnswer = draggedAnswer.id;
-
-        draggedAnswer = null;
-    }
-}
-
-// --- TIMER & RESULTS ---
-
-function startMatchingTimer() {
-    clearInterval(appState.currentMatchingExam.timerInterval);
-    let timeLeft = appState.currentMatchingExam.totalTime;
-    dom.matchingTimer.textContent = formatTime(timeLeft);
-
-    appState.currentMatchingExam.timerInterval = setInterval(() => {
-        timeLeft--;
-        dom.matchingTimer.textContent = formatTime(timeLeft);
-        if (timeLeft <= 0) {
-            clearInterval(appState.currentMatchingExam.timerInterval);
-            handleCheckAnswers(); // Auto-submit when time is up
-        }
-    }, 1000);
-}
-
-function handleCheckAnswers() {
-    clearInterval(appState.currentMatchingExam.timerInterval);
-    dom.matchingCheckAnswersBtn.disabled = true;
-
-    const { sets, userMatches } = appState.currentMatchingExam;
-    let totalScore = 0;
-
-    // Disable dragging
-    dom.answersContainer.querySelectorAll('.answer-option').forEach(el => el.draggable = false);
-
-    // Score all sets
-    sets.forEach((set, setIndex) => {
-        set.premises.forEach((premise, premiseIndex) => {
-            if (premise.uniqueId === userMatches[setIndex][premiseIndex]) {
-                totalScore++;
-            }
-        });
-    });
-    
-    appState.currentMatchingExam.score = totalScore;
-    dom.matchingScore.textContent = totalScore;
-
-    // Show visual feedback for the current set
-    const currentSetIndex = appState.currentMatchingExam.currentSetIndex;
-    const currentSet = sets[currentSetIndex];
-    currentSet.premises.forEach((premise, premiseIndex) => {
-        const dropZone = dom.premisesContainer.querySelector(`[data-premise-id="${premise.uniqueId}"]`);
-        if (dropZone) {
-            const isCorrect = premise.uniqueId === userMatches[currentSetIndex][premiseIndex];
-            dropZone.classList.add(isCorrect ? 'correct-match' : 'incorrect-match');
-        }
-    });
-
-    // Log the final result after checking the last set
-    if (currentSetIndex === sets.length - 1) {
-        logUserActivity({
-            eventType: 'logMatchingActivity',
-            score: appState.currentMatchingExam.score,
-            totalQuestions: sets.length * 5,
-            details: {
-                sets: sets.map(s => ({
-                    premises: s.premises.map(p => p.uniqueId),
-                    answers: s.answers.map(a => a.uniqueId)
-                })),
-                userMatches: userMatches
-            }
-        });
-        dom.matchingCheckAnswersBtn.textContent = 'Finish & Exit';
-        dom.matchingCheckAnswersBtn.onclick = showMainMenuScreen;
-        dom.matchingCheckAnswersBtn.disabled = false;
+    // Attempt to load guest data or check for logged-in user
+    const savedUser = localStorage.getItem('plasticologyUser');
+    if (savedUser) {
+        appState.currentUser = JSON.parse(savedUser);
+        await initializeAuthenticatedSession();
     } else {
-        // Show "Next Set" button
-        dom.matchingNextSetBtn.classList.remove('hidden');
-        dom.matchingCheckAnswersBtn.classList.add('hidden');
+        ui.showScreen(dom.loginContainer);
     }
+    
+    // --- GLOBAL EVENT LISTENERS ---
+    dom.globalHomeBtn.addEventListener('click', showMainMenuScreen);
+    dom.logoutBtn.addEventListener('click', handleLogout);
+    
+    // --- LOGIN & REGISTRATION ---
+    dom.loginForm.addEventListener('submit', handleLogin);
+    dom.showRegisterLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        showRegistrationModal();
+    });
+    dom.registrationForm.addEventListener('submit', handleRegistrationSubmit);
+    dom.registerCancelBtn.addEventListener('click', hideRegistrationModal);
+    
+    // --- MAIN MENU NAVIGATION ---
+    dom.lecturesBtn.addEventListener('click', showLecturesScreen);
+    dom.qbankBtn.addEventListener('click', showQBankScreen);
+    dom.osceBtn.addEventListener('click', showOsceMenuScreen);
+    dom.leaderboardBtn.addEventListener('click', showLeaderboardScreen);
+    dom.notesBtn.addEventListener('click', showNotesScreen);
+    dom.activityLogBtn.addEventListener('click', showActivityLog);
+    dom.plannerBtn.addEventListener('click', showStudyPlannerScreen);
+    dom.learningModeBtn.addEventListener('click', showLearningModeBrowseScreen);
+    dom.theoryModeBtn.addEventListener('click', showTheoryMenuScreen);
+    
+    // --- QBANK ---
+    dom.mockExamBtn.addEventListener('click', handleMockExamStart);
+    dom.simulationExamBtn.addEventListener('click', handleStartSimulation);
+    dom.browseChapterBtn.addEventListener('click', () => startQuizBrowse('Chapter'));
+    dom.browseSourceBtn.addEventListener('click', () => startQuizBrowse('Source'));
+    dom.qbankSearchInput.addEventListener('keyup', handleQBankSearch);
+    
+    // --- QUIZ CONTROLS ---
+    dom.nextQuestionBtn.addEventListener('click', handleNextQuestion);
+    dom.prevQuestionBtn.addEventListener('click', handlePreviousQuestion);
+    dom.backToMenuBtn.addEventListener('click', showMainMenuScreen);
+    dom.flagBtn.addEventListener('click', toggleFlag);
+    dom.bookmarkBtn.addEventListener('click', toggleBookmark);
+    dom.hintBtn.addEventListener('click', showHint);
+    dom.navigatorBtn.addEventListener('click', showQuestionNavigator);
+    dom.noteTakingBtn.addEventListener('click', () => openNoteModal('quiz'));
+    dom.restartQuizBtn.addEventListener('click', restartCurrentQuiz);
+    dom.reviewMistakesBtn.addEventListener('click', reviewIncorrectAnswers);
+    
+    // --- OSCE ---
+    dom.osceSlayerBtn.addEventListener('click', startOsceSlayer);
+    dom.customOsceBtn.addEventListener('click', startCustomOsce);
+    dom.osceNextBtn.addEventListener('click', handleOsceNext);
+    dom.oscePrevBtn.addEventListener('click', handleOscePrevious);
+    dom.osceNavigatorBtn.addEventListener('click', showOsceNavigator);
+    
+    // --- LEARNING MODE ---
+    dom.learningBrowseAllBtn.addEventListener('click', startLearningBrowse);
+    dom.learningStudyMistakesBtn.addEventListener('click', startLearningMistakes);
+    dom.learningStudyBookmarkedBtn.addEventListener('click', startLearningBookmarked);
+    dom.learningSearchInput.addEventListener('keyup', handleLearningSearch);
+    dom.learningNextBtn.addEventListener('click', handleLearningNext);
+    dom.learningPrevBtn.addEventListener('click', handleLearningPrevious);
+    
+    // --- THEORY ---
+    dom.theoryBrowseByChapterBtn.addEventListener('click', () => showTheoryListScreen('Chapter'));
+    
+    // --- NEW: MATCHING BANK ---
+    dom.matchingModeBtn.addEventListener('click', showMatchingMenuScreen);
+    dom.startMatchingExamBtn.addEventListener('click', handleStartMatchingExam);
+    dom.matchingNextSetBtn.addEventListener('click', handleNextSet);
+    
+    // --- MODAL & MISC LISTENERS ---
+    dom.modalConfirmBtn.addEventListener('click', () => { if(appState.modalConfirmAction) appState.modalConfirmAction(); });
+    dom.modalCancelBtn.addEventListener('click', () => { dom.confirmationModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');});
+    dom.imageViewerCloseBtn.addEventListener('click', () => { dom.imageViewerModal.classList.add('hidden'); if(dom.userCardModal.classList.contains('hidden') && dom.createPlanModal.classList.contains('hidden') && dom.announcementsModal.classList.contains('hidden') && dom.messengerModal.classList.contains('hidden')) dom.modalBackdrop.classList.add('hidden');});
+    dom.announcementsCloseBtn.addEventListener('click', () => { dom.announcementsModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
+    dom.userCardCloseBtn.addEventListener('click', () => { dom.userCardModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
+    dom.messengerCloseBtn.addEventListener('click', () => {
+        dom.messengerModal.classList.add('hidden');
+        dom.modalBackdrop.classList.add('hidden');
+        if (appState.messengerPollInterval) clearInterval(appState.messengerPollInterval);
+    });
+    dom.navigatorCloseBtn.addEventListener('click', () => { dom.questionNavigatorModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');});
+    dom.osceNavigatorCloseBtn.addEventListener('click', () => { dom.osceNavigatorModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');});
+    dom.clearLogCancelBtn.addEventListener('click', () => { dom.clearLogModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
+    dom.clearLogBtn.addEventListener('click', () => { dom.clearLogModal.classList.remove('hidden'); dom.modalBackdrop.classList.remove('hidden'); });
+    
+    // User Profile / Card
+    dom.userProfileHeaderBtn.addEventListener('click', showUserCardModal);
+    dom.editProfileBtn.addEventListener('click', () => toggleProfileEditMode(true));
+    dom.saveProfileBtn.addEventListener('click', handleSaveProfile);
+    dom.messengerBtn.addEventListener('click', showMessengerModal);
+    dom.sendMessageBtn.addEventListener('click', handleSendMessageBtn);
+    
+    // Planner
+    dom.createNewPlanBtn.addEventListener('click', () => {
+        dom.createPlanModal.classList.remove('hidden');
+        dom.modalBackdrop.classList.remove('hidden');
+    });
+    dom.cancelCreatePlanBtn.addEventListener('click', () => {
+        dom.createPlanModal.classList.add('hidden');
+        dom.modalBackdrop.classList.add('hidden');
+    });
+    dom.confirmCreatePlanBtn.addEventListener('click', handleCreatePlan);
+    
+    // Header Buttons
+    dom.announcementsBtn.addEventListener('click', ui.showAnnouncementsModal);
+});
+
+async function initializeAuthenticatedSession() {
+    ui.initializeMainUI();
+    showMainMenuScreen();
+    await fetchContentData();
+    await fetchUserData();
+    loadUserProgress();
+    updateUserProfileHeader();
+    fetchAndShowLastActivity();
+    renderLectures(); // Initial render
 }
 
-export function handleNextSet() {
-    appState.currentMatchingExam.currentSetIndex++;
-    if (appState.currentMatchingExam.currentSetIndex < appState.currentMatchingExam.sets.length) {
-        dom.matchingNextSetBtn.classList.add('hidden');
-        dom.matchingCheckAnswersBtn.classList.remove('hidden');
-        dom.matchingCheckAnswersBtn.disabled = false;
-        renderCurrentSet();
+
+// ===============================================================
+// ================== SCREEN NAVIGATION ==========================
+// ===============================================================
+
+export function showMainMenuScreen() {
+    ui.showScreen(dom.mainMenuContainer);
+    if(appState.navigationHistory.length === 0 || appState.navigationHistory[appState.navigationHistory.length - 1] !== showMainMenuScreen) {
+        appState.navigationHistory.push(showMainMenuScreen);
     }
+    fetchAndShowLastActivity();
+}
+
+export function showLecturesScreen() {
+    ui.showScreen(dom.lecturesContainer);
+    appState.navigationHistory.push(showLecturesScreen);
+}
+
+export function showQBankScreen() {
+    ui.showScreen(dom.qbankContainer);
+    appState.navigationHistory.push(showQBankScreen);
+    updateChapterFilter(); // Update filters when showing screen
+}
+
+export function showOsceMenuScreen() {
+    ui.showScreen(dom.osceContainer);
+    appState.navigationHistory.push(showOsceMenuScreen);
+    const chapters = [...new Set(appState.allOsceCases.map(c => c.Chapter || 'Uncategorized'))].sort();
+    const sources = [...new Set(appState.allOsceCases.map(c => c.Source || 'Uncategorized'))].sort();
+    const chapterCounts = chapters.reduce((acc, chapter) => {
+        acc[chapter] = appState.allOsceCases.filter(c => (c.Chapter || 'Uncategorized') === chapter).length;
+        return acc;
+    }, {});
+    const sourceCounts = sources.reduce((acc, source) => {
+        acc[source] = appState.allOsceCases.filter(c => (c.Source || 'Uncategorized') === source).length;
+        return acc;
+    }, {});
+    ui.populateFilterOptions(dom.chapterSelectOsce, chapters, 'osce-chapter', chapterCounts);
+    ui.populateFilterOptions(dom.sourceSelectOsce, sources, 'osce-source', sourceCounts);
+}
+
+// ===============================================================
+// ==================== MODAL CONTROLS ===========================
+// ===============================================================
+export function openNoteModal(type, itemId = null, itemTitle = null) {
+    appState.currentNote.type = type;
+    if (itemId) appState.currentNote.itemId = itemId;
+    if (itemTitle) appState.currentNote.itemTitle = itemTitle;
+    
+    let existingNote = '';
+    if (type === 'quiz') {
+        const note = appState.userQuizNotes.find(n => n.QuizID === (itemId || appState.currentQuiz.questions[appState.currentQuiz.currentQuestionIndex].UniqueID));
+        if (note) existingNote = note.NoteText;
+        dom.noteModalTitle.textContent = `Note for: ${itemTitle || appState.currentQuiz.questions[appState.currentQuiz.currentQuestionIndex].Question.substring(0, 50)}...`;
+    }
+    // Add logic for lecture and theory notes if needed
+    
+    dom.noteTextarea.value = existingNote;
+    dom.modalBackdrop.classList.remove('hidden');
+    dom.noteModal.classList.remove('hidden');
+}
+
+// ===============================================================
+// ===================== DARK MODE ===============================
+// ===============================================================
+function setupDarkMode() {
+    const darkModeToggle = document.getElementById('dark-mode-toggle');
+    const sunIcon = darkModeToggle.querySelector('.fa-sun');
+    const moonIcon = darkModeToggle.querySelector('.fa-moon');
+
+    if (localStorage.getItem('theme') === 'dark' || 
+        (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        sunIcon.style.display = 'inline';
+        moonIcon.style.display = 'none';
+    } else {
+        document.documentElement.classList.remove('dark');
+        sunIcon.style.display = 'none';
+        moonIcon.style.display = 'inline';
+    }
+
+    darkModeToggle.addEventListener('click', () => {
+        if (document.documentElement.classList.contains('dark')) {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+            sunIcon.style.display = 'none';
+            moonIcon.style.display = 'inline';
+        } else {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+            sunIcon.style.display = 'inline';
+            moonIcon.style.display = 'none';
+        }
+    });
 }
