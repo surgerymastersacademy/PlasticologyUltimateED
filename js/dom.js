@@ -286,6 +286,17 @@ export const theoryNextBtn = document.getElementById('theory-next-btn');
 export const theoryNoteBtn = document.getElementById('theory-note-btn');
 export const theoryStatusBtn = document.getElementById('theory-status-btn');
 export const theorySourceText = document.getElementById('theory-source-text');
+export const matchingBtn = document.getElementById('matching-btn');
+export const matchingContainer = document.getElementById('matching-container');
+export const matchingBackBtn = document.getElementById('matching-back-btn');
+export const matchingTitle = document.getElementById('matching-title');
+export const premisesColumn = document.getElementById('premises-column');
+export const answersColumn = document.getElementById('answers-column');
+export const checkMatchingAnswersBtn = document.getElementById('check-matching-answers-btn');
+export const matchingScoreProgressText = document.getElementById('matching-score-progress-text');
+export const matchingProgressBar = document.getElementById('matching-progress-bar');
+export const matchingResultsArea = document.getElementById('matching-results-area');
+export const matchingHomeBtn = document.getElementById('matching-home-btn');
 
 // --- NEW: Registration Elements ---
 export const registrationModal = document.getElementById('registration-modal');
@@ -309,16 +320,3 @@ export const registerExamDate = document.getElementById('register-exam-date');
 export const cardSubscriptionStatus = document.getElementById('card-subscription-status');
 export const cardSubscriptionExpiry = document.getElementById('card-subscription-expiry');
 
-// --- NEW: Matching Game Elements ---
-export const matchingBtn = document.getElementById('matching-btn');
-export const matchingContainer = document.getElementById('matching-container');
-export const matchingBackBtn = document.getElementById('matching-back-btn');
-export const matchingTitle = document.getElementById('matching-title');
-export const matchingScoreProgressText = document.getElementById('matching-score-progress-text');
-export const matchingProgressBar = document.getElementById('matching-progress-bar');
-export const matchingGameArea = document.getElementById('matching-game-area');
-export const premisesColumn = document.getElementById('premises-column');
-export const answersColumn = document.getElementById('answers-column');
-export const matchingResultsArea = document.getElementById('matching-results-area');
-export const checkMatchingAnswersBtn = document.getElementById('check-matching-answers-btn');
-export const matchingHomeBtn = document.getElementById('matching-home-btn');
