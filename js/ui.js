@@ -1,4 +1,4 @@
-// js/ui.js (FINAL AND COMPLETE VERSION)
+// js/ui.js (Version 1.1 - Added Matching Exam Containers)
 
 import * as dom from './dom.js';
 import { appState } from './state.js';
@@ -15,7 +15,7 @@ export function showScreen(screenToShow, isGuest = false) {
     dom.modalBackdrop.classList.add('hidden');
 
     // Hide all main content containers
-    [dom.loginContainer, dom.mainMenuContainer, dom.lecturesContainer, dom.qbankContainer, dom.listContainer, dom.quizContainer, dom.activityLogContainer, dom.notesContainer, dom.libraryContainer, dom.leaderboardContainer, dom.osceContainer, dom.osceQuizContainer, dom.learningModeContainer, dom.studyPlannerContainer, dom.theoryContainer, dom.matchingContainer].forEach(screen => {
+    [dom.loginContainer, dom.mainMenuContainer, dom.lecturesContainer, dom.qbankContainer, dom.listContainer, dom.quizContainer, dom.activityLogContainer, dom.notesContainer, dom.libraryContainer, dom.leaderboardContainer, dom.osceContainer, dom.osceQuizContainer, dom.learningModeContainer, dom.studyPlannerContainer, dom.theoryContainer, dom.matchingMenuContainer, dom.matchingContainer].forEach(screen => {
         if (screen) screen.classList.add('hidden');
     });
 
@@ -249,3 +249,4 @@ export function populateFilterOptions(containerElement, items, inputNamePrefix, 
         containerElement.appendChild(div);
     });
 }
+
