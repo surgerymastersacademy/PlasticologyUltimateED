@@ -1,4 +1,5 @@
-// js/state.js (FINAL CORRECTED VERSION FOR MULTI-PLANNER)
+// V.1.1 - 2025-10-06
+// js/state.js
 
 export const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlWVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec'; // <-- Don't forget to put your NEW URL here!
 
@@ -19,7 +20,6 @@ export const appState = {
     allAnnouncements: [],
     allRoles: [],
     allChaptersNames: [],
-    // --- NEW: Add theory questions data ---
     allTheoryQuestions: [],
     
     // User Data
@@ -32,11 +32,9 @@ export const appState = {
     userQuizNotes: [],
     userLectureNotes: [],
     userMessages: [],
-    // --- NEW: Add theory logs data ---
     userTheoryLogs: [],
-    // --- MODIFICATION: Updated planner state for multiple plans ---
-    studyPlans: [], // Will hold an array of all user's plans
-    activeStudyPlan: null, // Will hold the currently active plan object
+    studyPlans: [],
+    activeStudyPlan: null,
 
     // Navigation & UI State
     navigationHistory: [],
@@ -81,7 +79,7 @@ export const appState = {
         title: ''
     },
 
-    // --- NEW: Add theory session state ---
+    // Current theory session state
     currentTheorySession: {
         questions: [],
         currentIndex: 0,
@@ -89,6 +87,15 @@ export const appState = {
         title: '',
         timerInterval: null
     },
+
+    // --- NEW: Add matching exam state ---
+    currentMatching: {
+        sets: [],
+        setIndex: 0,
+        userMatches: [], // Will be an array of objects e.g. [{premiseId: answerId}, ...]
+        timerInterval: null,
+        score: 0,
+        totalPremises: 0,
+        isReviewMode: false
+    },
 };
-
-
