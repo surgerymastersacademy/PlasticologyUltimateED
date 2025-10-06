@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasticology Radio - Ultimate Edition</title>
+    <link rel="icon" type="image/png" href="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* --- BASE THEME (Vibrant Blue) --- */
+        :root {
+            --bg-primary: #f8fafc; --bg-secondary: #ffffff; --bg-tertiary: #f1f5f9;
+            --text-primary: #1e293b; --text-secondary: #475569; --border-color: #e2e8f0;
+            --accent-color: #2563eb; --accent-color-hover: #3b82f6; --accent-color-rgb: 37, 99, 235;
+            --shadow-color: rgba(0,0,0,0.05);
+        }
+        html.dark {
+            --bg-primary: #0f172a; --bg-secondary: #1e293b; --bg-tertiary: #334155;
+            --text-primary: #f1f5f9; --text-secondary: #94a3b8; --border-color: #334155;
+            --accent-color: #38bdf8; --accent-color-hover: #7dd3fc; --accent-color-rgb: 56, 189, 248;
+            --shadow-color: rgba(0,0,0,0.4);
+        }
+        /* --- EMERALD THEME --- */
+        html[data-theme='emerald'] {
+            --accent-color: #059669; --accent-color-hover: #10b981; --accent-color-rgb: 5, 150, 105;
+        }
+        html[data-theme='emerald'].dark {
+            --accent-color: #34d399; --accent-color-hover: #6ee7b7; --accent-color-rgb: 52, 211, 153;
+        }
+        /* --- ROSE THEME --- */
+        html[data-theme='rose'] {
+            --accent-color: #e11d48; --accent-color-hover: #f43f5e; --accent-color-rgb: 225, 29, 72;
+        }
+        html[data-theme='rose'].dark {
+            --accent-color: #f472b6; --accent-color-hover: #f9a8d4; --accent-color-rgb: 244, 114, 182;
+        }
+        /* --- INDIGO THEME --- */
+        html[data-theme='indigo'] {
+            --accent-color: #4f46e5; --accent-color-hover: #6366f1; --accent-color-rgb: 79, 70, 229;
+        }
+        html[data-theme='indigo'].dark {
+            --accent-color: #818cf8; --accent-color-hover: #a5b4fc; --accent-color-rgb: 129, 140, 248;
+        }
+
+        body { font-family: 'Cairo', sans-serif; background-color: var(--bg-primary); color: var(--text-primary); transition: background-color 0.3s, color 0.3s; }
+        .bg-primary { background-color: var(--bg-primary); } .bg-secondary { background-color: var(--bg-secondary); }
+        .text-primary { color: var(--text-primary); } .text-secondary { color: var(--text-secondary); }
+        .border-color { border-color: var(--border-color); } .accent-color { color: var(--accent-color); }
+        .bg-accent-color { background-color: var(--accent-color); }
+        .hover\:bg-accent-color-hover:hover { background-color: var(--accent-color-hover); }
+
+        main { padding-bottom: 160px; }
+        .loader { border: 5px solid var(--bg-tertiary); border-top: 5px solid var(--accent-color); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 40px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #audio-player-container { transform: translateY(100%); transition: transform 0.4s ease-in-out; }
+        #audio-player-container.visible { transform: translateY(0); }
+        #audio-player-container.expanded { transform: translateY(0); }
+        #full-player-overlay { opacity: 0; pointer-events: none; transition: opacity 0.4s ease-in-out, background 0.5s ease; background: linear-gradient(180deg, rgba(var(--accent-color-rgb), 0.1) 0%, var(--bg-secondary) 40%); }
+        #audio-player-container.expanded #full-player-overlay { opacity: 1; pointer-events: auto; }
+        #mini-player { transition: opacity 0.2s, transform 0.3s; }
+        #audio-player-container.expanded #mini-player { opacity: 0; transform: translateY(100%); pointer-events: none; }
+        
+        input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; background: var(--bg-tertiary); border-radius: 5px; outline: none; transition: opacity .2s; cursor: pointer; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--accent-color); border-radius: 50%; box-shadow: 0 0 5px var(--shadow-color); }
+        
+        .player-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .lecture-item-playing { background-color: rgba(var(--accent-color-rgb), 0.1); border-left: 4px solid var(--accent-color); }
+        .active-btn, .fav-btn.active { color: var(--accent-color); }
+        .chapter-card.active { border-color: var(--accent-color); }
+        .main-tab.active { border-color: var(--accent-color); color: var(--accent-color); }
+        .speed-btn.active { background-color: var(--accent-color); color: white; }
+        html.dark .speed-btn.active { color: var(--bg-primary); }
+        
+        html:not(.dark) #hero-play-btn i { color: white; }
+        #bg-animation { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; overflow: hidden; background-color: var(--bg-primary); }
+        html.dark #bg-animation { background-color: #0f172a; }
+        #bg-animation::before, #bg-animation::after {
+            content: ''; position: absolute; left: 50%; top: 50%;
+            width: 200vmax; height: 200vmax; border-radius: 45% 50% 55% 40%;
+            transform-origin: center center; opacity: 0.5;
+        }
+        html.dark #bg-animation::before { background: radial-gradient(circle at center, rgba(var(--accent-color-rgb), 0.3) 0%, rgba(12, 74, 110, 0) 60%); animation: bg-spin 25s linear infinite; }
+        html.dark #bg-animation::after { background: radial-gradient(circle at center, rgba(129, 140, 248, 0.2) 0%, rgba(12, 74, 110, 0) 60%); animation: bg-spin 20s linear infinite reverse; }
+        
+        html:not(.dark) #bg-animation::before { background: radial-gradient(circle at center, rgba(var(--accent-color-rgb), 0.1) 0%, rgba(255, 255, 255, 0) 60%); animation: bg-spin 25s linear infinite; }
+        html:not(.dark) #bg-animation::after { background: radial-gradient(circle at center, rgba(var(--accent-color-rgb), 0.05) 0%, rgba(255, 255, 255, 0) 60%); animation: bg-spin 20s linear infinite reverse; }
+
+        @keyframes bg-spin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+        .main-content { position: relative; z-index: 1; }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; }
+        .sub-accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-in-out; }
+        .lecture-checkbox, .chapter-checkbox { transform: scale(1.2); accent-color: var(--accent-color); }
+        
+        .horizontal-scroll-container { scroll-behavior: smooth; -ms-overflow-style: none; scrollbar-width: none; }
+        .horizontal-scroll-container::-webkit-scrollbar { display: none; }
+        .scroll-dots { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }
+        .scroll-dots .dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--border-color); transition: background-color 0.3s, transform 0.3s; cursor: pointer; }
+        .scroll-dots .dot.active { background-color: var(--accent-color); transform: scale(1.2); }
+        #multi-select-bar.visible { transform: translate(-50%, 0); opacity: 1; }
+
+        #sidebar-menu { transform: translateX(100%); }
+        #sidebar-menu.open { transform: translateX(0); }
+    </style>
+</head>
+<body class="antialiased">
+    <div id="bg-animation"></div>
+    <div class="main-content max-w-5xl mx-auto bg-secondary min-h-screen shadow-2xl flex flex-col relative overflow-x-hidden">
+        <header class="bg-primary p-4 shadow-lg sticky top-0 z-40">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <img src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Plasticology Logo" class="h-12">
+                    <div><h1 class="text-xl font-bold text-primary">Plasticology Radio</h1><p class="text-secondary text-xs">Your Professional Learning Companion</p></div>
+                </div>
+                <div class="flex items-center gap-4">
+                     <!-- Desktop Navigation -->
+                     <nav class="hidden sm:flex items-center gap-6 text-sm font-medium">
+                        <a href="#" class="nav-link features-link text-secondary hover:text-primary transition-colors font-bold"><i class="fas fa-rocket mr-1"></i>Why Radio?</a>
+                        <a href="https://www.surgerymastersacademy.com" target="_blank" rel="noopener noreferrer" class="nav-link text-secondary hover:text-primary transition-colors">Home</a>
+                        <a href="#" class="nav-link about-us-link text-secondary hover:text-primary transition-colors">About Us</a>
+                        <a href="https://t.me/DrBishoyAcademy" target="_blank" rel="noopener noreferrer" class="nav-link text-secondary hover:text-primary transition-colors">Contact</a>
+                    </nav>
+                    <div class="hidden sm:block relative theme-switcher">
+                        <button class="theme-palette-btn text-xl text-secondary hover:text-primary transition-colors"><i class="fas fa-palette"></i></button>
+                        <div class="theme-options hidden absolute top-full right-0 mt-2 bg-primary border border-color rounded-lg shadow-2xl p-3 z-50">
+                            <div class="grid grid-cols-2 gap-3">
+                                <button data-theme="blue" class="theme-option w-8 h-8 rounded-full bg-blue-600 ring-2 ring-offset-2 ring-offset-primary"></button>
+                                <button data-theme="emerald" class="theme-option w-8 h-8 rounded-full bg-emerald-600"></button>
+                                <button data-theme="rose" class="theme-option w-8 h-8 rounded-full bg-rose-600"></button>
+                                <button data-theme="indigo" class="theme-option w-8 h-8 rounded-full bg-indigo-600"></button>
+                            </div>
+                            <hr class="my-3 border-color">
+                            <button class="dark-mode-toggle w-full flex items-center justify-center gap-2 text-sm text-secondary hover:text-primary p-1 rounded-md"><i class="fas fa-moon"></i><span class="dark-mode-text">Dark Mode</span></button>
+                        </div>
+                    </div>
+                     <!-- Mobile Menu Button -->
+                    <button id="mobile-menu-btn" class="sm:hidden text-xl text-secondary hover:text-primary">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-4 md:p-8 flex-grow">
+            <!-- Hero Player -->
+            <div id="hero-player" class="mb-8 p-8 bg-primary rounded-2xl shadow-lg flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+                <div>
+                    <h2 class="text-3xl font-bold text-primary">Master Your Craft</h2>
+                    <p class="text-secondary mt-1">Press play for a random lecture and start your learning journey.</p>
+                </div>
+                <button id="hero-play-btn" class="player-btn text-5xl rounded-full w-20 h-20 flex items-center justify-center shadow-lg bg-accent-color hover:bg-accent-color-hover transition transform hover:scale-110">
+                    <i class="fas fa-play text-white"></i>
+                </button>
+            </div>
+            
+            <!-- Tab Navigation -->
+            <div class="mb-6 border-b border-color flex">
+                <button class="main-tab py-3 px-6 text-lg font-bold border-b-2 transition active" data-tab="library">Library</button>
+                <button class="main-tab py-3 px-6 text-lg font-bold border-b-2 transition" data-tab="collection">My Collection</button>
+            </div>
+
+            <!-- Tab Content -->
+            <div id="tab-content-library">
+                <div class="mb-8 relative"><input type="search" id="search-input" placeholder="Search for a lecture..." class="w-full bg-primary border border-color rounded-full py-3 px-6 pl-12 text-primary focus:outline-none focus:ring-2 focus:ring-accent-color transition"><i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-secondary"></i></div>
+                <div class="mb-8"><h2 class="text-xl font-bold text-primary mb-2">Featured For You</h2><div id="featured-wrapper"><div id="featured-lectures-grid" class="horizontal-scroll-container flex gap-4 overflow-x-auto pb-4"></div><div class="scroll-dots"></div></div></div>
+                <div class="mb-8"><h2 class="text-xl font-bold text-primary mb-4">Chapters</h2><div id="chapters-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div></div>
+            </div>
+
+            <div id="tab-content-collection" class="hidden">
+                 <div class="mb-8"><h2 class="text-xl font-bold text-primary mb-2">Recently Played</h2><div id="recently-played-wrapper"><div id="recently-played-grid" class="horizontal-scroll-container flex gap-4 overflow-x-auto pb-4"></div><div class="scroll-dots"></div></div></div>
+                 <div class="mb-8"><h2 class="text-xl font-bold text-primary mb-4">My Items</h2><div id="collection-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div></div>
+            </div>
+
+            <div id="lectures-loader" class="loader hidden"></div>
+            <p id="loading-error" class="text-center text-red-500 hidden"></p>
+        </main>
+        
+        <footer class="text-center p-4 bg-primary text-xs text-secondary border-t border-color">Copyright © Egyptian Plastic Surgery Academy</footer>
+    </div>
+    
+    <!-- Mobile Sidebar -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden transition-opacity duration-300"></div>
+    <div id="sidebar-menu" class="fixed top-0 right-0 h-full w-72 bg-primary shadow-2xl z-50 transition-transform duration-300 p-6 flex flex-col">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-lg font-bold text-primary">Menu</h2>
+            <button id="close-sidebar-btn" class="text-2xl text-secondary hover:text-primary"><i class="fas fa-times"></i></button>
+        </div>
+        <nav class="flex flex-col gap-4 text-lg">
+            <a href="#" class="nav-link features-link text-secondary hover:text-primary transition-colors font-medium py-2"><i class="fas fa-rocket w-8 text-center"></i>Why Radio?</a>
+            <a href="https://www.surgerymastersacademy.com" target="_blank" rel="noopener noreferrer" class="nav-link text-secondary hover:text-primary transition-colors font-medium py-2"><i class="fas fa-home w-8 text-center"></i>Home</a>
+            <a href="#" class="nav-link about-us-link text-secondary hover:text-primary transition-colors font-medium py-2"><i class="fas fa-info-circle w-8 text-center"></i>About Us</a>
+            <a href="https://t.me/DrBishoyAcademy" target="_blank" rel="noopener noreferrer" class="nav-link text-secondary hover:text-primary transition-colors font-medium py-2"><i class="fas fa-paper-plane w-8 text-center"></i>Contact</a>
+        </nav>
+        <div class="mt-auto pt-8">
+            <h3 class="text-sm font-bold text-secondary mb-4">Theme Options</h3>
+            <div class="bg-secondary rounded-lg p-4">
+                <div class="grid grid-cols-4 gap-3 mb-4">
+                    <button data-theme="blue" class="theme-option w-10 h-10 rounded-full bg-blue-600 ring-2 ring-offset-2 ring-offset-secondary"></button>
+                    <button data-theme="emerald" class="theme-option w-10 h-10 rounded-full bg-emerald-600"></button>
+                    <button data-theme="rose" class="theme-option w-10 h-10 rounded-full bg-rose-600"></button>
+                    <button data-theme="indigo" class="theme-option w-10 h-10 rounded-full bg-indigo-600"></button>
+                </div>
+                <button class="dark-mode-toggle w-full flex items-center justify-center gap-2 text-sm text-secondary hover:text-primary p-2 rounded-md bg-primary"><i class="fas fa-moon"></i><span class="dark-mode-text">Dark Mode</span></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-notification" class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-900 text-white py-2 px-5 rounded-full shadow-lg text-sm opacity-0 transition-all duration-300 z-[110]"></div>
+    
+    <div id="multi-select-bar" class="fixed bottom-40 left-1/2 -translate-x-1/2 w-11/12 max-w-md bg-primary shadow-2xl rounded-lg p-3 z-40 flex items-center justify-between transition-transform duration-300 opacity-0 transform translate-y-10">
+        <p class="text-sm font-bold text-primary"><span id="selected-chapters-count">0</span> Chapters selected</p>
+        <button id="play-selected-chapters-btn" class="py-2 px-4 rounded-md text-sm font-semibold bg-accent-color text-white hover:opacity-90"><i class="fas fa-play mr-2"></i>Play Selected</button>
+    </div>
+
+    <!-- Modals -->
+    <div id="features-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[100] hidden items-center justify-center p-4">
+        <div class="bg-primary rounded-lg shadow-xl max-w-2xl w-full p-6 md:p-8 relative text-left">
+            <button id="close-features-modal-btn" class="absolute top-4 right-4 text-secondary hover:text-primary text-2xl"><i class="fas fa-times"></i></button>
+            <h2 class="text-2xl font-bold text-primary mb-4">🚀 راديو Plasticology: سلاحك السري للنجاح!</h2>
+            <p class="text-secondary mb-6">مرحباً بك في مستقبل المذاكرة! هذا ليس مجرد مشغل صوتي، بل هو شريكك الدراسي الذكي المصمم خصيصاً لجراحي التجميل الطموحين مثلك. استغل كل دقيقة في يومك لتحويل وقتك الضائع إلى معرفة.</p>
+            <ul class="space-y-4 text-secondary">
+                <li class="flex items-start gap-3"><i class="fas fa-headphones-alt text-accent-color text-lg mt-1"></i><span><strong>تعلم في أي مكان:</strong> استمع للمحاضرات أثناء القيادة، في الجيم، أو بين العمليات. حول كل لحظة إلى فرصة للتعلم.</span></li>
+                <li class="flex items-start gap-3"><i class="fas fa-bookmark text-accent-color text-lg mt-1"></i><span><strong>لا تفوت معلومة:</strong> أضف علامات مرجعية مع ملاحظات صوتية عند النقاط المهمة للعودة إليها بسهولة.</span></li>
+                <li class="flex items-start gap-3"><i class="fas fa-tachometer-alt text-accent-color text-lg mt-1"></i><span><strong>سرّع من تعلمك:</strong> تحكم في سرعة التشغيل لتناسب إيقاعك، سواء كنت تراجع بسرعة أو تدرس بتركيز.</span></li>
+                <li class="flex items-start gap-3"><i class="fas fa-star text-accent-color text-lg mt-1"></i><span><strong>مكتبتك الخاصة:</strong> قم ببناء مجموعتك الخاصة من المحاضرات المفضلة وتتبع تقدمك وإحصائيات استماعك.</span></li>
+            </ul>
+            <p class="mt-8 font-bold text-center text-primary text-lg">استثمر في نفسك. ابدأ رحلتك نحو التميز الآن!</p>
+        </div>
+    </div>
+    <div id="bookmark-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[100] hidden items-center justify-center p-4">
+        <div class="bg-primary rounded-lg shadow-xl max-w-sm w-full p-6 relative">
+            <h3 class="text-lg font-bold text-primary mb-4">Add a Note to Bookmark</h3>
+            <p id="bookmark-lecture-info" class="text-sm text-secondary mb-4"></p>
+            <textarea id="bookmark-note-input" class="w-full bg-secondary border border-color rounded-md p-2 text-primary focus:outline-none focus:ring-2 focus:ring-accent-color" rows="3" placeholder="Write your note here..."></textarea>
+            <div class="mt-4 flex justify-end gap-3">
+                <button id="cancel-bookmark-btn" class="py-2 px-4 rounded-md text-sm font-semibold text-secondary hover:bg-secondary">Cancel</button>
+                <button id="save-bookmark-btn" class="py-2 px-4 rounded-md text-sm font-semibold bg-accent-color text-white hover:opacity-90">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="about-us-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[100] hidden items-center justify-center p-4">
+        <div class="bg-primary rounded-lg shadow-xl max-w-2xl w-full p-6 md:p-8 relative text-left">
+            <button id="close-about-modal-btn" class="absolute top-4 right-4 text-secondary hover:text-primary text-2xl"><i class="fas fa-times"></i></button>
+            <h2 class="text-2xl font-bold text-primary mb-4">✨ About Plasticology Radio</h2>
+            <p class="text-secondary mb-6">An innovative educational platform in plastic surgery, designed to help doctors prepare for local and international exams.</p>
+            <h2 class="text-2xl font-bold text-primary mb-4">👨‍⚕️ About Dr. Bishoy</h2>
+            <p class="text-secondary">Founder of Plasticology and a dedicated plastic surgery consultant, Dr. Bishoy combines academic and practical experience with a simplified teaching style to make complex topics accessible and memorable.</p>
+        </div>
+    </div>
+
+    <!-- Player -->
+    <div id="audio-player-container" class="fixed inset-0 z-50 pointer-events-none">
+        <audio id="audio-element" class="hidden" crossorigin="anonymous"></audio>
+        <div id="full-player-overlay" class="w-full h-full flex flex-col p-4 md:p-8 pt-6">
+            <div class="flex justify-between items-center w-full max-w-md mx-auto mb-4">
+                <button id="collapse-player-btn" class="player-btn text-primary text-2xl"><i class="fas fa-chevron-down"></i></button>
+                <div class="flex gap-4">
+                    <button id="bookmark-btn" class="player-btn text-xl text-secondary hover:text-primary"><i class="fas fa-bookmark"></i></button>
+                    <button id="queue-toggle-btn" class="player-btn text-xl text-secondary hover:text-primary"><i class="fas fa-list-ol"></i></button>
+                    <button id="sleep-timer-btn" class="player-btn text-xl text-secondary hover:text-primary relative"><i class="fas fa-clock"></i></button>
+                </div>
+            </div>
+            <!-- Main Player View -->
+            <div id="player-main-view" class="flex-grow flex flex-col items-center justify-center text-center">
+                <div id="player-artwork" class="w-48 h-48 bg-tertiary rounded-lg shadow-2xl flex items-center justify-center mb-6 text-6xl text-secondary"><i class="fas fa-music"></i></div>
+                <h3 id="full-player-lecture-title" class="font-bold text-primary text-2xl truncate w-full max-w-md">No Track Selected</h3>
+                <p id="full-player-chapter-title" class="text-lg text-secondary mt-1">---</p>
+                <canvas id="audio-visualizer" class="w-full max-w-sm h-24 mt-6"></canvas>
+            </div>
+            <!-- Up Next View -->
+            <div id="player-list-view" class="hidden flex-grow flex flex-col w-full max-w-md mx-auto overflow-hidden">
+                <h3 id="list-view-title" class="font-bold text-primary text-xl mb-4 text-center"></h3>
+                <div id="list-view-content" class="flex-grow overflow-y-auto space-y-2 pl-2"></div>
+            </div>
+
+            <div class="w-full max-w-md mx-auto">
+                 <div id="sleep-timer-popup" class="hidden absolute bottom-full mb-2 left-0 bg-primary border border-color p-2 rounded-lg shadow-2xl w-48">
+                    <p class="text-sm font-bold text-primary px-2 pb-2 border-b border-color">Sleep Timer</p>
+                    <button class="timer-option block w-full text-left p-2 text-sm text-secondary hover:bg-secondary rounded" data-minutes="15">After 15 minutes</button>
+                    <button class="timer-option block w-full text-left p-2 text-sm text-secondary hover:bg-secondary rounded" data-minutes="30">After 30 minutes</button>
+                    <button class="timer-option block w-full text-left p-2 text-sm text-secondary hover:bg-secondary rounded" data-minutes="end">End of Track</button>
+                    <button class="timer-option block w-full text-left p-2 text-sm text-red-500 hover:bg-secondary rounded" data-minutes="0">Cancel Timer</button>
+                </div>
+                <div class="flex items-center gap-3"><span id="full-current-time" class="text-xs font-mono text-secondary">00:00</span><input type="range" id="full-progress-bar" class="w-full" value="0" step="1"><span id="full-duration" class="text-xs font-mono text-secondary">00:00</span></div>
+                <div class="flex items-center justify-around gap-2 sm:gap-4 mt-4">
+                    <button id="shuffle-btn" class="player-btn text-xl text-secondary hover:text-primary w-12 h-12"><i class="fas fa-random"></i></button>
+                    <button id="rewind-btn" class="player-btn text-xl text-secondary hover:text-primary w-12 h-12"><i class="fas fa-undo-alt"></i></button>
+                    <button id="prev-btn" class="player-btn text-2xl text-primary hover:accent-color w-14 h-14"><i class="fas fa-backward-step"></i></button>
+                    <button id="full-play-pause-btn" class="player-btn text-5xl accent-color w-16 h-16 flex items-center justify-center"><i class="fas fa-play-circle"></i></button>
+                    <button id="next-btn" class="player-btn text-2xl text-primary hover:accent-color w-14 h-14"><i class="fas fa-forward-step"></i></button>
+                    <button id="forward-btn" class="player-btn text-xl text-secondary hover:text-primary w-12 h-12"><i class="fas fa-redo-alt"></i></button>
+                    <button id="repeat-btn" class="player-btn text-xl text-secondary hover:text-primary w-12 h-12 relative"><i class="fas fa-repeat"></i><span id="repeat-badge" class="absolute top-1 right-1 text-xs font-bold accent-color hidden">1</span></button>
+                </div>
+                 <div class="flex justify-between items-center mt-4 px-4">
+                    <button id="share-btn-full" class="player-btn text-xl text-secondary hover:text-primary w-12 h-12"><i class="fas fa-share-alt"></i></button>
+                    <div class="relative">
+                        <button id="speed-control-btn" class="player-btn text-xl text-secondary hover:text-primary w-12 h-12"><i class="fas fa-tachometer-alt"></i></button>
+                        <div id="speed-popup" class="hidden absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-primary border border-color p-2 rounded-lg shadow-2xl w-36">
+                             <button class="speed-option block w-full text-center p-2 text-sm text-secondary hover:bg-secondary rounded" data-speed="1">Normal (x1)</button>
+                             <button class="speed-option block w-full text-center p-2 text-sm text-secondary hover:bg-secondary rounded" data-speed="1.5">Fast (x1.5)</button>
+                             <button class="speed-option block w-full text-center p-2 text-sm text-secondary hover:bg-secondary rounded" data-speed="2">Faster (x2)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="mini-player" class="absolute bottom-0 left-0 right-0 bg-secondary border-t border-color shadow-[0_-2px_15px_-3px_var(--shadow-color)] pointer-events-auto p-2 transition-all duration-300">
+            <input type="range" id="mini-progress-bar" class="w-full h-1 absolute top-0 left-0" value="0" step="1" style="padding: 0; margin: 0;">
+            <!-- Top Row: Info and Main Controls -->
+            <div class="flex items-center justify-between">
+                <div id="mini-player-info-area" class="flex items-center gap-3 overflow-hidden flex-grow cursor-pointer w-1/3">
+                    <div id="mini-player-artwork" class="w-10 h-10 bg-tertiary rounded flex-shrink-0 flex items-center justify-center text-secondary"><i class="fas fa-music"></i></div>
+                    <div>
+                        <h3 id="mini-player-lecture-title" class="font-bold text-primary truncate text-sm">Select a track</h3>
+                        <p id="mini-player-chapter-title" class="text-xs text-secondary">---</p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-center gap-2 flex-grow">
+                    <button id="prev-btn-mini" class="player-btn text-primary hover:accent-color w-12 h-12 text-2xl"><i class="fas fa-backward-step"></i></button>
+                    <button id="mini-play-pause-btn" class="player-btn text-4xl accent-color"><i class="fas fa-play-circle"></i></button>
+                    <button id="next-btn-mini" class="player-btn text-primary hover:accent-color w-12 h-12 text-2xl"><i class="fas fa-forward-step"></i></button>
+                </div>
+                <div class="flex items-center justify-end w-1/3">
+                    <button id="expand-player-btn" class="player-btn text-xl text-secondary hover:text-primary"><i class="fas fa-chevron-up"></i></button>
+                </div>
+            </div>
+            <!-- Bottom Row: Secondary Controls -->
+            <div class="flex items-center justify-evenly mt-1">
+                <button id="rewind-btn-mini" class="player-btn text-secondary hover:text-primary w-10 h-10 text-lg"><i class="fas fa-undo-alt"></i></button>
+                <button id="forward-btn-mini" class="player-btn text-secondary hover:text-primary w-10 h-10 text-lg"><i class="fas fa-redo-alt"></i></button>
+                <button id="speed-btn-mini" class="player-btn text-xs font-bold border border-color rounded-full w-10 h-10 flex items-center justify-center transition">x1</button>
+                <div class="relative">
+                    <button id="sleep-timer-btn-mini" class="player-btn text-secondary hover:text-primary w-10 h-10 text-lg"><i class="fas fa-clock"></i></button>
+                    <div id="sleep-timer-popup-mini" class="hidden absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-primary border border-color p-2 rounded-lg shadow-2xl w-48">
+                        <p class="text-sm font-bold text-primary px-2 pb-2 border-b border-color">Sleep Timer</p>
+                        <button class="timer-option-mini block w-full text-left p-2 text-sm text-secondary hover:bg-secondary rounded" data-minutes="15">After 15 min</button>
+                        <button class="timer-option-mini block w-full text-left p-2 text-sm text-secondary hover:bg-secondary rounded" data-minutes="30">After 30 min</button>
+                        <button class="timer-option-mini block w-full text-left p-2 text-sm text-secondary hover:bg-secondary rounded" data-minutes="end">End of Track</button>
+                        <button class="timer-option-mini block w-full text-left p-2 text-sm text-red-500 hover:bg-secondary rounded" data-minutes="0">Cancel</button>
+                    </div>
+                </div>
+                <button id="share-btn-mini" class="player-btn text-secondary hover:text-primary w-10 h-10 text-lg"><i class="fas fa-share-alt"></i></button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- CONSTANTS & STATE ---
+        const API_URL = 'https://plasticology-radio-worker.drbishoy.workers.dev';
+        const R2_PUBLIC_URL = "https://pub-696afd9dd0db455f8b6f46a5097c8660.r2.dev";
+        let AppState = { allLectures: [], currentPlaylist: [], currentTrackIndex: -1, isShuffle: false, repeatMode: 'none', playbackSpeed: 1.0, activeChapter: 'all', sleepTimerId: null, favorites: [], bookmarks: [], recentlyPlayed: [], listenProgress: {}, stats: { totalListenTime: 0, completedTracks: [], chapterPlayCount: {} }, openAccordion: null, selectedChapters: [] };
+        let audioContext, analyser, sourceNode;
+        const chapterColors = ["#38bdf8", "#818cf8", "#f472b6", "#fb923c", "#a3e635", "#4ade80"];
+
+
+        // --- DOM SELECTORS ---
+        const $ = (selector) => document.querySelector(selector);
+        const $$ = (selector) => document.querySelectorAll(selector);
+        const audioElement = $('#audio-element');
+        const playerContainer = $('#audio-player-container');
+        const visualizerCanvas = $('#audio-visualizer');
+        const bookmarkModal = $('#bookmark-modal');
+        const aboutUsModal = $('#about-us-modal');
+        const featuresModal = $('#features-modal');
+
+        // --- THEME ---
+        const setDarkMode = (isDark) => {
+            document.documentElement.classList.toggle('dark', isDark);
+            $$('.dark-mode-text').forEach(el => el.textContent = isDark ? 'Light Mode' : 'Dark Mode');
+            $$('.dark-mode-toggle i').forEach(el => el.className = isDark ? 'fas fa-sun' : 'fas fa-moon');
+            localStorage.setItem('darkMode', isDark ? 'true' : 'false');
+        };
+
+        const setAccentTheme = (themeName) => {
+            document.documentElement.dataset.theme = themeName;
+            $$('.theme-option').forEach(btn => {
+                btn.classList.toggle('ring-2', btn.dataset.theme === themeName);
+            });
+            localStorage.setItem('accentTheme', themeName);
+        };
+        
+        // --- CORE APP LOGIC ---
+        async function init() {
+            $('#lectures-loader').classList.remove('hidden');
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error(`Network error: ${response.statusText}`);
+                AppState.allLectures = await response.json();
+                if (AppState.allLectures.error) throw new Error(AppState.allLectures.error);
+
+                loadState();
+                populateGrids();
+                renderFeaturedLectures();
+                setupEventListeners();
+                checkForSharedLecture();
+            } catch (e) {
+                console.error(e);
+                $('#loading-error').innerHTML = `
+                    <div class="bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 p-4 rounded-lg text-center mx-auto max-w-md">
+                        <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                        <h3 class="font-bold">Failed to Load Playlist</h3>
+                        <p class="text-sm mb-4">${e.message}</p>
+                        <button onclick="location.reload()" class="bg-rose-600 text-white py-1 px-3 rounded-md text-sm font-semibold hover:bg-rose-500">Retry</button>
+                    </div>`;
+                $('#loading-error').classList.remove('hidden');
+            } finally {
+                $('#lectures-loader').classList.add('hidden');
+            }
+        }
+        
+        // --- UI RENDERING ---
+        function groupLecturesByHierarchy(lectures) {
+            const hierarchy = {};
+            lectures.forEach(lecture => {
+                const parts = lecture.Chapter ? lecture.Chapter.split('/') : ['General'];
+                const mainChapter = parts[0];
+                const subChapter = parts.length > 1 ? parts.slice(1).join('/') : '_lectures';
+
+                if (!hierarchy[mainChapter]) {
+                    hierarchy[mainChapter] = {};
+                }
+                if (!hierarchy[mainChapter][subChapter]) {
+                    hierarchy[mainChapter][subChapter] = [];
+                }
+                hierarchy[mainChapter][subChapter].push(lecture);
+            });
+            return hierarchy;
+        }
+
+        function populateGrids() {
+            const collectionGrid = $('#collection-grid');
+            const chaptersGrid = $('#chapters-grid');
+            const mainChapters = [...new Set(AppState.allLectures.map(l => l.Chapter?.split('/')[0]).filter(Boolean))].sort();
+            const chapterIcons = ['fa-brain', 'fa-lungs', 'fa-heart', 'fa-hand-paper', 'fa-bone', 'fa-eye', 'fa-microscope', 'fa-pills', 'fa-notes-medical', 'fa-syringe'];
+            
+            collectionGrid.innerHTML = '';
+            chaptersGrid.innerHTML = '';
+            
+            const createCard = (name, value, icon, isCollection = false) => {
+                const card = document.createElement('div');
+                const cardWrapper = document.createElement('div');
+                cardWrapper.className = 'chapter-card-wrapper relative';
+                card.dataset.chapter = value;
+                card.dataset.icon = icon;
+                card.className = 'chapter-card bg-primary p-4 rounded-lg border-2 border-color cursor-pointer hover:border-accent-color transition-all duration-300';
+                
+                let count = 0;
+                let countText = '';
+                if (value === 'favorites') { count = AppState.favorites.length; countText = `${count} Tracks`; } 
+                else if (value === 'bookmarks') { count = AppState.bookmarks.length; countText = `${count} Notes`; }
+                else if (value === 'stats') { count = Math.round(AppState.stats.totalListenTime / 3600); countText = `~${count} hours`; }
+                else if (value === 'all') { count = AppState.allLectures.length; countText = `${count} Tracks`; }
+                else { count = AppState.allLectures.filter(l => l.Chapter?.startsWith(value)).length; countText = `${count} Tracks`; }
+
+                card.innerHTML = `
+                    ${isCollection ? '' : `<input type="checkbox" class="chapter-checkbox absolute top-3 left-3 w-5 h-5 rounded border-gray-300" onclick="event.stopPropagation(); handleChapterSelectionToggle(this, '${value}');">`}
+                    <div class="flex items-center gap-3 ${isCollection ? '' : 'pl-8 text-left'}">
+                        <div class="w-10 h-10 bg-secondary rounded-md flex items-center justify-center"><i class="fas ${icon} text-accent-color"></i></div>
+                        <div class="flex-grow">
+                            <h3 class="font-bold text-primary">${name}</h3>
+                            <p class="text-xs text-secondary">${countText}</p>
+                        </div>
+                        <i class="fas fa-chevron-down transition-transform"></i>
+                    </div>`;
+                
+                cardWrapper.appendChild(card);
+                if (isCollection) {
+                     card.onclick = () => { /* Logic for collection items if needed */ };
+                } else {
+                    card.onclick = () => toggleAccordionChapter(value, card);
+                }
+                return cardWrapper;
+            };
+
+            collectionGrid.appendChild(createCard('Favorites', 'favorites', 'fa-heart', true));
+            collectionGrid.appendChild(createCard('Bookmarks', 'bookmarks', 'fa-bookmark', true));
+            collectionGrid.appendChild(createCard('My Stats', 'stats', 'fa-chart-line', true));
+
+            chaptersGrid.appendChild(createCard('All Chapters', 'all', 'fa-list-alt'));
+            mainChapters.forEach((chapter, i) => chaptersGrid.appendChild(createCard(chapter, chapter, chapterIcons[i % chapterIcons.length])));
+        }
+
+        function toggleAccordionChapter(chapterValue, cardElement) {
+            const cardWrapper = cardElement.parentElement;
+            const currentlyOpen = $('.accordion-content');
+            const wasOpen = cardElement.classList.contains('active');
+
+            if (currentlyOpen) {
+                currentlyOpen.style.maxHeight = '0';
+                const activeCard = $('.chapter-card.active');
+                if (activeCard) {
+                    activeCard.classList.remove('active');
+                    activeCard.querySelector('.fa-chevron-down').style.transform = 'rotate(0deg)';
+                }
+                currentlyOpen.addEventListener('transitionend', () => currentlyOpen.remove(), { once: true });
+            }
+
+            if (wasOpen) return;
+
+            cardElement.classList.add('active');
+            cardElement.querySelector('.fa-chevron-down').style.transform = 'rotate(180deg)';
+
+            const lecturesInChapter = chapterValue === 'all'
+                ? AppState.allLectures
+                : AppState.allLectures.filter(l => l.Chapter?.startsWith(chapterValue));
+
+            const hierarchy = groupLecturesByHierarchy(lecturesInChapter);
+            const contentHTML = renderAccordionContent(hierarchy, chapterValue);
+
+            const accordionDiv = document.createElement('div');
+            accordionDiv.className = 'accordion-content col-span-1 md:col-span-2';
+            accordionDiv.innerHTML = `<div class="p-4 border-t-2 border-color">${contentHTML}</div>`;
+
+            cardWrapper.appendChild(accordionDiv);
+            
+            accordionDiv.querySelectorAll('.sub-accordion-toggle').forEach(toggle => {
+                toggle.onclick = (e) => {
+                    e.stopPropagation();
+                    const content = toggle.nextElementSibling;
+                    const icon = toggle.querySelector('i');
+                    if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+                        content.style.maxHeight = '0';
+                        icon.style.transform = 'rotate(0deg)';
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                        icon.style.transform = 'rotate(180deg)';
+                    }
+                };
+            });
+
+            setTimeout(() => {
+                accordionDiv.style.maxHeight = accordionDiv.scrollHeight + "px";
+            }, 10);
+        }
+
+        function renderAccordionContent(hierarchy, chapterValue) {
+            let html = `
+            <div class="flex items-center gap-4 mb-4">
+                <button class="flex-1 py-2 px-4 rounded-md text-sm font-semibold bg-accent-color text-white hover:opacity-90" onclick="playAllFromAccordion(event, '${chapterValue}')"><i class="fas fa-play-circle mr-2"></i>Play All</button>
+                <button class="flex-1 py-2 px-4 rounded-md text-sm font-semibold bg-tertiary text-primary hover:bg-primary" onclick="playSelectedFromAccordion(event, '${chapterValue}')"><i class="fas fa-check-square mr-2"></i>Play Selected</button>
+            </div>`;
+
+            for (const mainChapterName in hierarchy) {
+                const subChapters = hierarchy[mainChapterName];
+                for (const subChapterName in subChapters) {
+                    const lectures = subChapters[subChapterName];
+                    if (subChapterName === '_lectures') {
+                        html += renderPlaylistHTML(lectures, true);
+                    } else {
+                        html += `
+                        <div class="bg-primary rounded-lg mb-2">
+                            <div class="sub-accordion-toggle p-3 flex justify-between items-center cursor-pointer hover:bg-tertiary">
+                                <h4 class="font-bold text-primary">${subChapterName}</h4>
+                                <i class="fas fa-chevron-down transition-transform text-sm text-secondary"></i>
+                            </div>
+                            <div class="sub-accordion-content pl-4">
+                                <div class="border-l-2 border-color">
+                                    ${renderPlaylistHTML(lectures, true)}
+                                </div>
+                            </div>
+                        </div>`;
+                    }
+                }
+            }
+            return html;
+        }
+
+        function renderPlaylistHTML(lectures, withCheckbox = false) {
+             if (!lectures || lectures.length === 0) return `<p class="text-center text-secondary mt-2">No results found.</p>`;
+            
+            let listContent = lectures.map(lecture => {
+                const isPlaying = lecture.UniqueID === AppState.currentPlaylist[AppState.currentTrackIndex]?.UniqueID;
+                const isFavorite = AppState.favorites.includes(lecture.UniqueID);
+                const progress = AppState.listenProgress[lecture.UniqueID] || 0;
+                return `
+                    <li class="lecture-item flex items-center justify-between gap-2 p-3 rounded-md hover:bg-tertiary transition ${isPlaying ? 'lecture-item-playing' : ''}" data-unique-id="${lecture.UniqueID}">
+                        <div class="flex items-center gap-3 flex-grow min-w-0 text-left relative">
+                            ${withCheckbox ? `<input type="checkbox" class="lecture-checkbox mr-3 flex-shrink-0" data-lecture-id="${lecture.UniqueID}">` : ''}
+                            <div class="absolute bottom-0 left-0 h-1 bg-accent-color rounded-full" style="width: ${progress * 100}%"></div>
+                            <button class="flex items-center gap-3 flex-grow min-w-0" onclick="handleLecturePlay(event, '${lecture.UniqueID}')">
+                                <i class="fas ${isPlaying ? 'fa-waveform-lines' : 'fa-play'} accent-color text-lg w-5 text-center"></i>
+                                <span class="font-medium text-primary truncate">${lecture.LectureName}</span>
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button class="add-to-queue-btn flex-shrink-0 text-secondary hover:accent-color w-8 h-8" onclick="handleQueueAdd(event, '${lecture.UniqueID}')" aria-label="Add to Queue"><i class="fas fa-plus"></i></button>
+                            <button class="fav-btn flex-shrink-0 text-secondary hover:accent-color w-8 h-8 ${isFavorite ? 'active' : ''}" onclick="handleFavoriteToggle(event, '${lecture.UniqueID}')" aria-label="Add to Favorites"><i class="${isFavorite ? 'fas' : 'far'} fa-heart"></i></button>
+                            <button class="share-btn flex-shrink-0 text-secondary hover:accent-color w-8 h-8" onclick="handleShare(event, '${lecture.UniqueID}')" aria-label="Share"><i class="fas fa-share-alt"></i></button>
+                        </div>
+                    </li>`;
+            }).join('');
+            return `<ul class="space-y-1">${listContent}</ul>`;
+        }
+
+        // --- ACCORDION PLAY HANDLERS ---
+        window.playAllFromAccordion = (event, chapterValue) => {
+            event.stopPropagation();
+            const lecturesToPlay = chapterValue === 'all'
+                ? AppState.allLectures
+                : AppState.allLectures.filter(l => l.Chapter?.startsWith(chapterValue));
+            
+            if (lecturesToPlay.length > 0) {
+                AppState.currentPlaylist = lecturesToPlay;
+                AppState.currentTrackIndex = 0;
+                playCurrentLecture();
+            }
+        };
+
+        window.playSelectedFromAccordion = (event, chapterValue) => {
+            event.stopPropagation();
+            const activeAccordion = $('.chapter-card.active').parentElement.querySelector('.accordion-content');
+            if (!activeAccordion) return;
+            
+            const selectedIds = [...activeAccordion.querySelectorAll('.lecture-checkbox:checked')].map(cb => cb.dataset.lectureId);
+            
+            if (selectedIds.length > 0) {
+                const lecturesToPlay = AppState.allLectures.filter(l => selectedIds.includes(l.UniqueID));
+                AppState.currentPlaylist = lecturesToPlay;
+                AppState.currentTrackIndex = 0;
+                playCurrentLecture();
+            } else {
+                showToast("Please select lectures to play.");
+            }
+        };
+
+
+        // --- EVENT HANDLERS (delegated from HTML) ---
+        window.handleLecturePlay = (event, uniqueId) => {
+            event.stopPropagation();
+            const lecture = AppState.allLectures.find(l => l.UniqueID === uniqueId);
+            if(lecture) {
+                AppState.currentPlaylist = [lecture];
+                AppState.currentTrackIndex = 0;
+                playCurrentLecture();
+            }
+        };
+        window.handleShare = (event, uniqueId) => { event.stopPropagation(); shareLecture(uniqueId); };
+        window.handleFavoriteToggle = (event, uniqueId) => { event.stopPropagation(); toggleFavorite(uniqueId); };
+        window.handleQueueAdd = (event, uniqueId) => { event.stopPropagation(); addToQueue(uniqueId); };
+        
+        window.handleChapterSelectionToggle = (checkbox, chapterValue) => {
+            if (checkbox.checked) {
+                if (!AppState.selectedChapters.includes(chapterValue)) {
+                    AppState.selectedChapters.push(chapterValue);
+                }
+            } else {
+                AppState.selectedChapters = AppState.selectedChapters.filter(c => c !== chapterValue);
+            }
+            updateFloatingActionBar();
+        }
+
+        function updateFloatingActionBar() {
+            const bar = $('#multi-select-bar');
+            const countSpan = $('#selected-chapters-count');
+            const count = AppState.selectedChapters.length;
+
+            if (count > 0) {
+                countSpan.textContent = count;
+                bar.classList.add('visible');
+            } else {
+                bar.classList.remove('visible');
+            }
+        }
+
+        function renderFeaturedLectures() {
+            const grid = $('#featured-lectures-grid');
+            grid.innerHTML = '';
+            if (AppState.allLectures.length === 0) return;
+            
+            const shuffled = [...AppState.allLectures].sort(() => 0.5 - Math.random());
+            const selected = shuffled.slice(0, 10);
+
+            selected.forEach(lecture => {
+                const card = document.createElement('div');
+                card.className = 'bg-primary p-3 rounded-lg w-40 flex-shrink-0 cursor-pointer hover:shadow-lg transition transform hover:-translate-y-1';
+                card.innerHTML = `<div class="w-full h-24 bg-tertiary rounded-md flex items-center justify-center text-3xl text-secondary mb-2"><i class="fas fa-random"></i></div>
+                                <p class="font-semibold text-sm text-primary truncate">${lecture.LectureName}</p>
+                                <p class="text-xs text-secondary truncate">${lecture.Chapter}</p>`;
+                card.onclick = () => {
+                    AppState.currentPlaylist = [lecture, ...AppState.allLectures.filter(l => l.UniqueID !== lecture.UniqueID)];
+                    AppState.currentTrackIndex = 0;
+                    playCurrentLecture();
+                };
+                grid.appendChild(card);
+            });
+            setupHorizontalScroller('featured-wrapper');
+        }
+        
+        function renderRecentlyPlayed() {
+            const grid = $('#recently-played-grid');
+            if(!grid) return;
+            grid.innerHTML = '';
+            const wrapper = $('#recently-played-wrapper');
+            if (AppState.recentlyPlayed.length === 0) { 
+                if (wrapper) wrapper.innerHTML = `<p class="text-secondary text-sm">No recently played tracks.</p>`;
+                return;
+            }
+            
+            const uniqueRecents = [...new Map(AppState.recentlyPlayed.map(item => [item['UniqueID'], item])).values()].slice(0, 10);
+            uniqueRecents.forEach(lecture => {
+                const card = document.createElement('div');
+                card.className = 'bg-primary p-3 rounded-lg w-40 flex-shrink-0 cursor-pointer hover:shadow-lg transition';
+                card.innerHTML = `<div class="w-full h-24 bg-tertiary rounded-md flex items-center justify-center text-3xl text-secondary mb-2"><i class="fas fa-music"></i></div>
+                                <p class="font-semibold text-sm text-primary truncate">${lecture.LectureName}</p>
+                                <p class="text-xs text-secondary truncate">${lecture.Chapter}</p>`;
+                card.onclick = () => {
+                    AppState.currentPlaylist = [lecture, ...AppState.allLectures.filter(l => l.UniqueID !== lecture.UniqueID)];
+                    AppState.currentTrackIndex = 0;
+                    playCurrentLecture();
+                };
+                grid.appendChild(card);
+            });
+            setupHorizontalScroller('recently-played-wrapper');
+        }
+
+        function setupHorizontalScroller(wrapperId) {
+            const wrapper = $(`#${wrapperId}`);
+            if (!wrapper) return;
+            const container = wrapper.querySelector('.horizontal-scroll-container');
+            if (!container) return;
+            const dotsContainer = wrapper.querySelector('.scroll-dots');
+            if (!dotsContainer) return;
+            
+            if (container.children.length === 0) {
+                dotsContainer.innerHTML = '';
+                return;
+            };
+
+            let cardWidth = container.children[0].offsetWidth + parseInt(getComputedStyle(container).gap);
+            if (isNaN(cardWidth) || cardWidth === 0) return;
+            let cardsPerPage = Math.floor(container.offsetWidth / cardWidth);
+            let pageCount = Math.ceil(container.children.length / cardsPerPage);
+            
+            dotsContainer.innerHTML = '';
+            if(pageCount <= 1) return;
+
+            for (let i = 0; i < pageCount; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dot.onclick = () => {
+                    container.scrollLeft = i * cardsPerPage * cardWidth;
+                };
+                dotsContainer.appendChild(dot);
+            }
+
+            const updateDots = () => {
+                if (cardWidth === 0) cardWidth = container.children[0].offsetWidth + parseInt(getComputedStyle(container).gap);
+                const currentPage = Math.round(container.scrollLeft / (cardsPerPage * cardWidth));
+                $$(`#${wrapperId} .dot`).forEach((dot, index) => {
+                    dot.classList.toggle('active', index === currentPage);
+                });
+            };
+            
+            container.onscroll = updateDots;
+            updateDots();
+        }
+
+        new ResizeObserver(() => {
+            setupHorizontalScroller('featured-wrapper');
+            setupHorizontalScroller('recently-played-wrapper');
+        }).observe($('.main-content'));
+        
+        function renderQueue() {
+            const queueList = $('#list-view-content');
+            queueList.innerHTML = '';
+            if (AppState.currentTrackIndex < AppState.currentPlaylist.length - 1) {
+                const upcoming = AppState.currentPlaylist.slice(AppState.currentTrackIndex + 1);
+                upcoming.forEach((lecture, index) => {
+                    const li = document.createElement('div');
+                    li.className = 'p-2 rounded-md flex items-center gap-3 text-sm';
+                    li.innerHTML = `<span class="text-secondary w-5 text-center">${index + 1}</span>
+                                    <div class="flex-grow"><p class="font-semibold text-primary truncate">${lecture.LectureName}</p>
+                                    <p class="text-xs text-secondary truncate">${lecture.Chapter}</p></div>`;
+                    queueList.appendChild(li);
+                });
+            } else {
+                queueList.innerHTML = `<p class="text-center text-secondary mt-8">End of playlist.</p>`;
+            }
+        }
+
+        function updatePlayerUI(lecture) {
+            const isPlaying = audioElement.readyState > 0 && !audioElement.paused;
+            const playIcon = isPlaying ? 'fa-pause-circle' : 'fa-play-circle';
+            
+            if (lecture) {
+                $$('#mini-player-lecture-title, #full-player-lecture-title').forEach(el => el.textContent = lecture.LectureName);
+                $$('#mini-player-chapter-title, #full-player-chapter-title').forEach(el => el.textContent = lecture.Chapter);
+                const chapterName = lecture.Chapter?.split('/')[0];
+                const chapterCard = $(`.chapter-card[data-chapter="${chapterName}"]`);
+                const icon = chapterCard ? chapterCard.dataset.icon : 'fa-music';
+                $$('#player-artwork i, #mini-player-artwork i').forEach(el => el.className = `fas ${icon}`);
+                const chapterIndex = [...new Set(AppState.allLectures.map(l => l.Chapter?.split('/')[0]))].indexOf(chapterName);
+                const color = chapterColors[chapterIndex % chapterColors.length] || '#38bdf8';
+                $('#full-player-overlay').style.background = `linear-gradient(180deg, ${color}33 0%, var(--bg-secondary) 50%)`;
+            }
+            $$('#mini-play-pause-btn i, #full-play-pause-btn i').forEach(el => el.className = `fas ${playIcon}`);
+            
+            $$('.lecture-item').forEach(item => {
+                const isItemPlaying = item.dataset.uniqueId === lecture?.UniqueID;
+                item.classList.toggle('lecture-item-playing', isItemPlaying);
+                const iconElement = item.querySelector('button:first-child > i');
+                if (iconElement) iconElement.className = `fas ${isItemPlaying ? 'fa-waveform-lines' : 'fa-play'} accent-color text-lg w-5 text-center`;
+            });
+
+            $$('#prev-btn, #prev-btn-mini').forEach(btn => btn.disabled = AppState.currentTrackIndex <= 0);
+            $$('#next-btn, #next-btn-mini').forEach(btn => btn.disabled = AppState.currentTrackIndex >= AppState.currentPlaylist.length - 1 && AppState.repeatMode !== 'all');
+        }
+
+        function showToast(message) {
+            const toast = $('#toast-notification');
+            toast.textContent = message;
+            toast.classList.remove('opacity-0');
+            setTimeout(() => toast.classList.add('opacity-0'), 2500);
+        }
+
+        // --- PLAYER CONTROLS & FEATURES ---
+        function playCurrentLecture() {
+            if (AppState.currentTrackIndex < 0 || AppState.currentTrackIndex >= AppState.currentPlaylist.length) return;
+            const lecture = AppState.currentPlaylist[AppState.currentTrackIndex];
+            
+            playerContainer.classList.add('visible');
+            $$('#mini-play-pause-btn i, #full-play-pause-btn i').forEach(el => el.className = 'fas fa-spinner fa-spin');
+            
+            const audioSrc = `${R2_PUBLIC_URL}/${lecture.LectureLinkKey.split('/').map(part => encodeURIComponent(part)).join('/')}`;
+            
+            const startPlayback = () => {
+                audioElement.play().catch(e => {
+                    console.error("Play failed:", e);
+                    $$('#mini-play-pause-btn i, #full-play-pause-btn i').forEach(el => el.className = 'fas fa-play-circle');
+                });
+            };
+
+            if (audioElement.src !== audioSrc) {
+                audioElement.src = audioSrc;
+                audioElement.addEventListener('canplay', startPlayback, { once: true });
+                audioElement.load();
+            } else { startPlayback(); }
+            
+            updatePlayerUI(lecture);
+            renderQueue();
+            saveState();
+        }
+        
+        function playShuffleAll() {
+            if (AppState.allLectures.length === 0) { showToast("Library is still loading, please wait."); return; }
+            const shuffledPlaylist = [...AppState.allLectures].sort(() => Math.random() - 0.5);
+            AppState.currentPlaylist = shuffledPlaylist;
+            AppState.currentTrackIndex = 0;
+            if (!AppState.isShuffle) { toggleShuffle(); }
+            playCurrentLecture();
+        }
+
+        function playNext() {
+            if (AppState.isShuffle) { playRandom(); return; }
+            const atLastTrack = AppState.currentTrackIndex >= AppState.currentPlaylist.length - 1;
+            if (!atLastTrack) { AppState.currentTrackIndex++; playCurrentLecture(); }
+            else if (AppState.repeatMode === 'all') { AppState.currentTrackIndex = 0; playCurrentLecture(); }
+        }
+        function playPrev() {
+            if (AppState.currentTrackIndex > 0) { AppState.currentTrackIndex--; playCurrentLecture(); }
+        }
+        function playRandom() {
+            let newIndex;
+            if (AppState.currentPlaylist.length <= 1) newIndex = 0;
+            else do { newIndex = Math.floor(Math.random() * AppState.currentPlaylist.length); } while (newIndex === AppState.currentTrackIndex);
+            AppState.currentTrackIndex = newIndex;
+            playCurrentLecture();
+        }
+        function handleTrackEnd() {
+            const currentTrack = AppState.currentPlaylist[AppState.currentTrackIndex];
+            if (currentTrack && !AppState.stats.completedTracks.includes(currentTrack.UniqueID)) {
+                AppState.stats.completedTracks.push(currentTrack.UniqueID);
+            }
+            if (AppState.repeatMode === 'one') { audioElement.currentTime = 0; audioElement.play(); }
+            else { playNext(); }
+        }
+        function toggleShuffle() {
+            AppState.isShuffle = !AppState.isShuffle;
+            $('#shuffle-btn').classList.toggle('active-btn', AppState.isShuffle);
+            saveState();
+        }
+        function toggleRepeat() {
+            const btn = $('#repeat-btn'), badge = $('#repeat-badge');
+            if (AppState.repeatMode === 'none') { AppState.repeatMode = 'all'; btn.classList.add('active-btn'); badge.classList.add('hidden'); }
+            else if (AppState.repeatMode === 'all') { AppState.repeatMode = 'one'; badge.classList.remove('hidden'); }
+            else { AppState.repeatMode = 'none'; btn.classList.remove('active-btn'); badge.classList.add('hidden'); }
+            updatePlayerUI(AppState.currentPlaylist[AppState.currentTrackIndex]);
+            saveState();
+        }
+        function seek(seconds) {
+            if (audioElement.duration) audioElement.currentTime = Math.max(0, Math.min(audioElement.duration, audioElement.currentTime + seconds));
+        }
+
+        function handleSearch(term) {
+             $$('.chapter-card').forEach(c => c.classList.remove('active'));
+             const currentlyOpen = $('.accordion-content');
+             if (currentlyOpen) currentlyOpen.remove();
+
+            if (term.trim() === '') {
+                $('#chapters-grid').classList.remove('hidden');
+                return;
+            }
+            
+            const filtered = AppState.allLectures.filter(l => l.LectureName.toLowerCase().includes(term) || l.Chapter.toLowerCase().includes(term));
+            
+            const searchResultContainer = document.createElement('div');
+            searchResultContainer.id = 'search-results';
+            searchResultContainer.innerHTML = renderPlaylistHTML(filtered);
+            $('#chapters-grid').classList.add('hidden');
+            $('#chapters-grid').insertAdjacentElement('afterend', searchResultContainer);
+        }
+
+        function shareLecture(uniqueID) {
+            const shareUrl = `${window.location.origin}${window.location.pathname}?lecture=${encodeURIComponent(uniqueID)}`;
+            const textArea = document.createElement("textarea");
+            textArea.value = shareUrl;
+            textArea.style.position="fixed"; textArea.style.top="-9999px"; textArea.style.left="-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus(); textArea.select();
+            try {
+                if (document.execCommand('copy')) { showToast('Share link copied!'); }
+            } catch (err) { console.error('Oops, unable to copy', err); }
+            document.body.removeChild(textArea);
+        }
+
+        function checkForSharedLecture() {
+            const params = new URLSearchParams(window.location.search);
+            const lectureId = params.get('lecture');
+            if (lectureId) {
+                const lectureIndex = AppState.allLectures.findIndex(l => l.UniqueID === lectureId);
+                if (lectureIndex !== -1) {
+                    AppState.currentPlaylist = [...AppState.allLectures];
+                    AppState.currentTrackIndex = lectureIndex;
+                    playCurrentLecture();
+                }
+                history.replaceState(null, '', window.location.pathname);
+            }
+        }
+        
+        function setSleepTimer(minutes) {
+            clearTimeout(AppState.sleepTimerId);
+            AppState.sleepTimerId = null;
+            audioElement.removeEventListener('ended', pauseOnEnd);
+            
+            if (minutes === 'end') {
+                audioElement.addEventListener('ended', pauseOnEnd, { once: true });
+                showToast('Timer will stop at the end of the track');
+                AppState.sleepTimerId = 'end';
+            } else if (minutes > 0) {
+                AppState.sleepTimerId = setTimeout(() => {
+                    audioElement.pause();
+                    showToast('Sleep timer ended');
+                    AppState.sleepTimerId = null;
+                    updateSpeedControls();
+                }, minutes * 60 * 1000);
+                showToast(`Timer set for ${minutes} minutes`);
+            } else {
+                showToast('Timer canceled');
+            }
+            updateSpeedControls();
+        }
+        const pauseOnEnd = () => {audioElement.pause(); AppState.sleepTimerId = null; updateSpeedControls();};
+
+        function toggleFavorite(lectureId) {
+            const favIndex = AppState.favorites.indexOf(lectureId);
+            if(favIndex > -1) { AppState.favorites.splice(favIndex, 1); showToast("Removed from favorites"); }
+            else { AppState.favorites.push(lectureId); showToast("Added to favorites"); }
+            saveState();
+            
+            const lectureItem = $(`li[data-unique-id="${CSS.escape(lectureId)}"] .fav-btn`);
+            if(lectureItem) {
+                lectureItem.classList.toggle('active', favIndex === -1);
+                lectureItem.querySelector('i').className = `fa-heart ${favIndex === -1 ? 'fas' : 'far'}`;
+            }
+            updatePlayerUI(AppState.currentPlaylist[AppState.currentTrackIndex]);
+            populateGrids();
+        }
+        
+        function addToQueue(lectureId) {
+            const lectureToAdd = AppState.allLectures.find(l => l.UniqueID === lectureId);
+            if (lectureToAdd) {
+                if(AppState.currentPlaylist.length === 0 || AppState.currentTrackIndex === -1) {
+                    AppState.currentPlaylist.push(lectureToAdd);
+                    AppState.currentTrackIndex = AppState.currentPlaylist.length - 1;
+                    playCurrentLecture();
+                } else {
+                    AppState.currentPlaylist.splice(AppState.currentTrackIndex + 1, 0, lectureToAdd);
+                }
+                showToast("Added to queue");
+                renderQueue();
+            }
+        }
+
+        function openBookmarkModal() {
+            if(AppState.currentTrackIndex < 0) { showToast("Please play a track first"); return; }
+            const lecture = AppState.currentPlaylist[AppState.currentTrackIndex];
+            $('#bookmark-lecture-info').textContent = `${lecture.LectureName} at ${formatTime(audioElement.currentTime)}`;
+            $('#bookmark-note-input').value = '';
+            bookmarkModal.classList.remove('hidden');
+            bookmarkModal.classList.add('flex');
+        }
+
+        function saveBookmark() {
+            const lecture = AppState.currentPlaylist[AppState.currentTrackIndex];
+            const note = $('#bookmark-note-input').value.trim();
+            if(!note) { showToast("Please write a note"); return; }
+
+            const newBookmark = {
+                id: Date.now(),
+                lectureId: lecture.UniqueID,
+                lectureName: lecture.LectureName,
+                chapter: lecture.Chapter,
+                time: audioElement.currentTime,
+                note: note
+            };
+            AppState.bookmarks.push(newBookmark);
+            saveState();
+            showToast("Bookmark saved!");
+            bookmarkModal.classList.add('hidden');
+            bookmarkModal.classList.remove('flex');
+            populateGrids();
+        }
+
+        function saveState() {
+            const state = {
+                lectureId: AppState.currentPlaylist[AppState.currentTrackIndex]?.UniqueID, time: audioElement.currentTime,
+                speed: AppState.playbackSpeed, shuffle: AppState.isShuffle, repeat: AppState.repeatMode,
+                chapter: AppState.activeChapter, favorites: AppState.favorites, bookmarks: AppState.bookmarks,
+                recentlyPlayed: AppState.recentlyPlayed, listenProgress: AppState.listenProgress, stats: AppState.stats
+            };
+            localStorage.setItem('radioState', JSON.stringify(state));
+        }
+
+        function loadState() {
+            const state = JSON.parse(localStorage.getItem('radioState'));
+            const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+            const savedAccentTheme = localStorage.getItem('accentTheme') || 'blue';
+            
+            setDarkMode(savedDarkMode);
+            setAccentTheme(savedAccentTheme);
+
+            if (!state) return;
+            AppState.playbackSpeed = state.speed || 1.0;
+            audioElement.playbackRate = AppState.playbackSpeed;
+            AppState.isShuffle = state.shuffle || false;
+            AppState.repeatMode = state.repeat || 'none';
+            AppState.favorites = state.favorites || [];
+            AppState.bookmarks = state.bookmarks || [];
+            AppState.activeChapter = state.chapter || 'all';
+            AppState.recentlyPlayed = state.recentlyPlayed || [];
+            AppState.listenProgress = state.listenProgress || {};
+            AppState.stats = state.stats || { totalListenTime: 0, completedTracks: [], chapterPlayCount: {} };
+            updateSpeedControls();
+        }
+
+        function setupVisualizer() {
+            if (audioContext) return;
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                sourceNode = audioContext.createMediaElementSource(audioElement);
+                sourceNode.connect(analyser);
+                analyser.connect(audioContext.destination);
+                drawVisualizer();
+            } catch (e) { console.warn("Could not initialize AudioContext for visualizer.", e); }
+        }
+        function drawVisualizer() {
+            if (!analyser) return;
+            requestAnimationFrame(drawVisualizer);
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteFrequencyData(dataArray);
+            
+            const ctx = visualizerCanvas.getContext('2d');
+            const { width, height } = visualizerCanvas;
+            ctx.clearRect(0, 0, width, height);
+            
+            const barWidth = (width / bufferLength) * 2;
+            let x = 0;
+            const isDark = document.documentElement.classList.contains('dark');
+            ctx.fillStyle = isDark ? 'rgba(var(--accent-color-rgb), 0.7)' : 'rgba(var(--accent-color-rgb), 0.7)';
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = dataArray[i] / 2;
+                ctx.fillRect(x, height - barHeight, barWidth, barHeight);
+                x += barWidth + 1;
+            }
+        }
+        
+        function formatTime(seconds) { if(isNaN(seconds)) return '00:00'; const m=Math.floor(seconds/60); const s=Math.floor(seconds%60); return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`}
+
+        const updateSpeedControls = () => { 
+            $('#speed-btn-mini').textContent = `x${AppState.playbackSpeed}`; 
+            $$('.speed-option').forEach(b => {
+                const isActive = parseFloat(b.dataset.speed) === AppState.playbackSpeed;
+                b.classList.toggle('bg-tertiary', isActive);
+                b.classList.toggle('font-bold', isActive);
+                b.classList.toggle('accent-color', isActive);
+            });
+            $('#sleep-timer-btn-mini').classList.toggle('active-btn', AppState.sleepTimerId !== null);
+            $('#sleep-timer-btn').classList.toggle('active-btn', AppState.sleepTimerId !== null);
+            saveState(); 
+        };
+
+        // --- EVENT LISTENERS SETUP ---
+        function setupEventListeners() {
+            // Theme Switcher
+            $$('.theme-palette-btn').forEach(btn => btn.addEventListener('click', () => {
+                const options = btn.nextElementSibling;
+                options.classList.toggle('hidden');
+            }));
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.theme-switcher')) {
+                    $$('.theme-options').forEach(o => o.classList.add('hidden'));
+                }
+            });
+            $$('.dark-mode-toggle').forEach(btn => btn.addEventListener('click', () => {
+                setDarkMode(!document.documentElement.classList.contains('dark'));
+            }));
+            $$('.theme-option').forEach(btn => {
+                btn.addEventListener('click', () => setAccentTheme(btn.dataset.theme));
+            });
+
+            // Mobile Sidebar
+            const sidebar = $('#sidebar-menu'), overlay = $('#sidebar-overlay');
+            $('#mobile-menu-btn').addEventListener('click', () => {
+                overlay.classList.remove('hidden');
+                sidebar.classList.add('open');
+            });
+            $('#close-sidebar-btn').addEventListener('click', () => {
+                overlay.classList.add('hidden');
+                sidebar.classList.remove('open');
+            });
+            overlay.addEventListener('click', () => {
+                $('#close-sidebar-btn').click();
+            });
+
+            // Tabs
+            $$('.main-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.dataset.tab;
+                    $$('.main-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    if (tabName === 'library') {
+                        $('#tab-content-library').classList.remove('hidden');
+                        $('#tab-content-collection').classList.add('hidden');
+                    } else {
+                        $('#tab-content-library').classList.add('hidden');
+                        $('#tab-content-collection').classList.remove('hidden');
+                        renderRecentlyPlayed();
+                    }
+                });
+            });
+
+            // Player Controls
+            $$('#mini-play-pause-btn, #full-play-pause-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); if (audioElement.src) { audioElement.paused ? audioElement.play() : audioElement.pause(); } else if (AppState.allLectures.length > 0) { AppState.currentPlaylist = [...AppState.allLectures]; AppState.currentTrackIndex = 0; playCurrentLecture();} }));
+            $$('#next-btn, #next-btn-mini').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); playNext(); }));
+            $$('#prev-btn, #prev-btn-mini').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); playPrev(); }));
+            $$('#rewind-btn, #rewind-btn-mini').forEach(b => b.addEventListener('click', () => seek(-10)));
+            $$('#forward-btn, #forward-btn-mini').forEach(b => b.addEventListener('click', () => seek(10)));
+            $('#hero-play-btn').addEventListener('click', playShuffleAll);
+            $('#repeat-btn').addEventListener('click', toggleRepeat); 
+            $('#shuffle-btn').addEventListener('click', toggleShuffle);
+            
+            // Speed Controls
+            $('#speed-control-btn').addEventListener('click', (e) => { e.stopPropagation(); $('#speed-popup').classList.toggle('hidden'); });
+            $$('.speed-option').forEach(btn => btn.addEventListener('click', (e) => { 
+                e.stopPropagation();
+                AppState.playbackSpeed = parseFloat(btn.dataset.speed);
+                audioElement.playbackRate = AppState.playbackSpeed;
+                updateSpeedControls();
+                $('#speed-popup').classList.add('hidden');
+            }));
+            $('#speed-btn-mini').addEventListener('click', (e) => { 
+                e.stopPropagation(); 
+                const speeds = [1, 1.5, 2]; 
+                const currentIndex = speeds.indexOf(AppState.playbackSpeed); 
+                const nextIndex = (currentIndex + 1) % speeds.length; 
+                AppState.playbackSpeed = speeds[nextIndex]; 
+                audioElement.playbackRate = AppState.playbackSpeed; 
+                updateSpeedControls(); 
+            });
+
+            // Mini & Full Player Controls
+            $$('#share-btn-mini, #share-btn-full').forEach(btn => btn.addEventListener('click', (e) => {
+                 e.stopPropagation();
+                 const lecture = AppState.currentPlaylist[AppState.currentTrackIndex]; 
+                 if(lecture) shareLecture(lecture.UniqueID);
+                 else showToast('Please play a track first');
+            }));
+            
+            const sleepTimerBtnMini = $('#sleep-timer-btn-mini'), sleepPopupMini = $('#sleep-timer-popup-mini');
+            sleepTimerBtnMini.addEventListener('click', (e) => { e.stopPropagation(); sleepPopupMini.classList.toggle('hidden'); });
+            $$('.timer-option-mini').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); setSleepTimer(e.currentTarget.dataset.minutes); sleepPopupMini.classList.add('hidden'); }));
+
+            $('#search-input').addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                const prevResults = $('#search-results');
+                if (prevResults) prevResults.remove();
+                $('#chapters-grid').classList.remove('hidden');
+
+                if (term.length > 2) {
+                    handleSearch(term);
+                }
+            });
+            
+            // Player Expansion
+            $$('#mini-player-info-area, #expand-player-btn').forEach(el => el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                playerContainer.classList.add('expanded');
+            }));
+            
+            $('#collapse-player-btn').addEventListener('click', () => { 
+                $('#player-main-view').classList.remove('hidden'); 
+                $('#player-list-view').classList.add('hidden'); 
+                $('#queue-toggle-btn').classList.remove('active-btn'); 
+                playerContainer.classList.remove('expanded'); 
+            });
+
+            $('#queue-toggle-btn').addEventListener('click', (e) => { e.stopPropagation(); $('#player-main-view').classList.toggle('hidden'); $('#player-list-view').classList.toggle('hidden'); $('#list-view-title').textContent="Up Next"; renderQueue(); e.currentTarget.classList.toggle('active-btn'); });
+            const sleepTimerBtn = $('#sleep-timer-btn'), sleepPopup = $('#sleep-timer-popup');
+            sleepTimerBtn.addEventListener('click', (e) => { e.stopPropagation(); sleepPopup.classList.toggle('hidden'); });
+            
+            document.addEventListener('click', (e) => { 
+                const speedControlBtn = $('#speed-control-btn');
+                const speedPopup = $('#speed-popup');
+                if(speedControlBtn && speedPopup && !speedControlBtn.contains(e.target) && !speedPopup.contains(e.target)) speedPopup.classList.add('hidden');
+                if(sleepPopup && !sleepPopup.contains(e.target) && !sleepTimerBtn.contains(e.target)) sleepPopup.classList.add('hidden');
+                if(sleepPopupMini && !sleepPopupMini.contains(e.target) && !sleepTimerBtnMini.contains(e.target)) sleepPopupMini.classList.add('hidden');
+            });
+
+            $$('.timer-option').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); setSleepTimer(e.currentTarget.dataset.minutes); sleepPopup.classList.add('hidden'); }));
+
+            $('#bookmark-btn').addEventListener('click', openBookmarkModal);
+            $('#save-bookmark-btn').addEventListener('click', saveBookmark);
+            $('#cancel-bookmark-btn').addEventListener('click', () => { bookmarkModal.classList.add('hidden'); bookmarkModal.classList.remove('flex'); });
+            
+            // Modals & Links
+            $$('.about-us-link').forEach(link => link.addEventListener('click', (e) => { e.preventDefault(); aboutUsModal.classList.remove('hidden'); aboutUsModal.classList.add('flex'); $('#close-sidebar-btn').click(); }));
+            $('#close-about-modal-btn').addEventListener('click', () => { aboutUsModal.classList.add('hidden'); aboutUsModal.classList.remove('flex'); });
+
+            $$('.features-link').forEach(link => link.addEventListener('click', (e) => { e.preventDefault(); featuresModal.classList.remove('hidden'); featuresModal.classList.add('flex'); $('#close-sidebar-btn').click(); }));
+            $('#close-features-modal-btn').addEventListener('click', () => { featuresModal.classList.add('hidden'); featuresModal.classList.remove('flex'); });
+
+            // Multi-Chapter Select
+            $('#play-selected-chapters-btn').addEventListener('click', () => {
+                if (AppState.selectedChapters.length > 0) {
+                    const lecturesToPlay = AppState.allLectures.filter(l => 
+                        AppState.selectedChapters.some(selectedChapter => l.Chapter?.startsWith(selectedChapter))
+                    );
+                    if (lecturesToPlay.length > 0) {
+                        AppState.currentPlaylist = lecturesToPlay;
+                        AppState.currentTrackIndex = 0;
+                        playCurrentLecture();
+                    }
+                }
+            });
+
+            // Audio Element Events
+            audioElement.addEventListener('play', () => { updatePlayerUI(AppState.currentPlaylist[AppState.currentTrackIndex]); setupVisualizer(); renderQueue(); });
+            audioElement.addEventListener('pause', () => updatePlayerUI(AppState.currentPlaylist[AppState.currentTrackIndex]));
+            audioElement.addEventListener('ended', handleTrackEnd);
+            audioElement.addEventListener('timeupdate', () => { 
+                const lecture = AppState.currentPlaylist[AppState.currentTrackIndex];
+                if (lecture && audioElement.duration) {
+                    const progress = audioElement.currentTime / audioElement.duration;
+                    AppState.listenProgress[lecture.UniqueID] = progress;
+                    if(audioElement.currentTime > 0) AppState.stats.totalListenTime += 0.25;
+                }
+                $$('#full-current-time').forEach(el => el.textContent = formatTime(audioElement.currentTime)); 
+                $$('#mini-progress-bar, #full-progress-bar').forEach(bar => { bar.value = audioElement.currentTime; }); 
+            });
+            audioElement.addEventListener('loadedmetadata', () => { $$('#full-duration').forEach(el => el.textContent = formatTime(audioElement.duration)); $$('#mini-progress-bar, #full-progress-bar').forEach(bar => { bar.max = audioElement.duration; }); });
+            $$('#mini-progress-bar, #full-progress-bar').forEach(bar => { bar.addEventListener('input', (e) => { audioElement.currentTime = e.target.value; }); bar.addEventListener('click', (e) => e.stopPropagation()); });
+        }
+        
+        // --- INITIALIZE THE APP ---
+        init();
+    });
+    </script>
+</body>
+</html>
+

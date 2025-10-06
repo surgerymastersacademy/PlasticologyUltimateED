@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasticology Online Companion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvg/dist/browser/canvg.min.js"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --primary-color: #0D9488; /* teal-600 */
+            --primary-hover: #0F766E; /* teal-700 */
+            --degree-1st-color: #FBBF24; /* amber-400 */
+            --degree-2nd-color: #EF4444; /* red-500 */
+            --degree-3rd-color: #1F2937; /* gray-800 */
+        }
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            background-color: #f8fafc; /* slate-50 */
+        }
+        html[lang="en"] body { 
+            font-family: 'Segoe UI', sans-serif; 
+        }
+        .app-view { display: none; }
+        .app-view.active { display: block; }
+        .tool-card { 
+            transition: transform 0.3s, box-shadow 0.3s; 
+            background-image: linear-gradient(to top right, var(--tw-gradient-stops));
+        }
+        .tool-card:hover { 
+            transform: translateY(-8px); 
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .tab { transition: all 0.3s ease; border-color: transparent; }
+        .tab.active { background-color: var(--primary-color); color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .body-diagram path { cursor: pointer; stroke: #374151; stroke-width: 1; transition: fill 0.2s ease-in-out; fill: #f3f4f6; }
+        .body-diagram path:hover { stroke: var(--primary-color); stroke-width: 1.5; }
+        .body-diagram text { font-size: 10px; font-weight: 600; fill: #1F2937; text-anchor: middle; pointer-events: none; }
+        .color-box { transition: all 0.2s ease-in-out; border: 2px solid transparent; }
+        .color-box.selected { transform: scale(1.15); box-shadow: 0 0 0 4px var(--primary-color); border-color: white; }
+        .input-group { display: flex; flex-direction: column; }
+        .input-group label { margin-bottom: 0.5rem; color: #374151; font-weight: 600; }
+        .input-group input, .input-group select, .input-group textarea { 
+            background-color: #f9fafb;
+            border: 1px solid #D1D5DB;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+            background-color: white;
+        }
+        .method-btn { transition: all 0.2s ease-in-out; }
+        .method-btn.active { background-color: var(--primary-color); color: white; }
+        .bg-degree-1st { background-color: var(--degree-1st-color); }
+        .bg-degree-2nd { background-color: var(--degree-2nd-color); }
+        .bg-degree-3rd { background-color: var(--degree-3rd-color); }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .printable-area, .printable-area * {
+                visibility: visible;
+            }
+            .printable-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 1rem;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+
+    <div class="container mx-auto p-4">
+        <header class="flex justify-between items-center mb-6">
+            <a href="https://www.surgerymastersacademy.com" target="_blank" class="flex items-center space-x-3 rtl:space-x-reverse">
+                <img src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Plasticology Logo" class="h-16 w-16">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold text-teal-700" data-translate-key="app_title">Plasticology Online Companion</h1>
+                    <p class="text-gray-500" data-translate-key="app_subtitle">The Integrated Clinical Tool for Plastic Surgery</p>
+                </div>
+            </a>
+            <div class="flex items-center space-x-4">
+                 <button id="back-to-dashboard" class="hidden bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors" data-translate-key="back_to_dashboard">Dashboard</button>
+                <button id="lang-switcher" class="bg-white hover:bg-gray-100 text-gray-800 font-bold py-2 px-4 rounded-lg border border-gray-200 shadow-sm transition-colors">العربية</button>
+            </div>
+        </header>
+
+        <!-- Dashboard View -->
+        <div id="dashboard-view" class="app-view active">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-8" data-translate-key="dashboard_title">Select a Tool</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                <!-- Burn Calculator Card -->
+                <div id="open-burn-calculator" class="tool-card from-red-50 to-orange-100 text-red-800 p-6 rounded-2xl shadow-lg cursor-pointer flex flex-col items-center justify-center">
+                    <div class="p-4 bg-white/50 rounded-full mb-4">
+                        <svg class="w-16 h-16 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-center" data-translate-key="burn_tool_title">Burn Calculator</h3>
+                    <p class="text-red-700 mt-2 text-center" data-translate-key="burn_tool_desc">Calculate TBSA, fluids, Baux Score, with ATLS recommendations.</p>
+                </div>
+                <!-- BMI Calculator Card -->
+                <div id="open-bmi-calculator" class="tool-card from-blue-50 to-indigo-100 text-blue-800 p-6 rounded-2xl shadow-lg cursor-pointer text-center flex flex-col items-center justify-center">
+                    <div class="p-4 bg-white/50 rounded-full mb-4">
+                        <svg class="w-16 h-16 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-center" data-translate-key="bmi_tool_title">BMI Calculator</h3>
+                    <p class="text-blue-700 mt-2 text-center" data-translate-key="bmi_tool_desc">Calculate BMI, ideal weight, and required weight change.</p>
+                </div>
+                <!-- Local Anesthesia Calculator Card -->
+                <div id="open-anesthesia-calculator" class="tool-card from-green-50 to-emerald-100 text-green-800 p-6 rounded-2xl shadow-lg cursor-pointer text-center flex flex-col items-center justify-center">
+                    <div class="p-4 bg-white/50 rounded-full mb-4">
+                        <svg class="w-16 h-16 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20.71 5.63l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-3.12 3.12-1.93-1.91-1.41 1.41 1.42 1.42L3 16.25V21h4.75l8.92-8.92 1.42 1.42 1.41-1.41-1.92-1.92 3.12-3.12c.4-.4.4-1.03.01-1.42zM6.92 19L5 17.08l8.06-8.06 1.92 1.92L6.92 19z" /></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-center" data-translate-key="anesthesia_tool_title">Local Anesthesia Calculator</h3>
+                    <p class="text-green-700 mt-2 text-center" data-translate-key="anesthesia_tool_desc">Calculate max safe dose in mL based on weight and anesthetic type.</p>
+                </div>
+                 <!-- GCS Calculator Card -->
+                <div id="open-gcs-calculator" class="tool-card from-yellow-50 to-amber-100 text-yellow-800 p-6 rounded-2xl shadow-lg cursor-pointer text-center flex flex-col items-center justify-center">
+                    <div class="p-4 bg-white/50 rounded-full mb-4">
+                        <svg class="w-16 h-16 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-center" data-translate-key="gcs_tool_title">GCS Calculator</h3>
+                    <p class="text-yellow-700 mt-2 text-center" data-translate-key="gcs_tool_desc">Calculate Glasgow Coma Scale and classify injury severity.</p>
+                </div>
+                <!-- Plasticology Radio Card -->
+                <div id="open-radio" class="tool-card from-slate-50 to-gray-100 text-slate-800 p-6 rounded-2xl shadow-lg cursor-pointer text-center flex flex-col items-center justify-center">
+                     <div class="p-4 bg-white/50 rounded-full mb-4">
+                        <svg class="w-16 h-16 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 7.5 16.5-4.125M12 6.75c-2.708 0-5.363.224-7.948.655C2.999 7.58 2.25 8.507 2.25 9.574v9.176A2.25 2.25 0 0 0 4.5 21h15a2.25 2.25 0 0 0 2.25-2.25V9.574c0-1.067-.75-1.994-1.802-2.169A48.329 48.329 0 0 0 12 6.75Zm-1.683 6.443-.005.005-.006-.005.006-.005.005.005Zm-.005 2.127-.005-.006.005-.005.005.005-.005.005Zm-2.116-.006-.005.006-.006-.006.005-.005.006.005Zm-.005-2.116-.006-.005.006-.005.005.005-.005.005ZM9.255 10.5v.008h-.008V10.5h.008Zm3.249 1.88-.007.004-.003-.007.006-.003.004.006Zm-1.38 5.126-.003-.006.006-.004.004.007-.006.003Zm.007-6.501-.003.006-.007-.003.004-.007.006.004Zm1.37 5.129-.007-.004.004-.006.006.003-.004.007Zm.504-1.877h-.008v-.007h.008v.007ZM9.255 18v.008h-.008V18h.008Zm-3.246-1.87-.007.004L6 16.127l.006-.003.004.006Zm1.366-5.119-.004-.006.006-.004.004.007-.006.003ZM7.38 17.5l-.003.006-.007-.003.004-.007.006.004Zm-1.376-5.116L6 12.38l.003-.007.007.004-.004.007Zm-.5 1.873h-.008v-.007h.008v.007ZM17.25 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Zm0 4.5a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-center" data-translate-key="radio_tool_title">Plasticology Radio</h3>
+                    <p class="text-slate-700 mt-2 text-center" data-translate-key="radio_tool_desc">Stay tuned for our new audio experience.</p>
+                </div>
+                <!-- Plasticology Course Card -->
+                <div id="open-plasticology-course" class="tool-card from-purple-50 to-violet-100 text-purple-800 p-6 rounded-2xl shadow-lg cursor-pointer text-center flex flex-col items-center justify-center">
+                     <div class="p-4 bg-white/50 rounded-full mb-4">
+                        <img src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Plasticology Course" class="w-16 h-16">
+                    </div>
+                    <h3 class="text-xl font-bold text-center" data-translate-key="course_tool_title">Plasticology Ultimate Course</h3>
+                    <p class="text-purple-700 mt-2 text-center" data-translate-key="course_tool_desc">Open the official link for the ultimate training course.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Burn Calculator View -->
+        <div id="burn-calculator-view" class="app-view"></div>
+
+        <!-- BMI Calculator View -->
+        <div id="bmi-calculator-view" class="app-view"></div>
+
+        <!-- Local Anesthesia Calculator View -->
+        <div id="anesthesia-calculator-view" class="app-view"></div>
+        
+        <!-- GCS Calculator View -->
+        <div id="gcs-calculator-view" class="app-view"></div>
+        
+        <footer class="text-center mt-8 text-sm text-gray-500">
+            <p>© Dr Bishoy - Surgery Masters Academy - Plasticology Production</p>
+        </footer>
+
+    </div>
+    
+    <!-- Modal Structure -->
+    <div id="error-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-8 rounded-lg shadow-xl max-w-sm w-full text-center">
+            <h3 class="text-2xl font-bold text-red-600 mb-4" data-translate-key="modal_error_title">خطأ</h3>
+            <p id="error-modal-message" class="text-gray-700 mb-6"></p>
+            <button id="close-error-modal" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg">إغلاق</button>
+        </div>
+    </div>
+    
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        
+        // Your web app's Firebase configuration
+        // IMPORTANT: Replace with your actual Firebase config
+        const firebaseConfig = {
+          apiKey: "YOUR_API_KEY",
+          authDomain: "YOUR_AUTH_DOMAIN",
+          projectId: "YOUR_PROJECT_ID",
+          storageBucket: "YOUR_STORAGE_BUCKET",
+          messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+          appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        // Make db accessible globally for other scripts
+        window.firebaseDB = db;
+        window.firebaseCollection = collection;
+        window.firebaseAddDoc = addDoc;
+
+    </script>
+
+    <script>
+    // Main app logic encapsulated
+    (() => {
+        const getEl = (id) => document.getElementById(id);
+        let currentLang = 'en';
+
+        const showErrorModal = (message) => {
+            const modal = getEl('error-modal');
+            if(modal) {
+                getEl('error-modal-message').textContent = message;
+                modal.classList.remove('hidden');
+            }
+        };
+
+        const hideErrorModal = () => {
+            const modal = getEl('error-modal');
+            if(modal) {
+                modal.classList.add('hidden');
+            }
+        };
+
+        const switchView = (viewId) => {
+            document.querySelectorAll('.app-view').forEach(view => view.classList.remove('active'));
+            getEl(viewId).classList.add('active');
+            getEl('back-to-dashboard').classList.toggle('hidden', viewId === 'dashboard-view');
+        };
+
+        const initializeDashboard = () => {
+            getEl('open-burn-calculator').addEventListener('click', () => {
+                getEl('burn-calculator-view').innerHTML = burnCalculatorTemplate;
+                initializeBurnCalculator(currentLang);
+                switchView('burn-calculator-view');
+            });
+            getEl('open-bmi-calculator').addEventListener('click', () => {
+                getEl('bmi-calculator-view').innerHTML = bmiCalculatorTemplate;
+                initializeBmiCalculator(currentLang);
+                switchView('bmi-calculator-view');
+            });
+            getEl('open-anesthesia-calculator').addEventListener('click', () => {
+                getEl('anesthesia-calculator-view').innerHTML = anesthesiaCalculatorTemplate;
+                initializeAnesthesiaCalculator(currentLang);
+                switchView('anesthesia-calculator-view');
+            });
+            getEl('open-gcs-calculator').addEventListener('click', () => {
+                getEl('gcs-calculator-view').innerHTML = gcsCalculatorTemplate;
+                initializeGcsCalculator(currentLang);
+                switchView('gcs-calculator-view');
+            });
+             getEl('open-plasticology-course').addEventListener('click', () => {
+                window.open('https://plasticology.surgerymastersacademy.com/', '_blank');
+            });
+            getEl('open-radio').addEventListener('click', () => {
+                // Placeholder for future functionality
+                console.log('Plasticology Radio clicked!');
+            });
+            getEl('back-to-dashboard').addEventListener('click', () => switchView('dashboard-view'));
+            getEl('lang-switcher').addEventListener('click', () => {
+                currentLang = currentLang === 'ar' ? 'en' : 'ar';
+                setLanguage(currentLang, dashboardTranslations);
+                const activeView = document.querySelector('.app-view.active');
+                if (activeView.id === 'dashboard-view') {
+                   // Already handled by global setLanguage
+                } else if (activeView.id === 'burn-calculator-view') {
+                    getEl('burn-calculator-view').innerHTML = burnCalculatorTemplate;
+                    initializeBurnCalculator(currentLang);
+                } else if (activeView.id === 'bmi-calculator-view') {
+                    getEl('bmi-calculator-view').innerHTML = bmiCalculatorTemplate;
+                    initializeBmiCalculator(currentLang);
+                } else if (activeView.id === 'anesthesia-calculator-view') {
+                    getEl('anesthesia-calculator-view').innerHTML = anesthesiaCalculatorTemplate;
+                    initializeAnesthesiaCalculator(currentLang);
+                } else if (activeView.id === 'gcs-calculator-view') {
+                    getEl('gcs-calculator-view').innerHTML = gcsCalculatorTemplate;
+                    initializeGcsCalculator(currentLang);
+                }
+            });
+            getEl('close-error-modal').addEventListener('click', hideErrorModal);
+        };
+        
+        const setLanguage = (lang, keys) => {
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+            getEl('lang-switcher').textContent = dashboardTranslations[lang].lang_switcher;
+            document.querySelectorAll('[data-translate-key]').forEach(el => {
+                const key = el.dataset.translateKey;
+                if (keys[lang] && keys[lang][key]) {
+                    const content = keys[lang][key];
+                    el.innerHTML = content;
+                } else if (dashboardTranslations[lang] && dashboardTranslations[lang][key]) {
+                    el.innerHTML = dashboardTranslations[lang][key];
+                }
+            });
+        };
+        
+        const dashboardTranslations = {
+            ar: { app_title: "Plasticology Online Companion", app_subtitle: "الأداة السريرية المتكاملة لجراحة التجميل", back_to_dashboard: "الرئيسية", dashboard_title: "اختر الأداة المطلوبة", burn_tool_title: "حاسبة الحروق", burn_tool_desc: "حساب TBSA، السوائل، Baux Score، وتوصيات ATLS.", bmi_tool_title: "حاسبة مؤشر كتلة الجسم (BMI)", bmi_tool_desc: "حساب BMI، الوزن المثالي، وعدد الكيلوجرامات المطلوبة.", anesthesia_tool_title: "حاسبة المخدر الموضعي", anesthesia_tool_desc: "حساب الجرعة القصوى الآمنة بالمليلتر حسب الوزن ونوع المخدر.", gcs_tool_title: "حاسبة GCS", gcs_tool_desc: "حساب مقياس غلاسكو للغيبوبة وتصنيف شدة الإصابة.", course_tool_title: "Plasticology Ultimate Course", course_tool_desc: "افتح الرابط الرسمي للدورة التدريبية المتكاملة.", radio_tool_title: "راديو بلاستيكولوجي", radio_tool_desc: "ترقبوا تجربتنا الصوتية الجديدة.", lang_switcher: "English", modal_error_title: "خطأ" },
+            en: { app_title: "Plasticology Online Companion", app_subtitle: "The Integrated Clinical Tool for Plastic Surgery", back_to_dashboard: "Dashboard", dashboard_title: "Select a Tool", burn_tool_title: "Burn Calculator", burn_tool_desc: "Calculate TBSA, fluids, Baux Score, with ATLS recommendations.", bmi_tool_title: "BMI Calculator", bmi_tool_desc: "Calculate BMI, ideal weight, and required weight change.", anesthesia_tool_title: "Local Anesthesia Calculator", anesthesia_tool_desc: "Calculate max safe dose in mL based on weight and anesthetic type.", gcs_tool_title: "GCS Calculator", gcs_tool_desc: "Calculate Glasgow Coma Scale and classify injury severity.", course_tool_title: "Plasticology Ultimate Course", course_tool_desc: "Open the official link for the ultimate training course.", radio_tool_title: "Plasticology Radio", radio_tool_desc: "Stay tuned for our new audio experience.", lang_switcher: "العربية", modal_error_title: "Error" }
+        };
+
+        let burnCalculatorTemplate = ``;
+        let bmiCalculatorTemplate = ``;
+        let anesthesiaCalculatorTemplate = ``;
+        let gcsCalculatorTemplate = ``;
+        
+        let initializeBurnCalculator = () => {};
+        let initializeBmiCalculator = () => {};
+        let initializeAnesthesiaCalculator = () => {};
+        let initializeGcsCalculator = () => {};
+
+        // ====================================================================================
+        // BURN CALCULATOR
+        // ====================================================================================
+        
+        burnCalculatorTemplate = `
+            <div class="border-b border-gray-200">
+                <nav id="burn-tabs" class="-mb-px flex space-x-2 md:space-x-4 overflow-x-auto" aria-label="Tabs">
+                    <button class="tab active whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm" data-tab="calculator" data-translate-key="tab_calculator">حاسبة الحروق والتوصيات</button>
+                    <button class="tab whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm" data-tab="fluids" data-translate-key="tab_fluids">إدارة السوائل</button>
+                    <button class="tab whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm" data-tab="referral" data-translate-key="tab_referral">تقرير الإحالة</button>
+                </nav>
+            </div>
+            <div class="py-4 bg-white rounded-b-xl shadow-lg flex justify-end space-x-4 rtl:space-x-reverse px-6 border-b mb-4">
+                <button id="resetBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg" data-translate-key="reset_btn">إعادة تعيين الكل</button>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <div id="tab-content-calculator" class="tab-content active">
+                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                        <div class="lg:col-span-2">
+                            <h3 class="font-bold text-xl mb-3 text-gray-800 border-b pb-2" data-translate-key="patient_data_title">1. بيانات المريض وتفاصيل الحرق</h3>
+                            <div class="grid grid-cols-2 gap-4 mt-4">
+                                <div class="input-group"><label for="age" data-translate-key="age_label">العمر (سنوات)</label><input type="number" id="age" placeholder="e.g., 30" min="0"></div>
+                                <div class="input-group"><label for="weight" data-translate-key="weight_label">الوزن (كجم)</label><input type="number" id="weight" placeholder="e.g., 70" min="0"></div>
+                            </div>
+                            <div class="input-group mt-4">
+                                <label for="burnType" data-translate-key="burn_type_label">نوع الحرق</label>
+                                <select id="burnType">
+                                    <option value="thermal" data-translate-key="burn_type_thermal">حراري (لهب، سائل ساخن)</option>
+                                    <option value="electrical" data-translate-key="burn_type_electrical">كهرباء</option>
+                                    <option value="chemical" data-translate-key="burn_type_chemical">كيميائي</option>
+                                </select>
+                            </div>
+                            <div class="mt-4">
+                               <label class="flex items-center cursor-pointer"><input type="checkbox" id="inhalation-injury" class="ml-2 rtl:ml-0 rtl:mr-2 w-4 h-4"><span data-translate-key="inhalation_injury_label">اشتباه في حرق استنشاقي</span></label>
+                            </div>
+                            <h3 class="font-bold text-xl mt-6 mb-3 text-gray-800 border-b pb-2" data-translate-key="calculation_method_title">2. طريقة الحساب</h3>
+                            <div class="flex bg-gray-200 rounded-lg p-1 mt-4">
+                                <button id="ruleOfNinesBtn" class="method-btn w-1/2 p-2 rounded-md text-center font-semibold" data-translate-key="rule_of_nines_btn">Rule of 9s</button>
+                                <button id="lundBrowderBtn" class="method-btn w-1/2 p-2 rounded-md text-center font-semibold" data-translate-key="lund_browder_btn">Lund-Browder</button>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2 text-center" data-translate-key="method_note">ملاحظة: طريقة Lund-Browder هي الأكثر دقة للأطفال.</p>
+                            <h3 class="font-bold text-xl mt-6 mb-3 text-gray-800 border-b pb-2" data-translate-key="degree_title">3. تحديد درجة الحرق (اختر اللون ثم اضغط على الجسم)</h3>
+                            <div id="color-palette" class="flex justify-around items-center p-2 rounded-lg bg-gray-100 mt-4">
+                                <div data-degree="1st" class="color-box bg-degree-1st w-14 h-14 rounded-full cursor-pointer flex flex-col justify-center items-center p-1"><span class="font-bold text-black text-xs" data-translate-key="degree_1st">درجة 1</span></div>
+                                <div data-degree="2nd" class="color-box bg-degree-2nd w-14 h-14 rounded-full cursor-pointer flex flex-col justify-center items-center p-1"><span class="font-bold text-white text-xs" data-translate-key="degree_2nd">درجة 2</span></div>
+                                <div data-degree="3rd" class="color-box bg-degree-3rd w-14 h-14 rounded-full cursor-pointer flex flex-col justify-center items-center p-1"><span class="font-bold text-white text-xs" data-translate-key="degree_3rd">درجة 3</span></div>
+                                <div data-degree="clear" class="color-box w-14 h-14 rounded-full cursor-pointer flex justify-center items-center bg-white border-2 border-gray-300" title="Clear selection"><svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></div>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-3 flex flex-col">
+                            <div id="diagram-container" class="body-diagram w-full flex-grow min-h-[400px]"></div>
+                            <div class="mt-4">
+                                <h3 class="font-bold text-xl mb-3 text-gray-800 border-b pb-2" data-translate-key="tbsa_results_title">النتائج</h3>
+                                <div class="space-y-3 bg-gray-50 p-4 rounded-lg mt-4">
+                                    <div class="flex justify-between items-center"><span data-translate-key="result_1st">الدرجة الأولى:</span><span id="result-1st" class="font-bold text-yellow-600">0%</span></div>
+                                    <div class="flex justify-between items-center"><span data-translate-key="result_2nd">الدرجة الثانية:</span><span id="result-2nd" class="font-bold text-red-600">0%</span></div>
+                                    <div class="flex justify-between items-center"><span data-translate-key="result_3rd">الدرجة الثالثة:</span><span id="result-3rd" class="font-bold text-gray-800">0%</span></div>
+                                    <hr><div class="flex justify-between items-center text-lg"><span class="font-bold" data-translate-key="total_tbsa">الإجمالي (2nd+3rd):</span><span id="total-tbsa" class="font-extrabold text-teal-700">0%</span></div>
+                                    <hr><div class="flex justify-between items-center text-lg"><span class="font-bold" data-translate-key="baux_score">مؤشر باوكس (Baux Score):</span><span id="baux-score" class="font-extrabold text-blue-700">0</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="mt-6">
+                        <h3 class="font-bold text-xl mb-3 text-gray-800 border-b pb-2" data-translate-key="recommendations_title">توصيات هامة</h3>
+                        <div id="recommendations-output" class="space-y-3 p-4 bg-blue-50 rounded-lg"></div>
+                    </div>
+                </div>
+                <div id="tab-content-fluids" class="tab-content">
+                    <h3 class="font-bold text-xl mb-3 text-gray-800 border-b pb-2" data-translate-key="fluids_title">إدارة السوائل (ATLS 10th Ed. Protocol)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                        <div class="space-y-4">
+                            <div class="input-group"><label for="burnTime" data-translate-key="burn_time_label">وقت وتاريخ الحرق</label><input type="datetime-local" id="burnTime"></div>
+                            <div class="input-group"><label for="preHospitalFluids" data-translate-key="pre_hosp_fluids_label">سوائل ما قبل المستشفى (مل)</label><input type="number" id="preHospitalFluids" placeholder="0" min="0"></div>
+                        </div>
+                        <div id="fluid-results-container" class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-bold text-lg mb-3 text-center" data-translate-key="fluid_plan_title">خطة إدارة السوائل</h4>
+                            <p id="admission-recommendation" class="text-center font-semibold mb-4 p-2 rounded-md"></p>
+                            <div id="fluid-details" class="space-y-2 text-md">
+                                <p class="flex justify-between"><strong><span data-translate-key="total_fluid_24h">إجمالي سوائل الإنعاش (24 ساعة):</span></strong> <span id="total-fluid" class="font-bold">0 مل</span></p>
+                                <hr>
+                                <div id="first-phase-container">
+                                    <p class="text-blue-700 font-semibold mt-2" data-translate-key="first_phase_title">المرحلة الأولى (أول 8 ساعات من الحرق)</p>
+                                    <p class="flex justify-between"><strong><span data-translate-key="first_half_fluid">المطلوب في هذه المرحلة:</span></strong> <span id="first-half-fluid" class="font-bold">0 مل</span></p>
+                                    <p class="flex justify-between"><strong><span data-translate-key="fluid_given">ما تم إعطاؤه (قبل المستشفى):</span></strong> <span id="fluid-given" class="font-bold">0 مل</span></p>
+                                    <p class="flex justify-between"><strong><span data-translate-key="fluid_remaining">المتبقي لهذه المرحلة:</span></strong> <span id="first-8h-fluid-remaining" class="font-bold text-red-600">0 مل</span></p>
+                                    <p class="flex justify-between"><strong><span data-translate-key="infusion_rate">معدل الإنعاش:</span></strong> <span id="first-8h-rate" class="font-bold">0 مل/ساعة</span></p>
+                                </div>
+                                <hr>
+                                <div id="second-phase-container">
+                                    <p class="text-blue-700 font-semibold mt-2" data-translate-key="second_phase_title">المرحلة الثانية (الـ 16 ساعة التالية)</p>
+                                    <p class="flex justify-between"><strong><span data-translate-key="required_fluid">المطلوب في هذه المرحلة:</span></strong> <span id="next-16h-fluid" class="font-bold">0 مل</span></p>
+                                    <p class="flex justify-between"><strong><span data-translate-key="infusion_rate">معدل الإنعاش:</span></strong> <span id="next-16h-rate" class="font-bold">0 مل/ساعة</span></p>
+                                </div>
+                                <div id="late-presentation-note" class="text-xs text-orange-600 mt-4 p-2 bg-orange-50 rounded-lg hidden"></div>
+                                <p id="electrical-burn-note" class="text-xs text-red-600 mt-4 hidden" data-translate-key="electrical_note"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="tab-content-referral" class="tab-content">
+                     <div id="referral-form-container">
+                         <h3 class="font-bold text-xl text-gray-800 border-b pb-2 mb-4" data-translate-key="ref_form_title">نموذج تقرير الإحالة</h3>
+                         <div id="referral-form" class="space-y-6">
+                             <fieldset class="border p-4 rounded-lg">
+                                 <legend class="px-2 font-bold" data-translate-key="ref_patient_info">بيانات المريض</legend>
+                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                     <div class="input-group"><label data-translate-key="ref_patient_name">اسم المريض الكامل</label><input type="text" id="ref-patient-name"></div>
+                                     <div class="input-group"><label data-translate-key="ref_medical_number">الرقم الطبي</label><input type="text" id="ref-medical-number"></div>
+                                     <div class="input-group"><label data-translate-key="ref_sex">الجنس</label><select id="ref-sex"><option value="male" data-translate-key="sex_male">ذكر</option><option value="female" data-translate-key="sex_female">أنثى</option></select></div>
+                                 </div>
+                             </fieldset>
+                             <fieldset class="border p-4 rounded-lg">
+                                 <legend class="px-2 font-bold" data-translate-key="ref_history_title">التاريخ المرضي</legend>
+                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                     <div class="input-group"><label data-translate-key="ref_medical_history">تاريخ مرضي سابق</label><textarea id="ref-medical-history" rows="2"></textarea></div>
+                                     <div class="input-group"><label data-translate-key="ref_medications">الأدوية الحالية</label><textarea id="ref-medications" rows="2"></textarea></div>
+                                     <div class="input-group"><label data-translate-key="ref_allergy">الحساسية</label><textarea id="ref-allergy" rows="2"></textarea></div>
+                                     <div class="input-group"><label data-translate-key="ref_last_meal">آخر وجبة</label><input type="text" id="ref-last-meal"></div>
+                                 </div>
+                             </fieldset>
+                             <fieldset class="border p-4 rounded-lg">
+                                 <legend class="px-2 font-bold" data-translate-key="ref_burn_event_title">تفاصيل حدث الحرق</legend>
+                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                     <div class="input-group"><label data-translate-key="ref_burn_location">مكان الحرق</label><select id="ref-burn-location"><option value="open" data-translate-key="ref_location_open">مكان مفتوح</option><option value="closed" data-translate-key="ref_location_closed">مكان مغلق</option></select></div>
+                                     <div class="input-group"><label data-translate-key="ref_associated_injuries">إصابات مصاحبة</label><textarea id="ref-associated-injuries" rows="2"></textarea></div>
+                                 </div>
+                             </fieldset>
+                             <fieldset class="border p-4 rounded-lg">
+                                 <legend class="px-2 font-bold" data-translate-key="ref_inhalation_title">علامات الاشتباه في حرق استنشاقي</legend>
+                                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                     <label class="flex items-center"><input type="checkbox" id="ref-facial-burns" class="ml-2 rtl:ml-0 rtl:mr-2 w-4 h-4"><span data-translate-key="ref_facial_burns">حروق بالوجه</span></label>
+                                     <label class="flex items-center"><input type="checkbox" id="ref-singed-hairs" class="ml-2 rtl:ml-0 rtl:mr-2 w-4 h-4"><span data-translate-key="ref_singed_hairs">شعر أنف محروق</span></label>
+                                     <label class="flex items-center"><input type="checkbox" id="ref-soot" class="ml-2 rtl:ml-0 rtl:mr-2 w-4 h-4"><span data-translate-key="ref_soot">سخام في مجرى الهواء</span></label>
+                                     <label class="flex items-center"><input type="checkbox" id="ref-hoarseness" class="ml-2 rtl:ml-0 rtl:mr-2 w-4 h-4"><span data-translate-key="ref_hoarseness">بحة في الصوت</span></label>
+                                 </div>
+                             </fieldset>
+                              <fieldset class="border p-4 rounded-lg">
+                                 <legend class="px-2 font-bold" data-translate-key="ref_management_title">الإجراءات الأولية</legend>
+                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                     <label class="flex items-center"><input type="checkbox" id="ref-iv-line" class="ml-2 rtl:ml-0 rtl:mr-2 w-4 h-4"><span data-translate-key="ref_iv_line">تركيب خط وريدي</span></label>
+                                     <label class="flex items-center"><input type="checkbox" id="ref-catheter" class="ml-2 rtl:ml-0 rtl:mr-2 w-4 h-4"><span data-translate-key="ref_catheter">تركيب قسطرة بولية</span></label>
+                                     <div class="input-group"><label data-translate-key="ref_analgesia">المسكنات المعطاة</label><input type="text" id="ref-analgesia"></div>
+                                     <div class="input-group"><label data-translate-key="ref_escharotomy">موقع بضع الخشارة (Escharotomy)</label><input type="text" id="ref-escharotomy"></div>
+                                 </div>
+                             </fieldset>
+                              <fieldset class="border p-4 rounded-lg">
+                                 <legend class="px-2 font-bold" data-translate-key="ref_provider_info">بيانات جهة التحويل</legend>
+                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                     <div class="input-group"><label data-translate-key="ref_hospital_name">اسم المستشفى</label><input type="text" id="ref-hospital-name"></div>
+                                     <div class="input-group"><label data-translate-key="ref_physician_name">اسم الطبيب</label><input type="text" id="ref-physician-name"></div>
+                                 </div>
+                             </fieldset>
+                         </div>
+                         <div class="mt-8 flex justify-center">
+                            <button id="generateReportPreviewBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg" data-translate-key="generate_preview_btn">حفظ وإنشاء معاينة للتقرير</button>
+                        </div>
+                     </div>
+                     <div id="referral-preview-container" class="hidden">
+                        <!-- Preview will be injected here -->
+                     </div>
+                </div>
+            </div>
+        `;
+        
+        initializeBurnCalculator = (lang) => {
+            const translations = {
+                ar: {
+                    tab_calculator: "حاسبة الحروق والتوصيات", tab_fluids: "إدارة السوائل", tab_referral: "تقرير الإحالة", reset_btn: "إعادة تعيين الكل",
+                    generate_preview_btn: "حفظ وإنشاء معاينة للتقرير", print_report_btn: "طباعة التقرير", edit_data_btn: "تعديل البيانات", report_saved_success: "تم حفظ التقرير بنجاح! معرّف التقرير:",
+                    patient_data_title: "1. بيانات المريض وتفاصيل الحرق", age_label: "العمر (سنوات)", weight_label: "الوزن (كجم)", burn_type_label: "نوع الحرق", burn_type_thermal: "حراري (لهب، سائل ساخن)", burn_type_electrical: "كهرباء", burn_type_chemical: "كيميائي", inhalation_injury_label: "اشتباه في حرق استنشاقي",
+                    calculation_method_title: "2. طريقة الحساب", rule_of_nines_btn: "Rule of 9s", lund_browder_btn: "Lund-Browder", method_note: "ملاحظة: طريقة Lund-Browder هي الأكثر دقة للأطفال.",
+                    degree_title: "3. تحديد درجة الحرق (اختر اللون ثم اضغط على الجسم)", degree_1st: "درجة 1", degree_2nd: "درجة 2", degree_3rd: "درجة 3",
+                    tbsa_results_title: "النتائج", result_1st: "الدرجة الأولى:", result_2nd: "الدرجة الثانية:", result_3rd: "الدرجة الثالثة:", total_tbsa: "الإجمالي (2nd+3rd):", baux_score: "مؤشر باوكس (Baux Score):",
+                    recommendations_title: "توصيات هامة",
+                    fluids_title: "إدارة السوائل (ATLS 10th Ed. Protocol)", burn_time_label: "وقت وتاريخ الحرق", pre_hosp_fluids_label: "سوائل ما قبل المستشفى (مل)", fluid_plan_title: "خطة إدارة السوائل", total_fluid_24h: "إجمالي سوائل الإنعاش (24 ساعة):", first_phase_title: "المرحلة الأولى (أول 8 ساعات من الحرق)", first_half_fluid: "المطلوب في هذه المرحلة:", fluid_given: "ما تم إعطاؤه (قبل المستشفى):", fluid_remaining: "المتبقي لهذه المرحلة:", infusion_rate: "معدل الإنعاش:", second_phase_title: "المرحلة الثانية (الـ 16 ساعة التالية)", required_fluid: "المطلوب في هذه المرحلة:",
+                    electrical_note: "الحروق الكهربائية تتطلب سوائل أكثر من المحسوب. راقب لون البول.",
+                    admission_needed: "الحالة تتطلب الدخول لوحدة الحروق.", no_admission_needed: "الحالة لا تتطلب الدخول لوحدة الحروق حاليًا.",
+                    late_presentation_note_title: "خطة الإنعاش المعدلة (وصول متأخر):",
+                    late_presentation_note_body: (rate, hours) => `مر أكثر من 8 ساعات. سيتم إعطاء السوائل المتبقية بمعدل ثابت ${rate} مل/ساعة على مدار الـ ${hours} ساعة القادمة.`,
+                    ref_form_title: "نموذج تقرير الإحالة", ref_patient_info: "بيانات المريض", ref_patient_name: "اسم المريض الكامل", ref_medical_number: "الرقم الطبي", ref_sex: "الجنس", sex_male: "ذكر", sex_female: "أنثى",
+                    ref_history_title: "التاريخ المرضي", ref_medical_history: "تاريخ مرضي سابق", ref_medications: "الأدوية الحالية", ref_allergy: "الحساسية", ref_last_meal: "آخر وجبة",
+                    ref_burn_event_title: "تفاصيل حدث الحرق", ref_burn_location: "مكان الحرق", ref_location_open: "مكان مفتوح", ref_location_closed: "مكان مغلق", ref_associated_injuries: "إصابات مصاحبة",
+                    ref_inhalation_title: "علامات الاشتباه في حرق استنشاقي", ref_facial_burns: "حروق بالوجه", ref_singed_hairs: "شعر أنف محروق", ref_soot: "سخام في مجرى الهواء", ref_hoarseness: "بحة في الصوت",
+                    ref_management_title: "الإجراءات الأولية", ref_iv_line: "تركيب خط وريدي", ref_catheter: "تركيب قسطرة بولية", ref_analgesia: "المسكنات المعطاة", ref_escharotomy: "موقع بضع الخشارة (Escharotomy)",
+                    ref_provider_info: "بيانات جهة التحويل", ref_hospital_name: "اسم المستشفى", ref_physician_name: "اسم الطبيب",
+                    recommendation_referral: "<strong>إحالة لوحدة حروق:</strong> موصى بها بشدة.",
+                    recommendation_airway: "<strong>تأمين مجرى الهواء:</strong> ضع في اعتبارك التنبيب المبكر بسبب خطر استنشاق الدخان.",
+                    recommendation_parkland: "<strong>ابدأ إنعاش السوائل:</strong> استخدم محلول رينجر لاكتات حسب معادلة باركلاند.",
+                    recommendation_electrical: "<strong>حرق كهربائي:</strong> حافظ على إخراج البول عند 100 مل/ساعة. راقب علامات متلازمة الحجرات.",
+                    recommendation_chemical: "<strong>حرق كيميائي:</strong> اغسل المنطقة بكمية وفيرة من الماء لمدة 20-30 دقيقة على الأقل.",
+                    recommendation_none: "لا توجد توصيات خاصة حاليًا بناءً على المدخلات."
+                },
+                en: {
+                    tab_calculator: "Burn Calculator & Recs", tab_fluids: "Fluid Management", tab_referral: "Referral Report", reset_btn: "Reset All",
+                    generate_preview_btn: "Save & Generate Preview", print_report_btn: "Print Report", edit_data_btn: "Edit Data", report_saved_success: "Report saved successfully! Report ID:",
+                    patient_data_title: "1. Patient Data & Burn Details", age_label: "Age (years)", weight_label: "Weight (kg)", burn_type_label: "Burn Type", burn_type_thermal: "Thermal (flame, scald)", burn_type_electrical: "Electrical", burn_type_chemical: "Chemical", inhalation_injury_label: "Suspected Inhalation Injury",
+                    calculation_method_title: "2. Calculation Method", rule_of_nines_btn: "Rule of 9s", lund_browder_btn: "Lund-Browder", method_note: "Note: Lund-Browder is more accurate for children.",
+                    degree_title: "3. Select Burn Degree (Pick color then tap body)", degree_1st: "1st Degree", degree_2nd: "2nd Degree", degree_3rd: "3rd Degree",
+                    tbsa_results_title: "Results", result_1st: "1st Degree:", result_2nd: "2nd Degree:", result_3rd: "3rd Degree:", total_tbsa: "Total (2nd+3rd):", baux_score: "Baux Score:",
+                    recommendations_title: "Important Recommendations",
+                    fluids_title: "Fluid Management (ATLS 10th Ed. Protocol)", burn_time_label: "Time & Date of Burn", pre_hosp_fluids_label: "Pre-Hospital Fluids (mL)", fluid_plan_title: "Fluid Management Plan", total_fluid_24h: "Total Resuscitation Fluid (24h):", first_phase_title: "First Phase (First 8h from burn)", first_half_fluid: "Required in this phase:", fluid_given: "Given (pre-hospital):", fluid_remaining: "Remaining for this phase:", infusion_rate: "Infusion Rate:", second_phase_title: "Second Phase (Next 16h)", required_fluid: "Required in this phase:",
+                    electrical_note: "Electrical burns require more fluids than calculated. Monitor urine output.",
+                    admission_needed: "Admission to a burn unit is indicated.", no_admission_needed: "Admission to a burn unit is not currently indicated.",
+                    late_presentation_note_title: "Adjusted Resuscitation Plan (Late Presentation):",
+                    late_presentation_note_body: (rate, hours) => `More than 8h have passed. Remaining fluid will be given at a steady rate of ${rate} mL/hr over the next ${hours} hours.`,
+                    ref_form_title: "Referral Report Form", ref_patient_info: "Patient Information", ref_patient_name: "Patient Full Name", ref_medical_number: "Medical Record #", ref_sex: "Sex", sex_male: "Male", sex_female: "Female",
+                    ref_history_title: "Medical History", ref_medical_history: "Past Medical History", ref_medications: "Current Medications", ref_allergy: "Allergies", ref_last_meal: "Last Meal",
+                    ref_burn_event_title: "Burn Event Details", ref_burn_location: "Burn Location", ref_location_open: "Open Space", ref_location_closed: "Closed Space", ref_associated_injuries: "Associated Injuries",
+                    ref_inhalation_title: "Signs of Suspected Inhalation Injury", ref_facial_burns: "Facial Burns", ref_singed_hairs: "Singed Nasal Hairs", ref_soot: "Soot in Airways", ref_hoarseness: "Hoarseness of Voice",
+                    ref_management_title: "Initial Management", ref_iv_line: "IV Line Inserted", ref_catheter: "Catheter Inserted", ref_analgesia: "Analgesia Given", ref_escharotomy: "Escharotomy Site",
+                    ref_provider_info: "Referring Provider Information", ref_hospital_name: "Hospital Name", ref_physician_name: "Physician Name",
+                    recommendation_referral: "<strong>Burn Unit Referral:</strong> Strongly recommended.",
+                    recommendation_airway: "<strong>Airway Management:</strong> Consider early intubation due to inhalation risk.",
+                    recommendation_parkland: "<strong>Initiate Fluid Resuscitation:</strong> Use Lactated Ringer's solution per Parkland formula.",
+                    recommendation_electrical: "<strong>Electrical Burn:</strong> Maintain urine output at 100 mL/hr. Monitor for compartment syndrome.",
+                    recommendation_chemical: "<strong>Chemical Burn:</strong> Irrigate with copious amounts of water for at least 20-30 minutes.",
+                    recommendation_none: "No specific recommendations at this time based on input."
+                }
+            };
+
+            const detailedBodySVG = `
+                <svg viewBox="0 0 320 400" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                    <g transform="translate(0, 10)">
+                        <text x="75" y="10" font-size="12" font-weight="bold" text-anchor="middle">Front</text>
+                        <path data-part="head_front" d="M50,20 a25,25 0 1,1 50,0 a25,25 0 1,1 -50,0" />
+                        <text x="75" y="48">Head</text>
+                        <path data-part="neck_front" d="M65,70 h20 v10 h-20 Z" />
+                        <path data-part="chest_front" d="M45,80 h60 v40 h-60 Z" />
+                        <text x="75" y="105">Chest</text>
+                        <path data-part="abdomen_front" d="M45,120 h60 v40 h-60 Z" />
+                        <text x="75" y="145">Abdomen</text>
+                        <path data-part="genitalia" d="M70,160 l5,10 l5,-10 Z" />
+                        
+                        <path data-part="right_upper_arm_front" d="M105,85 l20,5 v40 l-20,-5 Z" />
+                        <text x="118" y="110" font-size="8">Upper Arm</text>
+                        <path data-part="right_lower_arm_front" d="M125,130 l15,5 v40 l-15,-5 Z" />
+                        <text x="135" y="155" font-size="8">Lower Arm</text>
+                        <path data-part="right_hand_front" d="M140,175 l10,5 v20 l-10,-5 Z" />
+                        <text x="147" y="190" font-size="8">Hand</text>
+                        
+                        <path data-part="left_upper_arm_front" d="M45,85 l-20,5 v40 l20,-5 Z" />
+                        <text x="32" y="110" font-size="8">Upper Arm</text>
+                        <path data-part="left_lower_arm_front" d="M25,130 l-15,5 v40 l15,-5 Z" />
+                        <text x="15" y="155" font-size="8">Lower Arm</text>
+                        <path data-part="left_hand_front" d="M10,175 l-10,5 v20 l10,-5 Z" />
+                        <text x="3" y="190" font-size="8">Hand</text>
+                        
+                        <path data-part="right_thigh_front" d="M80,170 h20 v70 h-20 Z" />
+                        <text x="90" y="210">Thigh</text>
+                        <path data-part="right_lower_leg_front" d="M82,240 h16 v70 h-16 Z" />
+                        <text x="90" y="280">Lower Leg</text>
+                        <path data-part="right_foot_front" d="M83,310 h14 v20 h-14 Z" />
+                        <text x="90" y="325">Foot</text>
+                        
+                        <path data-part="left_thigh_front" d="M50,170 h20 v70 h-20 Z" />
+                        <text x="60" y="210">Thigh</text>
+                        <path data-part="left_lower_leg_front" d="M52,240 h16 v70 h-16 Z" />
+                        <text x="60" y="280">Lower Leg</text>
+                        <path data-part="left_foot_front" d="M53,310 h14 v20 h-14 Z" />
+                        <text x="60" y="325">Foot</text>
+                    </g>
+                    <g transform="translate(170, 10)">
+                        <text x="75" y="10" font-size="12" font-weight="bold" text-anchor="middle">Back</text>
+                        <path data-part="head_back" d="M50,20 a25,25 0 1,1 50,0 a25,25 0 1,1 -50,0" />
+                        <text x="75" y="48">Head</text>
+                        <path data-part="neck_back" d="M65,70 h20 v10 h-20 Z" />
+                        <path data-part="upper_back" d="M45,80 h60 v40 h-60 Z" />
+                        <text x="75" y="105">Upper Back</text>
+                        <path data-part="lower_back" d="M45,120 h60 v40 h-60 Z" />
+                        <text x="75" y="145">Lower Back</text>
+                        <path data-part="left_buttock" d="M45,160 h25 v20 h-25 Z" />
+                        <text x="57.5" y="175" font-size="8">Buttock</text>
+                        <path data-part="right_buttock" d="M80,160 h25 v20 h-25 Z" />
+                        <text x="92.5" y="175" font-size="8">Buttock</text>
+
+                        <path data-part="right_upper_arm_back" d="M105,85 l20,5 v40 l-20,-5 Z" />
+                        <text x="118" y="110" font-size="8">Upper Arm</text>
+                        <path data-part="right_lower_arm_back" d="M125,130 l15,5 v40 l-15,-5 Z" />
+                        <text x="135" y="155" font-size="8">Lower Arm</text>
+                        <path data-part="right_hand_back" d="M140,175 l10,5 v20 l-10,-5 Z" />
+                        <text x="147" y="190" font-size="8">Hand</text>
+                        
+                        <path data-part="left_upper_arm_back" d="M45,85 l-20,5 v40 l20,-5 Z" />
+                        <text x="32" y="110" font-size="8">Upper Arm</text>
+                        <path data-part="left_lower_arm_back" d="M25,130 l-15,5 v40 l15,-5 Z" />
+                        <text x="15" y="155" font-size="8">Lower Arm</text>
+                        <path data-part="left_hand_back" d="M10,175 l-10,5 v20 l10,-5 Z" />
+                        <text x="3" y="190" font-size="8">Hand</text>
+                        
+                        <path data-part="right_thigh_back" d="M80,180 h20 v70 h-20 Z" />
+                        <text x="90" y="220">Thigh</text>
+                        <path data-part="right_lower_leg_back" d="M82,250 h16 v70 h-16 Z" />
+                        <text x="90" y="290">Lower Leg</text>
+                        <path data-part="right_foot_back" d="M83,320 h14 v20 h-14 Z" />
+                        <text x="90" y="335">Foot</text>
+                        
+                        <path data-part="left_thigh_back" d="M50,180 h20 v70 h-20 Z" />
+                        <text x="60" y="220">Thigh</text>
+                        <path data-part="left_lower_leg_back" d="M52,250 h16 v70 h-16 Z" />
+                        <text x="60" y="290">Lower Leg</text>
+                        <path data-part="left_foot_back" d="M53,320 h14 v20 h-14 Z" />
+                        <text x="60" y="335">Foot</text>
+                    </g>
+                </svg>
+            `;
+            
+            let burnData = {};
+            let selectedDegree = '2nd';
+            let calculationMethod = 'ruleOfNines';
+
+            const diagramContainer = getEl('diagram-container');
+            const ageInput = getEl('age');
+            const weightInput = getEl('weight');
+            
+            const createChart = (head, neck, torso, arm, leg, hand, foot, buttock, genitalia) => ({
+                head_front: head / 2, head_back: head / 2,
+                neck_front: neck / 2, neck_back: neck / 2,
+                chest_front: torso / 4, abdomen_front: torso / 4,
+                upper_back: torso / 4, lower_back: torso / 4,
+                left_buttock: buttock / 2, right_buttock: buttock / 2,
+                genitalia: genitalia,
+                left_upper_arm_front: arm / 4, left_lower_arm_front: arm / 4,
+                right_upper_arm_front: arm / 4, right_lower_arm_front: arm / 4,
+                left_upper_arm_back: arm / 4, left_lower_arm_back: arm / 4,
+                right_upper_arm_back: arm / 4, right_lower_arm_back: arm / 4,
+                left_hand_front: hand / 2, right_hand_front: hand / 2,
+                left_hand_back: hand / 2, right_hand_back: hand / 2,
+                left_thigh_front: leg / 4, left_lower_leg_front: leg / 4,
+                right_thigh_front: leg / 4, right_lower_leg_front: leg / 4,
+                left_thigh_back: leg / 4, left_lower_leg_back: leg / 4,
+                right_thigh_back: leg / 4, right_lower_leg_back: leg / 4,
+                left_foot_front: foot / 2, right_foot_front: foot / 2,
+                left_foot_back: foot / 2, right_foot_back: foot / 2,
+            });
+
+            const lundBrowderData = {
+                '0': createChart(19, 2, 26, 8, 11, 5, 7, 5, 1), '1': createChart(17, 2, 26, 8, 12, 5, 7, 5, 1),
+                '5': createChart(13, 2, 26, 8, 14, 5, 7, 5, 1), '10': createChart(11, 2, 26, 8, 16, 5, 7, 5, 1),
+                '15': createChart(9, 2, 26, 8, 17, 5, 7, 5, 1), 'adult': createChart(7, 2, 26, 8, 19, 5, 7, 5, 1)
+            };
+            const ruleOfNinesData = {
+                'child': createChart(18, 0, 36, 18, 27, 0, 0, 0, 1), 'adult': createChart(9, 0, 36, 18, 36, 0, 0, 0, 1)
+            };
+
+            const getChart = () => {
+                const age = parseInt(ageInput.value) || 0;
+                if (calculationMethod === 'lundBrowder') {
+                    if (age < 1) return lundBrowderData['0']; if (age < 5) return lundBrowderData['1'];
+                    if (age < 10) return lundBrowderData['5']; if (age < 15) return lundBrowderData['15'];
+                    return lundBrowderData['adult'];
+                }
+                return age < 14 ? ruleOfNinesData['child'] : ruleOfNinesData['adult'];
+            };
+
+            const updateCalculations = () => {
+                const age = parseInt(ageInput.value) || 0;
+                const weight = parseFloat(weightInput.value) || 0;
+                const inhalationInjury = getEl('inhalation-injury').checked;
+                const burnType = getEl('burnType').value;
+                let totals = { '1st': 0, '2nd': 0, '3rd': 0 };
+                const chart = getChart();
+                for (const part in burnData) {
+                    const { degree } = burnData[part];
+                    if (degree && totals[degree] !== undefined && chart[part] !== undefined) {
+                        totals[degree] += chart[part];
+                    }
+                }
+                getEl('result-1st').textContent = `${totals['1st'].toFixed(1)}%`;
+                getEl('result-2nd').textContent = `${totals['2nd'].toFixed(1)}%`;
+                getEl('result-3rd').textContent = `${totals['3rd'].toFixed(1)}%`;
+                const totalTBSA = totals['2nd'] + totals['3rd'];
+                getEl('total-tbsa').textContent = `${totalTBSA.toFixed(1)}%`;
+                const bauxScore = (age || 0) + totalTBSA;
+                getEl('baux-score').textContent = bauxScore.toFixed(1);
+                updateFluidCalculations(weight, totalTBSA);
+                updateRecommendations(totalTBSA, age, inhalationInjury, burnType);
+            };
+
+            const updateFluidCalculations = (weight, tbsa) => {
+                const fluidContainer = getEl('fluid-details');
+                const admissionEl = getEl('admission-recommendation');
+                const lateNoteEl = getEl('late-presentation-note');
+                const firstPhaseContainer = getEl('first-phase-container');
+                const secondPhaseContainer = getEl('second-phase-container');
+
+                if (weight <= 0 || tbsa <= 0) {
+                    fluidContainer.classList.add('hidden');
+                    admissionEl.textContent = '';
+                    admissionEl.className = 'text-center font-semibold mb-4 p-2 rounded-md';
+                    lateNoteEl.classList.add('hidden');
+                    return;
+                }
+                fluidContainer.classList.remove('hidden');
+
+                const parklandMultiplier = (parseInt(ageInput.value) || 0) >= 14 ? 2 : 3;
+                const totalFluid = parklandMultiplier * weight * tbsa;
+                getEl('total-fluid').textContent = `${Math.round(totalFluid)} ml`;
+
+                const preHospitalFluids = parseFloat(getEl('preHospitalFluids').value) || 0;
+                getEl('fluid-given').textContent = `${preHospitalFluids} ml`;
+
+                const burnTimeInput = getEl('burnTime').value;
+                let hoursSinceBurn = burnTimeInput ? (new Date() - new Date(burnTimeInput)) / 36e5 : 0;
+                
+                if (hoursSinceBurn > 24) hoursSinceBurn = 24;
+
+                lateNoteEl.classList.add('hidden');
+                firstPhaseContainer.classList.remove('hidden');
+                secondPhaseContainer.classList.remove('hidden');
+
+                if (hoursSinceBurn >= 8) {
+                    firstPhaseContainer.classList.add('hidden');
+                    const totalFluidRemaining = totalFluid - preHospitalFluids;
+                    const totalHoursRemaining = 24 - hoursSinceBurn;
+                    const continuousRate = totalHoursRemaining > 0 ? totalFluidRemaining / totalHoursRemaining : 0;
+
+                    getEl('next-16h-fluid').textContent = `${Math.round(totalFluidRemaining)} ml`;
+                    getEl('next-16h-rate').textContent = `${Math.round(continuousRate)} ml/hr`;
+                    
+                    const titleEl = secondPhaseContainer.querySelector('[data-translate-key="second_phase_title"]');
+                    titleEl.textContent = translations[lang].late_presentation_note_title;
+
+                    lateNoteEl.innerHTML = translations[lang].late_presentation_note_body(Math.round(continuousRate), totalHoursRemaining.toFixed(1));
+                    lateNoteEl.classList.remove('hidden');
+
+                } else {
+                    const firstHalfFluid = totalFluid / 2;
+                    getEl('first-half-fluid').textContent = `${Math.round(firstHalfFluid)} ml`;
+                    
+                    const firstPhaseHoursRemaining = 8 - hoursSinceBurn;
+                    const firstPhaseFluidRemaining = firstHalfFluid - preHospitalFluids;
+                    getEl('first-8h-fluid-remaining').textContent = `${Math.round(firstPhaseFluidRemaining)} ml`;
+
+                    const firstPhaseRate = firstPhaseHoursRemaining > 0 ? firstPhaseFluidRemaining / firstPhaseHoursRemaining : 0;
+                    getEl('first-8h-rate').textContent = `${Math.round(firstPhaseRate)} ml/hr`;
+
+                    const secondHalfFluid = totalFluid / 2;
+                    getEl('next-16h-fluid').textContent = `${Math.round(secondHalfFluid)} ml`;
+                    const secondPhaseRate = secondHalfFluid / 16;
+                    getEl('next-16h-rate').textContent = `${Math.round(secondPhaseRate)} ml/hr`;
+                    
+                    const titleEl = secondPhaseContainer.querySelector('[data-translate-key="second_phase_title"]');
+                    titleEl.textContent = translations[lang].second_phase_title;
+                }
+                
+                getEl('electrical-burn-note').classList.toggle('hidden', getEl('burnType').value !== 'electrical');
+            };
+
+            const updateRecommendations = (tbsa, age, inhalation, type) => {
+                const outputEl = getEl('recommendations-output');
+                const admissionEl = getEl('admission-recommendation');
+                let recommendations = [];
+                let needsAdmission = false;
+
+                if (tbsa > 10) needsAdmission = true;
+                if (age >= 60 || (age <= 10 && tbsa > 5)) needsAdmission = true;
+                if (Object.keys(burnData).some(p => p.includes('hand') || p.includes('foot') || p.includes('face') || p.includes('genitalia'))) needsAdmission = true;
+                if (getEl('result-3rd').textContent !== '0.0%') needsAdmission = true;
+                if (type === 'electrical' || type === 'chemical') needsAdmission = true;
+                if (inhalation) needsAdmission = true;
+
+                if (needsAdmission) {
+                    recommendations.push(translations[lang].recommendation_referral);
+                    admissionEl.textContent = translations[lang].admission_needed;
+                    admissionEl.className = 'text-center font-semibold mb-4 p-2 rounded-md bg-red-100 text-red-800';
+                } else {
+                        admissionEl.textContent = translations[lang].no_admission_needed;
+                        admissionEl.className = 'text-center font-semibold mb-4 p-2 rounded-md bg-green-100 text-green-800';
+                }
+
+                if (inhalation) recommendations.push(translations[lang].recommendation_airway);
+                if (tbsa > 15) recommendations.push(translations[lang].recommendation_parkland);
+                if (type === 'electrical') recommendations.push(translations[lang].recommendation_electrical);
+                if (type === 'chemical') recommendations.push(translations[lang].recommendation_chemical);
+
+                outputEl.innerHTML = recommendations.length ? recommendations.map(rec => `<div class="flex items-start"><svg class="w-5 h-5 text-blue-600 mr-2 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span>${rec}</span></div>`).join('') : `<p>${translations[lang].recommendation_none}</p>`;
+            };
+
+            const handleBodyPartClick = (e) => {
+                const part = e.target.dataset.part;
+                if (!part) return;
+                if (selectedDegree === 'clear' || (burnData[part] && burnData[part].degree === selectedDegree)) {
+                    delete burnData[part];
+                    e.target.style.fill = '#f3f4f6';
+                } else {
+                    burnData[part] = { degree: selectedDegree };
+                    e.target.style.fill = getComputedStyle(document.documentElement).getPropertyValue(`--degree-${selectedDegree}-color`);
+                }
+                updateCalculations();
+            };
+            
+            const referralFormContainer = getEl('referral-form-container');
+            const previewContainer = getEl('referral-preview-container');
+
+            const handleReset = () => {
+                burnData = {};
+                ageInput.value = ''; weightInput.value = '';
+                getEl('inhalation-injury').checked = false;
+                getEl('burnType').value = 'thermal';
+                getEl('preHospitalFluids').value = ''; 
+                
+                const burnTimeInput = getEl('burnTime');
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                burnTimeInput.value = now.toISOString().slice(0, 16);
+
+                document.querySelectorAll('.body-diagram path').forEach(p => p.style.fill = '#f3f4f6');
+                const referralForm = getEl('referral-form');
+                referralForm.querySelectorAll('input[type="text"], input[type="number"], textarea').forEach(input => input.value = '');
+                referralForm.querySelectorAll('input[type="checkbox"]').forEach(checkbox => checkbox.checked = false);
+                referralForm.querySelectorAll('select').forEach(select => select.selectedIndex = 0);
+                
+                previewContainer.classList.add('hidden');
+                referralFormContainer.classList.remove('hidden');
+                updateCalculations();
+            };
+            
+            const populateReferralForm = () => {
+                 getEl('ref-facial-burns').checked = getEl('inhalation-injury').checked || Object.keys(burnData).some(p => p.includes('head'));
+            };
+            
+            const createReportRow = (label, value, unit = '') => {
+                if (value === null || value === undefined || value === '' || value === false) return '';
+                const displayValue = value === true ? 'Yes' : `${value} ${unit}`.trim();
+                return `<p class="py-1"><strong>${label}:</strong> ${displayValue}</p>`;
+            };
+            
+            const generateReportPreview = async () => {
+                const btn = getEl('generateReportPreviewBtn');
+                btn.disabled = true;
+                btn.textContent = 'Saving...';
+
+                try {
+                    if (typeof window.canvg === 'undefined' || typeof window.canvg.Canvg === 'undefined') {
+                        throw new Error('Canvg library not loaded correctly.');
+                    }
+                    
+                    const diagramContainer = getEl('diagram-container');
+                    const svgElement = diagramContainer.querySelector('svg');
+                    if (!svgElement) throw new Error('SVG diagram not found');
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = svgElement.viewBox.baseVal.width;
+                    canvas.height = svgElement.viewBox.baseVal.height;
+                    const ctx = canvas.getContext('2d');
+                    const v = await window.canvg.Canvg.from(ctx, svgElement.outerHTML);
+                    await v.render();
+                    const diagramDataUrl = canvas.toDataURL('image/png');
+
+                    const getSelectText = (elId) => { const el = getEl(elId); return el.options[el.selectedIndex].text; };
+                    
+                    const reportData = {
+                        patientName: getEl('ref-patient-name').value,
+                        medicalNumber: getEl('ref-medical-number').value,
+                        sex: getSelectText('ref-sex'),
+                        age: getEl('age').value,
+                        weight: getEl('weight').value,
+                        burnTime: getEl('burnTime').value.replace('T', ' '),
+                        burnType: getSelectText('burnType'),
+                        burnLocation: getSelectText('ref-burn-location'),
+                        associatedInjuries: getEl('ref-associated-injuries').value,
+                        result1st: getEl('result-1st').textContent,
+                        result2nd: getEl('result-2nd').textContent,
+                        result3rd: getEl('result-3rd').textContent,
+                        totalTbsa: getEl('total-tbsa').textContent,
+                        bauxScore: getEl('baux-score').textContent,
+                        totalFluid: getEl('total-fluid').textContent,
+                        first8hRate: getEl('first-8h-rate').textContent,
+                        next16hRate: getEl('next-16h-rate').textContent,
+                        preHospitalFluids: getEl('preHospitalFluids').value,
+                        medicalHistory: getEl('ref-medical-history').value,
+                        medications: getEl('ref-medications').value,
+                        allergy: getEl('ref-allergy').value,
+                        lastMeal: getEl('ref-last-meal').value,
+                        inhalationSuspected: getEl('inhalation-injury').checked,
+                        facialBurns: getEl('ref-facial-burns').checked,
+                        singedHairs: getEl('ref-singed-hairs').checked,
+                        sootInAirway: getEl('ref-soot').checked,
+                        hoarseness: getEl('ref-hoarseness').checked,
+                        ivLine: getEl('ref-iv-line').checked,
+                        catheter: getEl('ref-catheter').checked,
+                        analgesia: getEl('ref-analgesia').value,
+                        escharotomy: getEl('ref-escharotomy').value,
+                        hospitalName: getEl('ref-hospital-name').value,
+                        physicianName: getEl('ref-physician-name').value,
+                        createdAt: new Date().toISOString()
+                    };
+
+                    // Save to Firebase
+                    const docRef = await window.firebaseAddDoc(window.firebaseCollection(window.firebaseDB, "burn_reports"), reportData);
+                    console.log("Document written with ID: ", docRef.id);
+
+                    let inhalationSignsHtml = [
+                        reportData.inhalationSuspected ? '<li>Suspected based on initial form</li>' : '',
+                        reportData.facialBurns ? '<li>Facial Burns noted</li>' : '',
+                        reportData.singedHairs ? '<li>Singed Nasal Hairs noted</li>' : '',
+                        reportData.sootInAirway ? '<li>Soot in Airway noted</li>' : '',
+                        reportData.hoarseness ? '<li>Hoarseness of Voice noted</li>' : ''
+                    ].filter(Boolean).join('');
+                    if (!inhalationSignsHtml) {
+                        inhalationSignsHtml = '<li>No signs of inhalation injury noted.</li>';
+                    }
+
+                    const reportContentHtml = `
+                        <div class="printable-area bg-white text-gray-800 p-6" dir="${lang === 'ar' ? 'rtl' : 'ltr'}">
+                             <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4" role="alert">
+                                <p class="font-bold">${translations[lang].report_saved_success}</p>
+                                <p>${docRef.id}</p>
+                            </div>
+                            <img src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" class="watermark" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); opacity: 0.08; pointer-events: none; z-index: 0; width: 80%; max-width: 500px;" />
+                            <div style="position: relative; z-index: 1;">
+                                <header class="flex justify-between items-start mb-6 border-b pb-4">
+                                    <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                                       <img src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" class="h-16 w-16">
+                                       <div>
+                                           <h1 class="text-xl font-bold">Plasticology Online Companion</h1>
+                                           <p class="text-md font-bold text-teal-700">Burn Assessment & Referral Report</p>
+                                       </div>
+                                    </div>
+                                    <div class="text-sm text-right rtl:text-left">
+                                       <p><strong>Report Date:</strong> ${new Date().toLocaleString()}</p>
+                                    </div>
+                                </header>
+                                <main class="space-y-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div class="border rounded-lg p-4 space-y-1">
+                                            <h2 class="text-lg font-bold border-b mb-3 pb-2 text-teal-600">Patient & Burn Summary</h2>
+                                            ${createReportRow('Patient Name', reportData.patientName)}
+                                            ${createReportRow('Medical Number', reportData.medicalNumber)}
+                                            ${createReportRow('Age', reportData.age, 'years')}
+                                            ${createReportRow('Weight', reportData.weight, 'kg')}
+                                            ${createReportRow('Sex', reportData.sex)}
+                                            ${createReportRow('Time of Burn', reportData.burnTime)}
+                                            ${createReportRow('Burn Type', reportData.burnType)}
+                                        </div>
+                                        <div class="border rounded-lg p-4 space-y-1">
+                                           <h2 class="text-lg font-bold border-b mb-3 pb-2 text-teal-600">Burn Assessment</h2>
+                                           ${createReportRow('1st Degree TBSA', reportData.result1st)}
+                                           ${createReportRow('2nd Degree TBSA', reportData.result2nd)}
+                                           ${createReportRow('3rd Degree TBSA', reportData.result3rd)}
+                                           <p class="mt-2 pt-2 border-t"><strong>Total TBSA (2nd+3rd): ${reportData.totalTbsa}</strong></p>
+                                           <p><strong>Baux Score: ${reportData.bauxScore}</strong></p>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                       <div class="border rounded-lg p-4 flex flex-col items-center">
+                                            <h2 class="text-lg font-bold border-b mb-3 pb-2 w-full text-center text-teal-600">Burn Diagram</h2>
+                                            <img src="${diagramDataUrl}" class="w-full max-w-xs border" />
+                                       </div>
+                                       <div class="border rounded-lg p-4">
+                                           <h2 class="text-lg font-bold border-b mb-3 pb-2 text-teal-600">Fluid Management Plan</h2>
+                                           ${createReportRow('Pre-Hospital Fluids', reportData.preHospitalFluids, 'mL')}
+                                           <p class="mt-2 pt-2 border-t"><strong>Total Resuscitation Fluid (24h):</strong> ${reportData.totalFluid}</p>
+                                           <p><strong>First Phase (8h) Rate:</strong> ${reportData.first8hRate}</p>
+                                           <p><strong>Second Phase (16h) Rate:</strong> ${reportData.next16hRate}</p>
+                                           <h2 class="text-lg font-bold border-b mt-4 mb-2 pb-2 text-teal-600">Recommendations</h2>
+                                           <div class="text-sm space-y-2">${getEl('recommendations-output').innerHTML}</div>
+                                       </div>
+                                    </div>
+                                    <div class="space-y-6">
+                                       <div class="border rounded-lg p-4"><h2 class="text-lg font-bold border-b mb-3 pb-2 text-teal-600">Patient History (AMPL)</h2>
+                                          ${createReportRow('Allergies', reportData.allergy)} ${createReportRow('Medications', reportData.medications)} ${createReportRow('Past Medical History', reportData.medicalHistory)} ${createReportRow('Last Meal', reportData.lastMeal)}
+                                       </div>
+                                       <div class="border rounded-lg p-4"><h2 class="text-lg font-bold border-b mb-3 pb-2 text-teal-600">Event & Inhalation Details</h2>
+                                          ${createReportRow('Location of Burn Event', reportData.burnLocation)} ${createReportRow('Associated Injuries', reportData.associatedInjuries)}
+                                          <div class="mt-2 pt-2 border-t"><p class="font-semibold">Inhalation Injury Assessment:</p><ul class="list-disc list-inside ml-4 rtl:ml-0 rtl:mr-4">${inhalationSignsHtml}</ul></div>
+                                       </div>
+                                       <div class="border rounded-lg p-4"><h2 class="text-lg font-bold border-b mb-3 pb-2 text-teal-600">Initial Management Provided</h2>
+                                           ${createReportRow('IV Line Inserted', reportData.ivLine)} ${createReportRow('Urinary Catheter Inserted', reportData.catheter)} ${createReportRow('Analgesia Given', reportData.analgesia)} ${createReportRow('Escharotomy Performed', reportData.escharotomy)}
+                                       </div>
+                                    </div>
+                                    <div class="border rounded-lg p-4 mt-6"><h2 class="text-lg font-bold border-b mb-3 pb-2 text-teal-600">Referring Provider Information</h2>
+                                       ${createReportRow('Referring Hospital', reportData.hospitalName)} ${createReportRow('Referring Physician', reportData.physicianName)}
+                                    </div>
+                                </main>
+                                <footer class="text-center mt-8 pt-4 border-t text-xs text-gray-500">
+                                   <p>Report generated by Plasticology Online Companion © Dr Bishoy - Surgery Masters Academy</p>
+                                </footer>
+                            </div>
+                        </div>
+                    `;
+                    
+                    const previewHtml = `
+                        ${reportContentHtml}
+                        <div class="no-print mt-8 flex justify-center space-x-4 rtl:space-x-reverse">
+                            <button id="printReportBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg" data-translate-key="print_report_btn">طباعة التقرير</button>
+                            <button id="editReportBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg" data-translate-key="edit_data_btn">تعديل البيانات</button>
+                        </div>
+                    `;
+
+                    previewContainer.innerHTML = previewHtml;
+                    referralFormContainer.classList.add('hidden');
+                    previewContainer.classList.remove('hidden');
+                    setLanguage(lang, translations); 
+
+                    getEl('printReportBtn').addEventListener('click', () => window.print());
+                    getEl('editReportBtn').addEventListener('click', () => {
+                        previewContainer.classList.add('hidden');
+                        referralFormContainer.classList.remove('hidden');
+                    });
+
+                } catch (error) {
+                    console.error("Error generating report preview:", error);
+                    showErrorModal(error.message || 'Could not generate the report preview.');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = translations[lang].generate_preview_btn;
+                }
+            };
+            
+            diagramContainer.innerHTML = detailedBodySVG;
+            setLanguage(lang, translations);
+            
+            document.querySelectorAll('#color-palette .color-box').forEach(box => {
+                box.addEventListener('click', (e) => {
+                    document.querySelector('#color-palette .color-box.selected')?.classList.remove('selected');
+                    e.currentTarget.classList.add('selected');
+                    selectedDegree = e.currentTarget.dataset.degree;
+                });
+            });
+            
+            document.querySelectorAll('.method-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelector('.method-btn.active')?.classList.remove('active');
+                    e.currentTarget.classList.add('active');
+                    calculationMethod = e.currentTarget.id === 'lundBrowderBtn' ? 'lundBrowder' : 'ruleOfNines';
+                    updateCalculations();
+                });
+            });
+
+            document.querySelectorAll('#burn-tabs .tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    const tabName = e.currentTarget.dataset.tab;
+                    document.querySelector('#burn-tabs .tab.active').classList.remove('active');
+                    e.currentTarget.classList.add('active');
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.toggle('active', content.id === `tab-content-${tabName}`);
+                    });
+                    if (tabName === 'referral') {
+                        populateReferralForm();
+                    }
+                });
+            });
+
+            diagramContainer.addEventListener('click', handleBodyPartClick);
+            [ageInput, weightInput, getEl('inhalation-injury'), getEl('burnType'), getEl('burnTime'), getEl('preHospitalFluids')].forEach(el => {
+                el.addEventListener('input', updateCalculations);
+            });
+            getEl('resetBtn').addEventListener('click', handleReset);
+            getEl('generateReportPreviewBtn').addEventListener('click', generateReportPreview);
+            
+            // Set default date and time
+            const burnTimeInput = getEl('burnTime');
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Adjust for local timezone
+            burnTimeInput.value = now.toISOString().slice(0, 16);
+
+            getEl('ruleOfNinesBtn').classList.add('active');
+            getEl('color-palette').querySelector('[data-degree="2nd"]').classList.add('selected');
+            updateCalculations();
+        };
+
+        // ====================================================================================
+        // BMI CALCULATOR
+        // ====================================================================================
+        
+        bmiCalculatorTemplate = `
+            <div class="max-w-xl mx-auto">
+                <h3 class="font-bold text-2xl text-center mb-6 text-gray-800" data-translate-key="bmi_tool_title">حاسبة مؤشر كتلة الجسم (BMI)</h3>
+                <div class="bg-white p-8 rounded-xl shadow-lg space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="input-group"><label for="bmi-age" data-translate-key="age_label">العمر (سنوات)</label><input type="number" id="bmi-age" placeholder="e.g., 30"></div>
+                        <div class="input-group"><label for="bmi-weight" data-translate-key="weight_label">الوزن (كجم)</label><input type="number" id="bmi-weight" placeholder="e.g., 70"></div>
+                        <div class="input-group"><label for="bmi-height" data-translate-key="height_label">الطول (سم)</label><input type="number" id="bmi-height" placeholder="e.g., 175"></div>
+                    </div>
+                    <button id="calculate-bmi-btn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-lg" data-translate-key="calculate_btn">احسب</button>
+                    <div id="bmi-results" class="text-center space-y-4 pt-4 hidden">
+                        <div id="bmi-value-container">
+                            <p class="text-gray-600" data-translate-key="bmi_result_label">مؤشر كتلة الجسم</p>
+                            <p id="bmi-value" class="text-5xl font-bold text-teal-600">0.0</p>
+                            <p id="bmi-category" class="text-2xl font-semibold mt-2"></p>
+                        </div>
+                        <div id="bmi-advice-container" class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-lg"><strong data-translate-key="ideal_weight_label">الوزن المثالي:</strong> <span id="ideal-weight-range"></span></p>
+                            <p id="weight-change-advice" class="text-lg mt-2 font-semibold"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        initializeBmiCalculator = (lang) => {
+            const translations = {
+                ar: {
+                    calculate_btn: "احسب", age_label: "العمر (سنوات)", weight_label: "الوزن (كجم)", height_label: "الطول (سم)",
+                    bmi_result_label: "مؤشر كتلة الجسم", ideal_weight_label: "الوزن المثالي:",
+                    underweight: "نقص الوزن", normal: "وزن طبيعي", overweight: "زيادة الوزن", obesity1: "سمنة درجة 1", obesity2: "سمنة درجة 2", obesity3: "سمنة مفرطة",
+                    advice_lose: (kg) => `تحتاج إلى فقدان ${kg} كجم للوصول للوزن المثالي.`,
+                    advice_gain: (kg) => `تحتاج إلى زيادة ${kg} كجم للوصول للوزن المثالي.`,
+                    advice_normal: "أنت ضمن نطاق الوزن المثالي. حافظ عليه!",
+                    kg_unit: "كجم"
+                },
+                en: {
+                    calculate_btn: "Calculate", age_label: "Age (years)", weight_label: "Weight (kg)", height_label: "Height (cm)",
+                    bmi_result_label: "Your BMI is", ideal_weight_label: "Ideal Weight:",
+                    underweight: "Underweight", normal: "Normal Weight", overweight: "Overweight", obesity1: "Obesity Class I", obesity2: "Obesity Class II", obesity3: "Morbid Obesity",
+                    advice_lose: (kg) => `You need to lose ${kg} kg to reach a healthy weight.`,
+                    advice_gain: (kg) => `You need to gain ${kg} kg to reach a healthy weight.`,
+                    advice_normal: "You are within the ideal weight range. Keep it up!",
+                    kg_unit: "kg"
+                }
+            };
+
+            setLanguage(lang, translations);
+
+            const calculateBtn = getEl('calculate-bmi-btn');
+            const weightInput = getEl('bmi-weight');
+            const heightInput = getEl('bmi-height');
+            const resultsDiv = getEl('bmi-results');
+            const bmiValueEl = getEl('bmi-value');
+            const bmiCategoryEl = getEl('bmi-category');
+            const idealWeightEl = getEl('ideal-weight-range');
+            const adviceEl = getEl('weight-change-advice');
+
+            const calculateBmi = () => {
+                const weight = parseFloat(weightInput.value);
+                const height = parseFloat(heightInput.value);
+
+                if (!weight || !height || weight <= 0 || height <= 0) {
+                    resultsDiv.classList.add('hidden');
+                    return;
+                }
+
+                const heightInMeters = height / 100;
+                const bmi = weight / (heightInMeters * heightInMeters);
+                bmiValueEl.textContent = bmi.toFixed(1);
+
+                let category = '';
+                let categoryClass = '';
+                if (bmi < 18.5) {
+                    category = translations[lang].underweight;
+                    categoryClass = 'text-blue-500';
+                } else if (bmi < 25) {
+                    category = translations[lang].normal;
+                    categoryClass = 'text-green-500';
+                } else if (bmi < 30) {
+                    category = translations[lang].overweight;
+                    categoryClass = 'text-yellow-500';
+                } else if (bmi < 35) {
+                    category = translations[lang].obesity1;
+                    categoryClass = 'text-orange-500';
+                } else if (bmi < 40) {
+                    category = translations[lang].obesity2;
+                    categoryClass = 'text-red-500';
+                } else {
+                    category = translations[lang].obesity3;
+                    categoryClass = 'text-red-700';
+                }
+                bmiCategoryEl.textContent = category;
+                bmiCategoryEl.className = `text-2xl font-semibold mt-2 ${categoryClass}`;
+
+                const idealWeightLower = (18.5 * heightInMeters * heightInMeters).toFixed(1);
+                const idealWeightUpper = (24.9 * heightInMeters * heightInMeters).toFixed(1);
+                idealWeightEl.textContent = `${idealWeightLower} - ${idealWeightUpper} ${translations[lang].kg_unit}`;
+
+                if (bmi >= 25) {
+                    const weightToLose = (weight - idealWeightUpper).toFixed(1);
+                    adviceEl.textContent = translations[lang].advice_lose(weightToLose);
+                    adviceEl.className = 'text-lg mt-2 font-semibold text-orange-600';
+                } else if (bmi < 18.5) {
+                    const weightToGain = (idealWeightLower - weight).toFixed(1);
+                    adviceEl.textContent = translations[lang].advice_gain(weightToGain);
+                    adviceEl.className = 'text-lg mt-2 font-semibold text-blue-600';
+                } else {
+                    adviceEl.textContent = translations[lang].advice_normal;
+                    adviceEl.className = 'text-lg mt-2 font-semibold text-green-600';
+                }
+
+                resultsDiv.classList.remove('hidden');
+            };
+
+            calculateBtn.addEventListener('click', calculateBmi);
+        };
+
+        // ====================================================================================
+        // LOCAL ANESTHESIA CALCULATOR
+        // ====================================================================================
+        
+        anesthesiaCalculatorTemplate = `
+            <div class="max-w-xl mx-auto">
+                <h3 class="font-bold text-2xl text-center mb-6 text-gray-800" data-translate-key="anesthesia_tool_title">حاسبة المخدر الموضعي</h3>
+                <div class="bg-white p-8 rounded-xl shadow-lg space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="input-group">
+                            <label for="la-weight" data-translate-key="weight_label">وزن المريض (كجم)</label>
+                            <input type="number" id="la-weight" placeholder="e.g., 70">
+                        </div>
+                        <div class="input-group">
+                            <label for="la-type" data-translate-key="anesthetic_type_label">نوع المخدر</label>
+                            <select id="la-type">
+                                <option value="lidocaine">Lidocaine</option>
+                                <option value="bupivacaine">Bupivacaine</option>
+                                <option value="ropivacaine">Ropivacaine</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="la-concentration" data-translate-key="concentration_label">التركيز (%)</label>
+                            <select id="la-concentration">
+                                <option value="0.25">0.25%</option>
+                                <option value="0.5">0.5%</option>
+                                <option value="1" selected>1%</option>
+                                <option value="2">2%</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center justify-center pt-8">
+                            <label class="flex items-center text-lg cursor-pointer"><input type="checkbox" id="la-adrenaline" class="w-5 h-5 ml-2 rtl:ml-0 rtl:mr-2"><span data-translate-key="with_adrenaline_label">مع أدرينالين</span></label>
+                        </div>
+                    </div>
+                    <div id="la-results" class="text-center space-y-2 pt-4">
+                         <div id="la-value-container" class="bg-teal-50 p-4 rounded-lg">
+                            <p class="text-gray-600" data-translate-key="max_safe_dose_label">الجرعة القصوى الآمنة</p>
+                            <p class="text-5xl font-bold text-teal-600"><span id="la-value">0.0</span> ml</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        initializeAnesthesiaCalculator = (lang) => {
+            const translations = {
+                ar: {
+                    weight_label: "وزن المريض (كجم)", anesthetic_type_label: "نوع المخدر", concentration_label: "التركيز (%)",
+                    with_adrenaline_label: "مع أدرينالين", max_safe_dose_label: "الجرعة القصوى الآمنة (مليلتر)",
+                },
+                en: {
+                    weight_label: "Patient Weight (kg)", anesthetic_type_label: "Anesthetic Type", concentration_label: "Concentration (%)",
+                    with_adrenaline_label: "With Adrenaline", max_safe_dose_label: "Maximum Safe Dose (mL)",
+                }
+            };
+
+            setLanguage(lang, translations);
+
+            const weightInput = getEl('la-weight');
+            const typeSelect = getEl('la-type');
+            const concentrationSelect = getEl('la-concentration');
+            const adrenalineCheck = getEl('la-adrenaline');
+            const resultEl = getEl('la-value');
+            
+            const maxDoses = {
+                lidocaine: { plain: 4.5, withAdrenaline: 7 },
+                bupivacaine: { plain: 2, withAdrenaline: 2.5 },
+                ropivacaine: { plain: 3, withAdrenaline: 3 }
+            };
+
+            const calculateMaxDose = () => {
+                const weight = parseFloat(weightInput.value) || 0;
+                const type = typeSelect.value;
+                const concentration = parseFloat(concentrationSelect.value);
+                const withAdrenaline = adrenalineCheck.checked;
+
+                if (weight <= 0 || !concentration) {
+                    resultEl.textContent = '0.0';
+                    return;
+                }
+
+                const dosePerKg = withAdrenaline ? maxDoses[type].withAdrenaline : maxDoses[type].plain;
+                const totalMg = dosePerKg * weight;
+                const concentrationMgPerMl = concentration * 10;
+                
+                const maxVolume = totalMg / concentrationMgPerMl;
+                
+                resultEl.textContent = maxVolume.toFixed(1);
+            };
+
+            [weightInput, typeSelect, concentrationSelect, adrenalineCheck].forEach(el => {
+                el.addEventListener('input', calculateMaxDose);
+                el.addEventListener('change', calculateMaxDose);
+            });
+
+            calculateMaxDose();
+        };
+
+        // ====================================================================================
+        // GCS CALCULATOR
+        // ====================================================================================
+        
+        gcsCalculatorTemplate = `
+            <div class="max-w-2xl mx-auto">
+                <h3 class="font-bold text-2xl text-center mb-6 text-gray-800" data-translate-key="gcs_tool_title">حاسبة مقياس غلاسكو للغيبوبة (GCS)</h3>
+                <div class="bg-white p-8 rounded-xl shadow-lg space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="space-y-3">
+                            <h4 class="font-bold text-lg border-b pb-2" data-translate-key="gcs_eye_title">استجابة العين</h4>
+                            <label class="block cursor-pointer"><input type="radio" name="gcs-eye" value="4" class="mr-2 rtl:mr-0 rtl:ml-2"> <span data-translate-key="gcs_eye_4">تلقائية (4)</span></label>
+                            <label class="block cursor-pointer"><input type="radio" name="gcs-eye" value="3" class="mr-2 rtl:mr-0 rtl:ml-2"> <span data-translate-key="gcs_eye_3">للصوت (3)</span></label>
+                            <label class="block cursor-pointer"><input type="radio" name="gcs-eye" value="2" class="mr-2 rtl:mr-0 rtl:ml-2"> <span data-translate-key="gcs_eye_2">للألم (2)</span></label>
+                            <label class="block cursor-pointer"><input type="radio" name="gcs-eye" value="1" class="mr-2 rtl:mr-0 rtl:ml-2" checked> <span data-translate-key="gcs_eye_1">لا يوجد (1)</span></label>
+                        </div>
+                        <div class="space-y-3">
+                            <h4 class="font-bold text-lg border-b pb-2" data-translate-key="gcs_verbal_title">الاستجابة اللفظية</h4>
+                            <label class="block cursor-pointer"><input type="radio" name="gcs-verbal" value="5" class="mr-2 rtl:mr-0 rtl:ml-2"> <span data-translate-key="gcs_verbal_5">طبيعية (5)</span></label>
+                            <label class="block cursor-pointer"><input type="radio" name="gcs-verbal" value="4" class="mr-2 rtl:mr-0 rtl:ml-2"> <span data-translate-key="gcs_verbal_4">مشوشة (4)</span></label>
+                            <label class="block cursor-pointer"><input type="radio" name="gcs-verbal" value="3" class="mr-2 rtl:mr-0 rtl:ml-2"> <span data-translate-key="gcs_verbal_3">كلمات غير مناسبة (3)</span></label>
+                            <label class="block cursor-pointer"><input type="radio" name="gcs-verbal" value="2" class="mr-2 rtl:mr-0 rtl:ml-2"> <span data-translate-key="gcs_verbal_2">أصوات غير مفهومة (2)</span></label>
+                            <label class="block cursor-pointer"><input type="radio" name="gcs-verbal" value="1" class="mr-2 rtl:mr-0 rtl:ml-2" checked> <span data-translate-key="gcs_verbal_1">لا يوجد (1)</span></label>
+                        </div>
+                        <div class="space-y-3">
+                            <h4 class="font-bold text-lg border-b pb-2" data-translate-key="gcs_motor_title">الاستجابة الحركية</h4>
+                            <label class="block cursor-pointer"><input type="radio" name="gcs-motor" value="6" class="mr-2 rtl:mr-0 rtl:ml-2"> <span data-translate-key="gcs_motor_6">ينفذ الأوامر (6)</span></label>
+                            <label class="block cursor-pointer"><input type="radio" name="gcs-motor" value="5" class="mr-2 rtl:mr-0 rtl:ml-2"> <span data-translate-key="gcs_motor_5">يحدد مكان الألم (5)</span></label>
+                            <label class="block cursor-pointer"><input type="radio" name="gcs-motor" value="4" class="mr-2 rtl:mr-0 rtl:ml-2"> <span data-translate-key="gcs_motor_4">يسحب استجابة للألم (4)</span></label>
+                            <label class="block cursor-pointer"><input type="radio" name="gcs-motor" value="3" class="mr-2 rtl:mr-0 rtl:ml-2"> <span data-translate-key="gcs_motor_3">انثناء غير طبيعي (3)</span></label>
+                            <label class="block cursor-pointer"><input type="radio" name="gcs-motor" value="2" class="mr-2 rtl:mr-0 rtl:ml-2"> <span data-translate-key="gcs_motor_2">انبساط غير طبيعي (2)</span></label>
+                            <label class="block cursor-pointer"><input type="radio" name="gcs-motor" value="1" class="mr-2 rtl:mr-0 rtl:ml-2" checked> <span data-translate-key="gcs_motor_1">لا يوجد (1)</span></label>
+                        </div>
+                    </div>
+                    <div id="gcs-results" class="text-center space-y-2 pt-6 border-t">
+                        <p class="text-gray-600" data-translate-key="gcs_total_score">المجموع</p>
+                        <p id="gcs-value" class="text-6xl font-bold text-teal-600">3</p>
+                        <p id="gcs-category" class="text-2xl font-semibold mt-2"></p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        initializeGcsCalculator = (lang) => {
+            const translations = {
+                ar: {
+                    gcs_eye_title: "استجابة العين", gcs_eye_4: "تلقائية (4)", gcs_eye_3: "للصوت (3)", gcs_eye_2: "للألم (2)", gcs_eye_1: "لا يوجد (1)",
+                    gcs_verbal_title: "الاستجابة اللفظية", gcs_verbal_5: "طبيعية (5)", gcs_verbal_4: "مشوشة (4)", gcs_verbal_3: "كلمات غير مناسبة (3)", gcs_verbal_2: "أصوات غير مفهومة (2)", gcs_verbal_1: "لا يوجد (1)",
+                    gcs_motor_title: "الاستجابة الحركية", gcs_motor_6: "ينفذ الأوامر (6)", gcs_motor_5: "يحدد مكان الألم (5)", gcs_motor_4: "يسحب استجابة للألم (4)", gcs_motor_3: "انثناء غير طبيعي (3)", gcs_motor_2: "انبساط غير طبيعي (2)", gcs_motor_1: "لا يوجد (1)",
+                    gcs_total_score: "المجموع",
+                    severity_severe: "إصابة شديدة", severity_moderate: "إصابة متوسطة", severity_mild: "إصابة طفيفة"
+                },
+                en: {
+                    gcs_eye_title: "Eye Opening", gcs_eye_4: "Spontaneous (4)", gcs_eye_3: "To Sound (3)", gcs_eye_2: "To Pain (2)", gcs_eye_1: "None (1)",
+                    gcs_verbal_title: "Verbal Response", gcs_verbal_5: "Oriented (5)", gcs_verbal_4: "Confused (4)", gcs_verbal_3: "Inappropriate Words (3)", gcs_verbal_2: "Incomprehensible Sounds (2)", gcs_verbal_1: "None (1)",
+                    gcs_motor_title: "Motor Response", gcs_motor_6: "Obeys Commands (6)", gcs_motor_5: "Localizes Pain (5)", gcs_motor_4: "Withdraws from Pain (4)", gcs_motor_3: "Abnormal Flexion (3)", gcs_motor_2: "Abnormal Extension (2)", gcs_motor_1: "None (1)",
+                    gcs_total_score: "Total Score",
+                    severity_severe: "Severe Injury", severity_moderate: "Moderate Injury", severity_mild: "Mild Injury"
+                }
+            };
+
+            setLanguage(lang, translations);
+
+            const radios = document.querySelectorAll('input[type="radio"][name^="gcs-"]');
+            const gcsValueEl = getEl('gcs-value');
+            const gcsCategoryEl = getEl('gcs-category');
+
+            const calculateGcs = () => {
+                const eyeScore = parseInt(document.querySelector('input[name="gcs-eye"]:checked').value);
+                const verbalScore = parseInt(document.querySelector('input[name="gcs-verbal"]:checked').value);
+                const motorScore = parseInt(document.querySelector('input[name="gcs-motor"]:checked').value);
+                
+                const totalScore = eyeScore + verbalScore + motorScore;
+                gcsValueEl.textContent = totalScore;
+
+                let category = '';
+                let categoryClass = '';
+                if (totalScore <= 8) {
+                    category = translations[lang].severity_severe;
+                    categoryClass = 'text-red-600';
+                } else if (totalScore <= 12) {
+                    category = translations[lang].severity_moderate;
+                    categoryClass = 'text-orange-500';
+                } else {
+                    category = translations[lang].severity_mild;
+                    categoryClass = 'text-green-500';
+                }
+                gcsCategoryEl.textContent = category;
+                gcsCategoryEl.className = `text-2xl font-semibold mt-2 ${categoryClass}`;
+            };
+
+            radios.forEach(radio => radio.addEventListener('change', calculateGcs));
+            calculateGcs();
+        };
+
+        // Initialize the app
+        initializeDashboard();
+        setLanguage(currentLang, dashboardTranslations);
+        
+    })();
+    </script>
+</body>
+</html>

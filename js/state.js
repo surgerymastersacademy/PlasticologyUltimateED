@@ -1,6 +1,7 @@
-// js/state.js (Version 1.1 - Upgraded Matching Exam State)
+// js/state.js (FINAL CORRECTED VERSION FOR MULTI-PLANNER)
 
-export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec'; // <-- Don't forget to put your NEW URL here!
+export const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlWVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec'; // <-- Don't forget to put your NEW URL here!
+
 export const SIMULATION_Q_COUNT = 100;
 export const SIMULATION_TOTAL_TIME_MINUTES = 120;
 export const DEFAULT_TIME_PER_QUESTION = 45;
@@ -18,22 +19,24 @@ export const appState = {
     allAnnouncements: [],
     allRoles: [],
     allChaptersNames: [],
+    // --- NEW: Add theory questions data ---
     allTheoryQuestions: [],
     
-    // User-Specific Data
+    // User Data
     currentUser: null,
-    currentUserCard: null,
-    fullActivityLog: [],
-    userQuizNotes: [],
-    userLectureNotes: [],
-    userTheoryLogs: [],
+    userCardData: null,
     viewedLectures: new Set(),
     bookmarkedQuestions: new Set(),
     answeredQuestions: new Set(),
-
-    // Study Planner State
-    studyPlans: [],
-    activeStudyPlan: null,
+    fullActivityLog: [],
+    userQuizNotes: [],
+    userLectureNotes: [],
+    userMessages: [],
+    // --- NEW: Add theory logs data ---
+    userTheoryLogs: [],
+    // --- MODIFICATION: Updated planner state for multiple plans ---
+    studyPlans: [], // Will hold an array of all user's plans
+    activeStudyPlan: null, // Will hold the currently active plan object
 
     // Navigation & UI State
     navigationHistory: [],
@@ -78,23 +81,14 @@ export const appState = {
         title: ''
     },
 
-    // --- NEW: Add matching exam state ---
-    currentMatchingExam: {
-        title: '',
-        sets: [],         // Array of { premises: [], answers: [] }
-        currentSetIndex: 0,
-        userMatches: [],  // 2D array to store user's answer drops
-        timerInterval: null,
-        totalTime: 0,
-        score: 0
-    },
-
-    // Current Theory Session State
+    // --- NEW: Add theory session state ---
     currentTheorySession: {
         questions: [],
         currentIndex: 0,
-        title: '',
         isExamMode: false,
-        timerInterval: null,
+        title: '',
+        timerInterval: null
     },
 };
+
+
