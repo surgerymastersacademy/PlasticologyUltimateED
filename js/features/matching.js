@@ -1,4 +1,4 @@
-// V.2.0 - 2025-10-07
+// V.2.1 - 2025-10-07
 // js/features/matching.js
 
 import { appState } from '../state.js';
@@ -92,7 +92,7 @@ function launchMatchingExam(title, sets, totalTime) {
     ui.showScreen(dom.matchingContainer);
     renderCurrentSet();
     startMatchingTimer();
-    addClickListeners(); // Use click listeners instead of drag/drop
+    addClickListeners();
 
     dom.endMatchingBtn.onclick = () => endMatchingExam(false);
     dom.checkAnswersBtn.onclick = checkCurrentSetAnswers;
@@ -126,50 +126,40 @@ function handleMatchingClick(e) {
     const target = e.target;
     if (appState.currentMatching.isReviewMode) return;
 
-    // Case 1: Clicked an answer in the right-hand list
     if (target.matches('#matching-answers-area .answer-clickable')) {
         handleSelectAnswer(target);
     }
-    // Case 2: Clicked an empty premise box
     else if (target.closest('.premise-drop-zone:not(.has-answer)')) {
         handleSelectPremise(target.closest('.premise-drop-zone'));
     }
-    // Case 3: Clicked an answer that's already in a premise box (to return it)
     else if (target.matches('.premise-drop-zone .answer-clickable')) {
         handleReturnAnswer(target);
     }
 }
 
 function handleSelectAnswer(answerEl) {
-    // Deselect if it's already selected
     if (answerEl === selectedAnswerElement) {
         answerEl.classList.remove('answer-selected');
         selectedAnswerElement = null;
         return;
     }
-
-    // Deselect any other selected answer
     if (selectedAnswerElement) {
         selectedAnswerElement.classList.remove('answer-selected');
     }
-
-    // Select the new one
     selectedAnswerElement = answerEl;
     selectedAnswerElement.classList.add('answer-selected');
 }
 
 function handleSelectPremise(premiseEl) {
-    if (!selectedAnswerElement) return; // Do nothing if no answer is selected
+    if (!selectedAnswerElement) return;
 
     const premiseId = premiseEl.dataset.premiseId;
     const answerId = selectedAnswerElement.dataset.answerId;
 
-    // Move the element and update state
     premiseEl.querySelector('.dropped-answer-placeholder').insertAdjacentElement('beforebegin', selectedAnswerElement);
     premiseEl.classList.add('has-answer');
     appState.currentMatching.userMatches[appState.currentMatching.setIndex][premiseId] = answerId;
 
-    // Clear selection
     selectedAnswerElement.classList.remove('answer-selected');
     selectedAnswerElement = null;
 }
@@ -178,14 +168,11 @@ function handleReturnAnswer(droppedAnswerEl) {
     const parentPremise = droppedAnswerEl.closest('.premise-drop-zone');
     const premiseId = parentPremise.dataset.premiseId;
 
-    // Move element back to the answers area
     dom.matchingAnswersArea.appendChild(droppedAnswerEl);
     parentPremise.classList.remove('has-answer');
     
-    // Update state
     delete appState.currentMatching.userMatches[appState.currentMatching.setIndex][premiseId];
 
-    // Clear selection if this was the selected element
     if (droppedAnswerEl === selectedAnswerElement) {
         selectedAnswerElement.classList.remove('answer-selected');
         selectedAnswerElement = null;
@@ -193,7 +180,7 @@ function handleReturnAnswer(droppedAnswerEl) {
 }
 
 
-// --- Timer, Navigation, and Results Logic (mostly unchanged) ---
+// --- Timer, Navigation, and Results Logic ---
 
 function startMatchingTimer() {
     if (appState.currentMatching.timerInterval) {
@@ -212,8 +199,8 @@ function startMatchingTimer() {
 }
 
 function checkCurrentSetAnswers() {
-    appState.currentMatching.isReviewMode = true; // Lock the UI from further changes
-    removeClickListeners(); // Prevent further clicks
+    appState.currentMatching.isReviewMode = true;
+    removeClickListeners();
 
     const { sets, setIndex, userMatches } = appState.currentMatching;
     const currentSet = sets[setIndex];
