@@ -1,5 +1,15 @@
-// V.1.5 - 2025-10-06
+// V.1.7 - 2025-10-06
 // js/utils.js
+
+/**
+ * NEW: Add the missing formatTime function.
+ */
+export function formatTime(seconds) {
+    if (isNaN(seconds) || seconds < 0) return "00:00";
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
 
 export function groupLecturesByChapter(lectures) {
     if (!lectures || lectures.length === 0) return {};
@@ -15,17 +25,12 @@ export function groupLecturesByChapter(lectures) {
 
 export function parseQuestions(questions) {
     if (!questions || questions.length === 0) return [];
-    // The issue was that the property names from Google Sheets can be inconsistent.
-    // This ensures we always use the same keys: 'question' and 'CorrectAnswer'.
     questions.forEach(q => {
-        q.question = q.question || q.Question; // Use lowercase 'question' if it exists, otherwise use 'Question'
-        q.CorrectAnswer = q.CorrectAnswer || q.correctanswer; // Same for CorrectAnswer
+        q.question = q.question || q.Question; 
+        q.CorrectAnswer = q.CorrectAnswer || q.correctanswer;
     });
-    // This debugging line helped us find the inconsistency.
-    console.log("Parsed Questions Sample:", questions[0]); 
     return questions;
 }
-
 
 export function parseOsceCases(cases) {
     if (!cases || cases.length === 0) return [];
