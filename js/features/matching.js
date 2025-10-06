@@ -1,4 +1,4 @@
-// V.1.5 - 2025-10-06
+// V.1.6 - 2025-10-06
 // js/features/matching.js
 
 import { appState } from '../state.js';
@@ -9,23 +9,32 @@ import { logUserActivity } from '../api.js';
 
 let draggedAnswer = null; 
 
+/**
+ * REBUILT: Standalone chapter filter, logic copied from working quiz.js implementation.
+ */
 export function updateMatchingChapterFilter() {
     const selectedSources = Array.from(dom.sourceSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
 
-    let filteredQuestions = appState.allQuestions.filter(q => q.Chapter); // Ensure question has a chapter
+    let questionsToConsider = appState.allQuestions;
     if (selectedSources.length > 0) {
-        filteredQuestions = filteredQuestions.filter(q => selectedSources.includes(q.source || 'Uncategorized'));
+        questionsToConsider = appState.allQuestions.filter(q => selectedSources.includes(q.source || 'Uncategorized'));
     }
-    const chapterCounts = filteredQuestions.reduce((acc, q) => {
+
+    const chapterCounts = questionsToConsider.reduce((acc, q) => {
         const chapter = q.Chapter || 'Uncategorized';
         acc[chapter] = (acc[chapter] || 0) + 1;
         return acc;
     }, {});
+
     const chapterNames = Object.keys(chapterCounts).sort();
     ui.populateFilterOptions(dom.chapterSelectMatching, chapterNames, 'matching-chapter', chapterCounts);
 }
 
+/**
+ * REBUILT: Main handler, logic copied from working quiz.js implementation and adapted.
+ */
 export function handleStartMatchingExam() {
+    // Default values are applied if the input is empty or invalid
     const setCount = parseInt(dom.matchingSetCount.value, 10) || 10;
     const timePerSet = parseInt(dom.matchingTimerInput.value, 10) || 60;
     dom.matchingError.classList.add('hidden');
@@ -33,8 +42,8 @@ export function handleStartMatchingExam() {
     const selectedChapters = Array.from(dom.chapterSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
     const selectedSources = Array.from(dom.sourceSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
 
-    // FIX: Ensure we only use questions that have a question, a correct answer, and a chapter.
-    let filteredQuestions = appState.allQuestions.filter(q => q.question && q.CorrectAnswer && q.Chapter);
+    // Use a clean, robust filtering approach
+    let filteredQuestions = appState.allQuestions.filter(q => q.question && q.CorrectAnswer);
 
     if (selectedChapters.length > 0) {
         filteredQuestions = filteredQuestions.filter(q => selectedChapters.includes(q.Chapter));
@@ -66,6 +75,8 @@ export function handleStartMatchingExam() {
     launchMatchingExam(`Custom Matching Exam`, examSets, totalTime);
 }
 
+// --- The rest of the file remains the same ---
+
 function launchMatchingExam(title, sets, totalTime) {
     appState.currentMatching = {
         sets: sets,
@@ -96,7 +107,6 @@ function launchMatchingExam(title, sets, totalTime) {
 function renderCurrentSet() {
     const { sets, setIndex } = appState.currentMatching;
     const currentSet = sets[setIndex];
-    // FIX: Pass the correct set to the UI function
     ui.renderMatchingSet(currentSet, setIndex, sets.length);
     updateNavigationButtons();
     restoreUserMatchesForCurrentSet();
