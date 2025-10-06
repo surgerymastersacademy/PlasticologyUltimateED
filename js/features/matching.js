@@ -1,11 +1,11 @@
-// V.1.1.1 - 2025-10-06
+// V.1.2 - 2025-10-06
 // js/features/matching.js
 
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
 import { showMainMenuScreen } from '../main.js';
-import { logUserActivity } from '../api.js'; // Make sure this import is added
+import { logUserActivity } from '../api.js';
 
 let draggedAnswer = null; // To hold the element being dragged
 
@@ -57,7 +57,6 @@ export function handleStartMatchingExam() {
         const premises = setQuestions.map(q => ({ question: q.question, uniqueId: q.UniqueID }));
         let answers = setQuestions.map(q => ({ CorrectAnswer: q.CorrectAnswer, uniqueId: q.UniqueID }));
         
-        // Shuffle answers for the current set
         answers.sort(() => Math.random() - 0.5);
 
         examSets.push({ premises, answers });
@@ -71,16 +70,19 @@ export function handleStartMatchingExam() {
  * Initializes and launches the matching exam UI.
  */
 function launchMatchingExam(title, sets, totalTime) {
+    // Using the new detailed state object
     appState.currentMatching = {
         sets: sets,
         setIndex: 0,
-        userMatches: sets.map(() => ({})), // Array of objects to store matches for each set
+        userMatches: sets.map(() => ({})),
         timerInterval: null,
-        totalTime: totalTime,
-        timeLeft: totalTime,
         score: 0,
         totalPremises: sets.reduce((acc, set) => acc + set.premises.length, 0),
         isReviewMode: false
+    };
+    appState.timers.matching = {
+        totalTime: totalTime,
+        timeLeft: totalTime
     };
 
     dom.matchingTitle.textContent = title;
@@ -89,7 +91,6 @@ function launchMatchingExam(title, sets, totalTime) {
     startMatchingTimer();
     addDragDropListeners();
 
-    // Attach event listeners for this specific exam instance
     dom.endMatchingBtn.onclick = () => endMatchingExam(false);
     dom.checkAnswersBtn.onclick = checkCurrentSetAnswers;
     dom.matchingNextSetBtn.onclick = nextSet;
@@ -115,14 +116,15 @@ function startMatchingTimer() {
         clearInterval(appState.currentMatching.timerInterval);
     }
 
+    const timerState = appState.timers.matching;
     appState.currentMatching.timerInterval = setInterval(() => {
-        appState.currentMatching.timeLeft--;
-        const minutes = Math.floor(appState.currentMatching.timeLeft / 60).toString().padStart(2, '0');
-        const seconds = (appState.currentMatching.timeLeft % 60).toString().padStart(2, '0');
+        timerState.timeLeft--;
+        const minutes = Math.floor(timerState.timeLeft / 60).toString().padStart(2, '0');
+        const seconds = (timerState.timeLeft % 60).toString().padStart(2, '0');
         dom.matchingTimer.textContent = `${minutes}:${seconds}`;
 
-        if (appState.currentMatching.timeLeft <= 0) {
-            endMatchingExam(true); // Automatically end when time is up
+        if (timerState.timeLeft <= 0) {
+            endMatchingExam(true);
         }
     }, 1000);
 }
@@ -155,11 +157,11 @@ function handleDragStart(e) {
     if (e.target.classList.contains('answer-draggable')) {
         draggedAnswer = e.target;
         setTimeout(() => e.target.classList.add('dragging'), 0);
-        // If it was in a premise box, remove it from state
         const parentPremise = e.target.closest('.premise-drop-zone');
         if (parentPremise) {
             const premiseId = parentPremise.dataset.premiseId;
             delete appState.currentMatching.userMatches[appState.currentMatching.setIndex][premiseId];
+            parentPremise.classList.remove('has-answer');
         }
     }
 }
@@ -185,26 +187,26 @@ function handleDrop(e) {
     if (dropZone && draggedAnswer) {
         dropZone.classList.remove('drag-over');
 
-        // Check if there's already an answer, and if so, move it back to the answer area
         const existingAnswer = dropZone.querySelector('.answer-draggable');
         if (existingAnswer) {
             dom.matchingAnswersArea.appendChild(existingAnswer);
         }
-
+        
         const placeholder = dropZone.querySelector('.dropped-answer-placeholder');
-        if (placeholder) {
-            dropZone.insertBefore(draggedAnswer, placeholder);
-            dropZone.classList.add('has-answer');
+        if(placeholder) {
+            placeholder.insertAdjacentElement('beforebegin', draggedAnswer);
+        } else {
+            dropZone.appendChild(draggedAnswer);
         }
+        dropZone.classList.add('has-answer');
 
-        // Update state
         const premiseId = dropZone.dataset.premiseId;
         const answerId = draggedAnswer.dataset.answerId;
         appState.currentMatching.userMatches[appState.currentMatching.setIndex][premiseId] = answerId;
     }
 }
 
-function handleDragEnd(e) {
+function handleDragEnd() {
     if (draggedAnswer) {
         draggedAnswer.classList.remove('dragging');
         draggedAnswer = null;
@@ -212,35 +214,47 @@ function handleDragEnd(e) {
 }
 
 /**
- * Checks answers for the current set and provides visual feedback.
+ * REWRITTEN: Checks answers for the current set and provides detailed visual feedback.
  */
 function checkCurrentSetAnswers() {
     const { sets, setIndex, userMatches } = appState.currentMatching;
     const currentSet = sets[setIndex];
     const currentMatches = userMatches[setIndex];
 
+    // Disable further interactions
+    dom.matchingContainer.querySelectorAll('.answer-draggable').forEach(el => el.draggable = false);
+    dom.matchingContainer.querySelectorAll('.premise-drop-zone').forEach(el => el.classList.remove('drag-over'));
+    dom.checkAnswersBtn.disabled = true;
+
     currentSet.premises.forEach(premise => {
         const dropZone = dom.matchingPremisesArea.querySelector(`[data-premise-id="${premise.uniqueId}"]`);
-        const droppedAnswerId = currentMatches[premise.uniqueId];
+        const userDroppedAnswerId = currentMatches[premise.uniqueId];
         const droppedAnswerEl = dropZone.querySelector('.answer-draggable');
 
-        if (droppedAnswerEl) {
-            if (droppedAnswerId === premise.uniqueId) {
-                // Correct
-                droppedAnswerEl.style.backgroundColor = '#d1fae5'; // green-200
-                droppedAnswerEl.style.borderColor = '#10b981'; // green-500
-            } else {
-                // Incorrect
-                droppedAnswerEl.style.backgroundColor = '#fee2e2'; // red-200
-                droppedAnswerEl.style.borderColor = '#ef4444'; // red-500
+        if (userDroppedAnswerId === premise.uniqueId) {
+            // User was CORRECT
+            if (droppedAnswerEl) {
+                droppedAnswerEl.classList.add('correct-match');
+            }
+        } else {
+            // User was INCORRECT or did NOT answer
+            if (droppedAnswerEl) {
+                // There is a dropped answer, and it's wrong
+                droppedAnswerEl.classList.add('incorrect-match');
+            }
+
+            // Find the correct answer text
+            const correctAnswer = currentSet.answers.find(ans => ans.uniqueId === premise.uniqueId);
+            if (correctAnswer) {
+                const correctAnswerEl = document.createElement('div');
+                correctAnswerEl.className = 'correct-answer-reveal';
+                correctAnswerEl.innerHTML = `<i class="fas fa-check-circle text-green-600 mr-2"></i> ${correctAnswer.CorrectAnswer}`;
+                dropZone.appendChild(correctAnswerEl);
             }
         }
     });
-
-    // Disable further dragging for this set
-    dom.matchingContainer.querySelectorAll('.answer-draggable').forEach(el => el.draggable = false);
-    dom.checkAnswersBtn.disabled = true;
 }
+
 
 /**
  * Ends the exam, calculates the final score, and shows results.
@@ -249,11 +263,19 @@ function endMatchingExam(isTimeUp = false) {
     clearInterval(appState.currentMatching.timerInterval);
     removeDragDropListeners();
 
-    if (isTimeUp) {
-        alert("Time's up!");
+    if (isTimeUp && !appState.currentMatching.isReviewMode) {
+        checkCurrentSetAnswers(); // Check the last set before showing final score if time runs out
+        ui.showConfirmationModal(
+            "Time's up!",
+            `The exam has ended. Let's see your final score.`,
+            () => calculateAndShowFinalScore()
+        );
+    } else {
+        calculateAndShowFinalScore();
     }
+}
 
-    // Calculate final score
+function calculateAndShowFinalScore() {
     let finalScore = 0;
     appState.currentMatching.sets.forEach((set, index) => {
         const userMatchesForSet = appState.currentMatching.userMatches[index];
@@ -265,7 +287,6 @@ function endMatchingExam(isTimeUp = false) {
     });
     appState.currentMatching.score = finalScore;
     
-    // Log the activity to the server
     logUserActivity({
         eventType: 'FinishMatchingQuiz',
         quizTitle: 'Matching Exam',
@@ -273,7 +294,6 @@ function endMatchingExam(isTimeUp = false) {
         totalQuestions: appState.currentMatching.totalPremises
     });
 
-    // Show results
     ui.showConfirmationModal(
         'Exam Complete!',
         `You scored ${finalScore} out of ${appState.currentMatching.totalPremises}.`,
@@ -307,9 +327,9 @@ function prevSet() {
  */
 function updateNavigationButtons() {
     const { setIndex, sets } = appState.currentMatching;
-    dom.matchingPreviousSetBtn.classList.toggle('hidden', setIndex === 0);
-    dom.matchingNextSetBtn.classList.toggle('hidden', setIndex === sets.length - 1);
-    dom.checkAnswersBtn.classList.toggle('hidden', setIndex !== sets.length - 1);
+    dom.matchingPreviousSetBtn.style.visibility = setIndex === 0 ? 'hidden' : 'visible';
+    dom.matchingNextSetBtn.style.visibility = setIndex === sets.length - 1 ? 'hidden' : 'visible';
+    dom.checkAnswersBtn.style.visibility = setIndex === sets.length - 1 ? 'visible' : 'hidden';
     dom.checkAnswersBtn.disabled = false;
 }
 
@@ -322,12 +342,17 @@ function restoreUserMatchesForCurrentSet() {
 
     for (const premiseId in matchesForCurrentSet) {
         const answerId = matchesForCurrentSet[premiseId];
-        const answerEl = dom.matchingAnswersArea.querySelector(`[data-answer-id="${answerId}"]`);
+        // Find the answer element, which might be in the answers area or in another premise
+        const answerEl = document.querySelector(`.answer-draggable[data-answer-id="${answerId}"]`);
         const premiseEl = dom.matchingPremisesArea.querySelector(`[data-premise-id="${premiseId}"]`);
 
         if (answerEl && premiseEl) {
-            const placeholder = premiseEl.querySelector('.dropped-answer-placeholder');
-            premiseEl.insertBefore(answerEl, placeholder);
+             const placeholder = premiseEl.querySelector('.dropped-answer-placeholder');
+            if(placeholder) {
+                placeholder.insertAdjacentElement('beforebegin', answerEl);
+            } else {
+                premiseEl.appendChild(answerEl);
+            }
             premiseEl.classList.add('has-answer');
         }
     }
