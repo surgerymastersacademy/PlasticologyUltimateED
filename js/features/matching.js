@@ -1,4 +1,4 @@
-// V.1.4 - 2025-10-06
+// V.1.5 - 2025-10-06
 // js/features/matching.js
 
 import { appState } from '../state.js';
@@ -7,15 +7,12 @@ import * as ui from '../ui.js';
 import { showMainMenuScreen } from '../main.js';
 import { logUserActivity } from '../api.js';
 
-let draggedAnswer = null; // To hold the element being dragged
+let draggedAnswer = null; 
 
-/**
- * NEW: Standalone chapter filter updater for the matching feature.
- */
 export function updateMatchingChapterFilter() {
     const selectedSources = Array.from(dom.sourceSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
 
-    let filteredQuestions = appState.allQuestions;
+    let filteredQuestions = appState.allQuestions.filter(q => q.Chapter); // Ensure question has a chapter
     if (selectedSources.length > 0) {
         filteredQuestions = filteredQuestions.filter(q => selectedSources.includes(q.source || 'Uncategorized'));
     }
@@ -28,21 +25,16 @@ export function updateMatchingChapterFilter() {
     ui.populateFilterOptions(dom.chapterSelectMatching, chapterNames, 'matching-chapter', chapterCounts);
 }
 
-
-/**
- * UPDATED: Main handler to start the matching exam process, now with defaults.
- */
 export function handleStartMatchingExam() {
-    // Add default values if inputs are empty
     const setCount = parseInt(dom.matchingSetCount.value, 10) || 10;
     const timePerSet = parseInt(dom.matchingTimerInput.value, 10) || 60;
     dom.matchingError.classList.add('hidden');
 
-    // --- Filtering Questions ---
     const selectedChapters = Array.from(dom.chapterSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
     const selectedSources = Array.from(dom.sourceSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
 
-    let filteredQuestions = appState.allQuestions;
+    // FIX: Ensure we only use questions that have a question, a correct answer, and a chapter.
+    let filteredQuestions = appState.allQuestions.filter(q => q.question && q.CorrectAnswer && q.Chapter);
 
     if (selectedChapters.length > 0) {
         filteredQuestions = filteredQuestions.filter(q => selectedChapters.includes(q.Chapter));
@@ -58,7 +50,6 @@ export function handleStartMatchingExam() {
         return;
     }
 
-    // --- Creating Exam Sets ---
     const shuffledPool = [...filteredQuestions].sort(() => Math.random() - 0.5);
     const examSets = [];
     for (let i = 0; i < setCount; i++) {
@@ -75,9 +66,6 @@ export function handleStartMatchingExam() {
     launchMatchingExam(`Custom Matching Exam`, examSets, totalTime);
 }
 
-/**
- * Initializes and launches the matching exam UI.
- */
 function launchMatchingExam(title, sets, totalTime) {
     appState.currentMatching = {
         sets: sets,
@@ -105,20 +93,15 @@ function launchMatchingExam(title, sets, totalTime) {
     dom.matchingPreviousSetBtn.onclick = prevSet;
 }
 
-/**
- * Renders the current set of premises and answers.
- */
 function renderCurrentSet() {
     const { sets, setIndex } = appState.currentMatching;
     const currentSet = sets[setIndex];
+    // FIX: Pass the correct set to the UI function
     ui.renderMatchingSet(currentSet, setIndex, sets.length);
     updateNavigationButtons();
     restoreUserMatchesForCurrentSet();
 }
 
-/**
- * Starts the exam timer.
- */
 function startMatchingTimer() {
     if (appState.currentMatching.timerInterval) {
         clearInterval(appState.currentMatching.timerInterval);
@@ -137,9 +120,6 @@ function startMatchingTimer() {
     }, 1000);
 }
 
-/**
- * Adds document-level event listeners for drag and drop.
- */
 function addDragDropListeners() {
     document.addEventListener('dragstart', handleDragStart);
     document.addEventListener('dragover', handleDragOver);
@@ -148,9 +128,6 @@ function addDragDropListeners() {
     document.addEventListener('dragend', handleDragEnd);
 }
 
-/**
- * Removes the drag and drop listeners.
- */
 function removeDragDropListeners() {
     document.removeEventListener('dragstart', handleDragStart);
     document.removeEventListener('dragover', handleDragOver);
@@ -158,8 +135,6 @@ function removeDragDropListeners() {
     document.removeEventListener('drop', handleDrop);
     document.removeEventListener('dragend', handleDragEnd);
 }
-
-// --- Drag & Drop Event Handlers ---
 
 function handleDragStart(e) {
     if (e.target.classList.contains('answer-draggable')) {
@@ -221,15 +196,11 @@ function handleDragEnd() {
     }
 }
 
-/**
- * REWRITTEN: Checks answers for the current set and provides detailed visual feedback.
- */
 function checkCurrentSetAnswers() {
     const { sets, setIndex, userMatches } = appState.currentMatching;
     const currentSet = sets[setIndex];
     const currentMatches = userMatches[setIndex];
 
-    // Disable further interactions
     dom.matchingContainer.querySelectorAll('.answer-draggable').forEach(el => el.draggable = false);
     dom.matchingContainer.querySelectorAll('.premise-drop-zone').forEach(el => el.classList.remove('drag-over'));
     dom.checkAnswersBtn.disabled = true;
@@ -240,18 +211,14 @@ function checkCurrentSetAnswers() {
         const droppedAnswerEl = dropZone.querySelector('.answer-draggable');
 
         if (userDroppedAnswerId === premise.uniqueId) {
-            // User was CORRECT
             if (droppedAnswerEl) {
                 droppedAnswerEl.classList.add('correct-match');
             }
         } else {
-            // User was INCORRECT or did NOT answer
             if (droppedAnswerEl) {
-                // There is a dropped answer, and it's wrong
                 droppedAnswerEl.classList.add('incorrect-match');
             }
 
-            // Find the correct answer text
             const correctAnswer = currentSet.answers.find(ans => ans.uniqueId === premise.uniqueId);
             if (correctAnswer) {
                 const correctAnswerEl = document.createElement('div');
@@ -263,16 +230,12 @@ function checkCurrentSetAnswers() {
     });
 }
 
-
-/**
- * Ends the exam, calculates the final score, and shows results.
- */
 function endMatchingExam(isTimeUp = false) {
     clearInterval(appState.currentMatching.timerInterval);
     removeDragDropListeners();
 
     if (isTimeUp && !appState.currentMatching.isReviewMode) {
-        checkCurrentSetAnswers(); // Check the last set before showing final score if time runs out
+        checkCurrentSetAnswers();
         ui.showConfirmationModal(
             "Time's up!",
             `The exam has ended. Let's see your final score.`,
@@ -309,10 +272,6 @@ function calculateAndShowFinalScore() {
     );
 }
 
-
-/**
- * Moves to the next set.
- */
 function nextSet() {
     if (appState.currentMatching.setIndex < appState.currentMatching.sets.length - 1) {
         appState.currentMatching.setIndex++;
@@ -320,9 +279,6 @@ function nextSet() {
     }
 }
 
-/**
- * Moves to the previous set.
- */
 function prevSet() {
     if (appState.currentMatching.setIndex > 0) {
         appState.currentMatching.setIndex--;
@@ -330,9 +286,6 @@ function prevSet() {
     }
 }
 
-/**
- * Updates the visibility of navigation buttons.
- */
 function updateNavigationButtons() {
     const { setIndex, sets } = appState.currentMatching;
     dom.matchingPreviousSetBtn.style.visibility = setIndex === 0 ? 'hidden' : 'visible';
@@ -341,16 +294,12 @@ function updateNavigationButtons() {
     dom.checkAnswersBtn.disabled = false;
 }
 
-/**
- * Restores the user's previous matches on a set when navigating back and forth.
- */
 function restoreUserMatchesForCurrentSet() {
     const { setIndex, userMatches } = appState.currentMatching;
     const matchesForCurrentSet = userMatches[setIndex];
 
     for (const premiseId in matchesForCurrentSet) {
         const answerId = matchesForCurrentSet[premiseId];
-        // Find the answer element, which might be in the answers area or in another premise
         const answerEl = document.querySelector(`.answer-draggable[data-answer-id="${answerId}"]`);
         const premiseEl = dom.matchingPremisesArea.querySelector(`[data-premise-id="${premiseId}"]`);
 
