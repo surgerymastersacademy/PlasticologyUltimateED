@@ -1,4 +1,4 @@
-// V.1.2 - 2025-10-06
+// V.1.4 - 2025-10-06
 // js/features/matching.js
 
 import { appState } from '../state.js';
@@ -10,23 +10,32 @@ import { logUserActivity } from '../api.js';
 let draggedAnswer = null; // To hold the element being dragged
 
 /**
- * Main handler to start the matching exam process.
+ * NEW: Standalone chapter filter updater for the matching feature.
+ */
+export function updateMatchingChapterFilter() {
+    const selectedSources = Array.from(dom.sourceSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
+
+    let filteredQuestions = appState.allQuestions;
+    if (selectedSources.length > 0) {
+        filteredQuestions = filteredQuestions.filter(q => selectedSources.includes(q.source || 'Uncategorized'));
+    }
+    const chapterCounts = filteredQuestions.reduce((acc, q) => {
+        const chapter = q.Chapter || 'Uncategorized';
+        acc[chapter] = (acc[chapter] || 0) + 1;
+        return acc;
+    }, {});
+    const chapterNames = Object.keys(chapterCounts).sort();
+    ui.populateFilterOptions(dom.chapterSelectMatching, chapterNames, 'matching-chapter', chapterCounts);
+}
+
+
+/**
+ * UPDATED: Main handler to start the matching exam process, now with defaults.
  */
 export function handleStartMatchingExam() {
-    const setCount = parseInt(dom.matchingSetCount.value, 10);
-    const timePerSet = parseInt(dom.matchingTimerInput.value, 10);
-
-    // --- Validation ---
-    if (!setCount || setCount <= 0) {
-        dom.matchingError.textContent = 'Please enter a valid number of sets.';
-        dom.matchingError.classList.remove('hidden');
-        return;
-    }
-    if (!timePerSet || timePerSet < 10) {
-        dom.matchingError.textContent = 'Please enter a time of at least 10 seconds per set.';
-        dom.matchingError.classList.remove('hidden');
-        return;
-    }
+    // Add default values if inputs are empty
+    const setCount = parseInt(dom.matchingSetCount.value, 10) || 10;
+    const timePerSet = parseInt(dom.matchingTimerInput.value, 10) || 60;
     dom.matchingError.classList.add('hidden');
 
     // --- Filtering Questions ---
@@ -70,7 +79,6 @@ export function handleStartMatchingExam() {
  * Initializes and launches the matching exam UI.
  */
 function launchMatchingExam(title, sets, totalTime) {
-    // Using the new detailed state object
     appState.currentMatching = {
         sets: sets,
         setIndex: 0,
