@@ -1,420 +1,279 @@
-// js/features/userProfile.js (FINAL CORRECTED VERSION - SYNCS LECTURE LOGS & DISPLAYS SUB STATUS)
+// V.2.1 - 2025-10-06
+// js/features/userProfile.js
 
-import { API_URL, appState, AVATAR_BASE_URL, AVATAR_OPTIONS } from '../state.js';
+import { appState, API_URL, AVATAR_BASE_URL, AVATAR_OPTIONS } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
 import { fetchUserData } from '../api.js';
 import { calculateDaysLeft } from '../utils.js';
 import { showMainMenuScreen } from '../main.js';
-import { saveUserProgress } from './lectures.js'; // Import saveUserProgress
 
-/**
- * Handles the user login form submission.
- * @param {Event} event
- */
+let originalCardData = null;
+
 export async function handleLogin(event) {
     event.preventDefault();
     dom.loginError.classList.add('hidden');
     dom.loginSubmitBtn.disabled = true;
-    dom.loginSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Logging in...';
+    dom.loginSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-    const payload = {
-        eventType: 'login',
-        username: dom.usernameInput.value,
-        password: dom.passwordInput.value
-    };
+    const username = dom.usernameInput.value;
+    const password = dom.passwordInput.value;
 
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
-            mode: 'cors',
-            body: JSON.stringify(payload),
+            body: JSON.stringify({ eventType: 'login', username, password }),
             redirect: 'follow'
         });
+
+        if (!response.ok) {
+            throw new Error('Network error. Please try again.');
+        }
 
         const result = await response.json();
 
         if (result.success) {
             appState.currentUser = result.user;
-            const userRoleData = appState.allRoles.find(role => role.Role === appState.currentUser.Role);
-            appState.userRoles = userRoleData || {};
-
-            ui.updateWatermark();
-            await fetchUserData();
-
-            loadUserProgress(); 
-            
-            if (appState.fullActivityLog.length > 0) {
-                const lectureLogs = appState.fullActivityLog.filter(log => log.eventType === 'ViewLecture');
-                const lectureLinksMap = new Map();
-                Object.values(appState.groupedLectures).forEach(chapter => {
-                    chapter.topics.forEach(topic => {
-                        lectureLinksMap.set(topic.name, topic.link);
-                    });
-                });
-
-                lectureLogs.forEach(log => {
-                    if (lectureLinksMap.has(log.title)) {
-                        appState.viewedLectures.add(lectureLinksMap.get(log.title));
-                    }
-                });
-                
-                saveUserProgress();
-            }
-
-            await showUserCardModal(true);
-            updateUserProfileHeader();
+            await loadUserProgress();
             showMainMenuScreen();
+            updateUserProfileHeader();
+            ui.updateWatermark();
         } else {
-            dom.loginError.textContent = result.message || "Invalid username or password.";
-            dom.loginError.classList.remove('hidden');
+            throw new Error(result.message || 'Invalid credentials.');
         }
+
     } catch (error) {
         console.error("Login API Error:", error);
-        dom.loginError.textContent = "An error occurred. Please try again.";
+        dom.loginError.textContent = error.message;
         dom.loginError.classList.remove('hidden');
     } finally {
         dom.loginSubmitBtn.disabled = false;
-        dom.loginSubmitBtn.textContent = 'Log In';
+        dom.loginSubmitBtn.innerHTML = 'Log In';
     }
 }
 
-/**
- * Handles user logout process.
- */
 export function handleLogout() {
-    ui.showConfirmationModal('Log Out?', 'Are you sure you want to log out?', () => {
+    ui.showConfirmationModal('Logout', 'Are you sure you want to log out?', () => {
+        // Correctly reset the state for logout
+        Object.keys(appState).forEach(key => {
+            if (['allQuestions', 'allRoles', 'allAnnouncements', 'allFreeTestQuestions', 'mcqBooks', 'allChaptersNames', 'allOsceCases', 'allOsceQuestions', 'allTheoryQuestions'].includes(key)) return;
+            
+            if (appState[key] instanceof Set) {
+                appState[key].clear();
+            } else if (Array.isArray(appState[key])) {
+                appState[key] = [];
+            } else if (typeof appState[key] === 'object' && appState[key] !== null) {
+                // Resetting nested state objects to null or their default structure
+                if (key.startsWith('current')) {
+                    appState[key] = null;
+                }
+            }
+        });
         appState.currentUser = null;
-        appState.navigationHistory = [];
-        dom.usernameInput.value = '';
-        dom.passwordInput.value = '';
-        ui.showScreen(dom.loginContainer);
-        dom.modalBackdrop.classList.add('hidden');
+        localStorage.clear();
+        window.location.reload();
     });
 }
 
-/**
- * Checks if the current user has permission for a feature based on their role.
- * @param {string} feature - The name of the feature to check.
- * @returns {boolean} - True if access is granted, false otherwise.
- */
-export function checkPermission(feature) {
-    if (!appState.currentUser || appState.currentUser.Role === 'Guest') {
-        ui.showConfirmationModal('Access Denied', 'Please log in to access this feature.', () => dom.modalBackdrop.classList.add('hidden'));
-        return false;
+
+export async function loadUserProgress() {
+    await fetchUserData();
+    const bookmarks = localStorage.getItem('bookmarkedQuestions');
+    if (bookmarks) {
+        appState.bookmarkedQuestions = new Set(JSON.parse(bookmarks));
+    } else {
+        appState.bookmarkedQuestions = new Set();
     }
-    const userRolePermissions = appState.allRoles.find(role => role.Role === appState.currentUser.Role);
-    if (!userRolePermissions || String(userRolePermissions[feature]).toLowerCase() !== 'true') {
-        ui.showConfirmationModal('Access Denied', `Your current role does not have access to the "${feature}" feature.`, () => dom.modalBackdrop.classList.add('hidden'));
+}
+
+
+export function updateUserProfileHeader() {
+    if (!appState.currentUser) return;
+    dom.userNameDisplay.textContent = appState.currentUser.Name;
+    const avatarUrl = appState.userCardData?.User_Img || `${AVATAR_BASE_URL}${appState.currentUser.Name}`;
+    dom.headerUserAvatar.src = avatarUrl;
+}
+
+export function applyRolePermissions() {
+    // This function can be expanded to hide/show buttons based on role
+    // For now, specific checks are done in the event listeners
+}
+
+export function checkPermission(feature) {
+    if (!appState.currentUser) return false;
+    const userRole = appState.allRoles.find(r => r.Role === appState.currentUser.Role);
+    if (!userRole || String(userRole[feature]).toUpperCase() !== 'TRUE') {
+        alert(`You do not have permission to access '${feature}'. Please contact support to upgrade your subscription.`);
         return false;
     }
     return true;
 }
 
-/**
- * Applies UI changes based on the user's role permissions (e.g., disabling buttons).
- */
-export function applyRolePermissions() {
-    const rolePermissions = appState.allRoles.find(role => role.Role === appState.currentUser.Role);
-    if (!rolePermissions) return;
-
-    const featureElements = {
-        'Lectures': dom.lecturesBtn,
-        'MCQBank': dom.qbankBtn,
-        'LerningMode': dom.learningModeBtn,
-        'OSCEBank': dom.osceBtn,
-        'LeadersBoard': dom.leaderboardBtn,
-        'Radio': dom.radioBtn,
-        'Library': dom.libraryBtn,
-        'StudyPlanner': dom.studyPlannerBtn,
-        'TheoryBank': dom.theoryBtn,
-    };
-
-    for (const feature in featureElements) {
-        const element = featureElements[feature];
-        if (element) {
-            const hasAccess = String(rolePermissions[feature]).toLowerCase() === 'true';
-            element.disabled = !hasAccess;
-            element.style.opacity = hasAccess ? '1' : '0.5';
-            element.style.cursor = hasAccess ? 'pointer' : 'not-allowed';
-            element.title = hasAccess ? '' : `Access to ${feature} is not granted for your role.`;
-        }
-    }
-}
-
-
-// --- USER CARD ---
-
-/**
- * Displays the user profile card modal and fetches the latest data.
- * @param {boolean} isLoginFlow - Flag to prevent closing other modals during login.
- */
-export async function showUserCardModal(isLoginFlow = false) {
-    if (!appState.currentUser || appState.currentUser.Role === 'Guest') {
-        ui.showConfirmationModal('Access Denied', 'Please log in to access your profile card.', () => dom.modalBackdrop.classList.add('hidden'));
-        return;
-    }
-    if (!isLoginFlow) {
-        dom.modalBackdrop.classList.remove('hidden');
-    }
-    dom.userCardModal.classList.remove('hidden');
-    dom.profileEditView.classList.add('hidden');
-    dom.profileDetailsView.classList.remove('hidden');
-    dom.profileEditError.classList.add('hidden');
-
-    try {
-        const response = await fetch(`${API_URL}?request=getUserCardData&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
-        if (!response.ok) throw new Error('Failed to fetch user card data.');
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
-
-        appState.userCardData = data.cardData;
-        renderUserCard();
-        populateAvatarSelection();
-    } catch (error) {
-        console.error("Error loading user card data:", error);
-        dom.profileEditError.textContent = `Error loading profile: ${error.message}`;
-        dom.profileEditError.classList.remove('hidden');
-    }
-}
-
-/**
- * --- MODIFIED: Renders the user card using both appState.currentUser and appState.userCardData ---
- */
-function renderUserCard() {
-    if (!appState.currentUser || !appState.userCardData) return;
+export async function showUserCardModal() {
+    dom.cardUserName.textContent = appState.currentUser.Name;
+    dom.cardSubscriptionStatus.textContent = appState.currentUser.Role;
     
-    // Data from userCardData (Users_Card sheet)
-    const cardData = appState.userCardData;
-    const displayName = cardData.Nickname && cardData.Nickname.trim() !== '' ? cardData.Nickname : appState.currentUser.Name;
-    dom.cardUserName.textContent = displayName;
-    dom.cardUserNickname.textContent = cardData.Nickname && cardData.Nickname.trim() !== '' ? `(${appState.currentUser.Name})` : '';
-    dom.cardQuizScore.textContent = cardData.QuizScore !== undefined ? cardData.QuizScore : '0';
-    dom.userAvatar.src = cardData.User_Img || (AVATAR_BASE_URL + appState.currentUser.Name);
-    dom.headerUserAvatar.src = dom.userAvatar.src;
-    
-    if (cardData.ExamDate) {
-        const examDate = new Date(cardData.ExamDate);
-        if (!isNaN(examDate)) {
-            dom.cardExamDate.textContent = examDate.toLocaleDateString('en-GB');
-            const daysLeft = calculateDaysLeft(examDate);
-            dom.cardDaysLeft.textContent = daysLeft >= 0 ? `${daysLeft} days left` : 'Exam passed';
+    const expiryDateStr = appState.currentUser.SubscriptionEndDate;
+    if (expiryDateStr) {
+        const expiryDate = new Date(expiryDateStr);
+        dom.cardSubscriptionExpiry.textContent = expiryDate.toLocaleDateString('en-GB');
+        const daysLeft = calculateDaysLeft(expiryDateStr);
+        if (daysLeft !== null) {
+            dom.cardDaysLeft.textContent = daysLeft >= 0 ? `${daysLeft} days` : 'Expired';
+            dom.cardDaysLeft.className = daysLeft > 7 ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
         } else {
-            dom.cardExamDate.textContent = 'Invalid Date';
             dom.cardDaysLeft.textContent = 'N/A';
         }
     } else {
-        dom.cardExamDate.textContent = 'Not Set';
+        dom.cardSubscriptionExpiry.textContent = 'N/A';
         dom.cardDaysLeft.textContent = 'N/A';
     }
 
-    // --- NEW: Data from currentUser (Users sheet) for subscription status ---
-    const userData = appState.currentUser;
-    dom.cardSubscriptionStatus.textContent = userData.Role || 'N/A';
-    if (userData.Role === 'Trial') {
-        dom.cardSubscriptionStatus.classList.add('text-orange-500');
-        dom.cardSubscriptionStatus.classList.remove('text-green-500');
-    } else {
-        dom.cardSubscriptionStatus.classList.add('text-green-500');
-        dom.cardSubscriptionStatus.classList.remove('text-orange-500');
-    }
+    try {
+        const response = await fetch(`${API_URL}?request=getUserCardData&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
 
-    if (userData.SubscriptionEndDate) {
-        const expiryDate = new Date(userData.SubscriptionEndDate);
-        if (!isNaN(expiryDate)) {
-            dom.cardSubscriptionExpiry.textContent = expiryDate.toLocaleDateString('en-GB');
+        originalCardData = data.cardData;
+        appState.userCardData = data.cardData;
+
+        dom.cardUserNickname.textContent = originalCardData.Nickname || '';
+        dom.cardQuizScore.textContent = originalCardData.QuizScore || '0';
+        
+        const examDateStr = originalCardData.ExamDate;
+        if (examDateStr) {
+            dom.cardExamDate.textContent = new Date(examDateStr).toLocaleDateString('en-GB');
         } else {
-            dom.cardSubscriptionExpiry.textContent = 'N/A';
+            dom.cardExamDate.textContent = 'Not Set';
         }
-    } else {
-        dom.cardSubscriptionExpiry.textContent = 'N/A';
+
+        const avatarUrl = originalCardData.User_Img || `${AVATAR_BASE_URL}${appState.currentUser.Name}`;
+        dom.userAvatar.src = avatarUrl;
+        dom.headerUserAvatar.src = avatarUrl;
+
+    } catch (error) {
+        console.error("Failed to load user card data:", error);
     }
+    
+    toggleProfileEditMode(false);
+    dom.modalBackdrop.classList.remove('hidden');
+    dom.userCardModal.classList.remove('hidden');
 }
 
-export function toggleProfileEditMode(isEditing) {
-    if (isEditing) {
-        dom.profileDetailsView.classList.add('hidden');
-        dom.profileEditView.classList.remove('hidden');
-        dom.editNickname.value = appState.userCardData.Nickname || '';
-        dom.editExamDate.value = appState.userCardData.ExamDate ? new Date(appState.userCardData.ExamDate).toISOString().split('T')[0] : '';
-        dom.avatarSelectionGrid.querySelectorAll('img').forEach(img => {
-            img.classList.remove('border-blue-500', 'border-2');
-            if (img.src === dom.userAvatar.src) {
-                img.classList.add('border-blue-500', 'border-2');
-            }
-        });
-    } else {
-        dom.profileDetailsView.classList.remove('hidden');
-        dom.profileEditView.classList.add('hidden');
-        dom.profileEditError.classList.add('hidden');
-    }
-}
 
-function populateAvatarSelection() {
-    dom.avatarSelectionGrid.innerHTML = '';
-    AVATAR_OPTIONS.forEach(seed => {
-        const img = document.createElement('img');
-        img.src = AVATAR_BASE_URL + seed;
-        img.alt = seed;
-        img.className = 'w-12 h-12 rounded-full cursor-pointer hover:opacity-80 transition-opacity';
-        if (dom.userAvatar.src === img.src) {
-            img.classList.add('border-blue-500', 'border-2');
-        }
-        img.addEventListener('click', () => {
-            dom.avatarSelectionGrid.querySelectorAll('img').forEach(i => i.classList.remove('border-blue-500', 'border-2'));
-            img.classList.add('border-blue-500', 'border-2');
-            dom.userAvatar.src = img.src;
-        });
-        dom.avatarSelectionGrid.appendChild(img);
-    });
+export function toggleProfileEditMode(isEdit) {
+    dom.profileDetailsView.classList.toggle('hidden', isEdit);
+    dom.profileEditView.classList.toggle('hidden', !isEdit);
+    dom.profileEditError.classList.add('hidden');
+
+    if (isEdit) {
+        dom.editNickname.value = originalCardData.Nickname || '';
+        dom.editExamDate.value = originalCardData.ExamDate ? new Date(originalCardData.ExamDate).toISOString().split('T')[0] : '';
+        
+        dom.avatarSelectionGrid.innerHTML = AVATAR_OPTIONS.map(seed => `
+            <img src="${AVATAR_BASE_URL}${seed}" alt="${seed}" data-seed="${seed}" class="w-12 h-12 rounded-full border-2 border-transparent hover:border-blue-500 cursor-pointer">
+        `).join('');
+    }
 }
 
 export async function handleSaveProfile() {
-    dom.profileEditError.classList.add('hidden');
+    const newNickname = dom.editNickname.value;
+    const newExamDate = dom.editExamDate.value;
+    const newAvatarImg = document.querySelector('#avatar-selection-grid img.selected');
+    const newAvatarUrl = newAvatarImg ? newAvatarImg.src : (originalCardData.User_Img || '');
+
     const payload = {
         eventType: 'updateUserCardData',
         userId: appState.currentUser.UniqueID,
-        nickname: dom.editNickname.value.trim(),
-        examDate: dom.editExamDate.value,
-        userImg: dom.userAvatar.src
+        nickname: newNickname,
+        examDate: newExamDate,
+        userImg: newAvatarUrl
     };
 
     try {
-        await fetch(API_URL, {
+        const response = await fetch(API_URL, {
             method: 'POST',
-            mode: 'no-cors',
             body: JSON.stringify(payload)
         });
-        appState.userCardData.Nickname = payload.nickname;
-        appState.userCardData.ExamDate = payload.examDate;
-        appState.userCardData.User_Img = payload.userImg;
-        renderUserCard();
-        updateUserProfileHeader();
+        const result = await response.json();
+        if (result.error || !result.success) throw new Error(result.error || 'Failed to save.');
+        
+        await showUserCardModal();
         toggleProfileEditMode(false);
-        ui.showConfirmationModal('Profile Updated', 'Your profile has been successfully updated!', () => { /* do nothing */ });
 
     } catch (error) {
-        console.error("Error saving profile:", error);
-        dom.profileEditError.textContent = `Failed to save profile. Please try again.`;
+        dom.profileEditError.textContent = error.message;
         dom.profileEditError.classList.remove('hidden');
     }
 }
 
-/**
- * Updates the user's name and avatar in the global header.
- */
-export function updateUserProfileHeader() {
-    if (appState.currentUser && appState.userCardData) {
-        const displayName = appState.userCardData.Nickname && appState.userCardData.Nickname.trim() !== ''
-            ? appState.userCardData.Nickname
-            : appState.currentUser.Name;
-        dom.userNameDisplay.textContent = displayName;
-        dom.headerUserAvatar.src = appState.userCardData.User_Img || (AVATAR_BASE_URL + appState.currentUser.Name);
-    } else if (appState.currentUser) {
-        dom.userNameDisplay.textContent = appState.currentUser.Name;
-        dom.headerUserAvatar.src = AVATAR_BASE_URL + appState.currentUser.Name;
-    }
-}
-
-// --- MESSENGER ---
-
 export async function showMessengerModal() {
-    if (!appState.currentUser || appState.currentUser.Role === 'Guest') {
-        ui.showConfirmationModal('Guest Mode', 'Please log in to use the messenger.', () => dom.modalBackdrop.classList.add('hidden'));
-        return;
-    }
     dom.modalBackdrop.classList.remove('hidden');
     dom.messengerModal.classList.remove('hidden');
-    dom.messagesList.innerHTML = '<p class="text-center text-slate-500">Loading messages...</p>';
-    dom.messengerError.classList.add('hidden');
-    dom.messageInput.value = '';
+    
+    const fetchMessages = async () => {
+        try {
+            const response = await fetch(`${API_URL}?request=getMessages&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
 
-    await fetchAndRenderMessages();
-    if (appState.messengerPollInterval) clearInterval(appState.messengerPollInterval);
-    appState.messengerPollInterval = setInterval(fetchAndRenderMessages, 10000);
+            dom.messagesList.innerHTML = data.messages.map(msg => `
+                <div class="mb-2 ${msg.AdminReply ? 'text-left' : 'text-right'}">
+                    <div class="inline-block p-2 rounded-lg ${msg.AdminReply ? 'bg-slate-200' : 'bg-blue-500 text-white'}">
+                        ${msg.UserMessage || msg.AdminReply}
+                    </div>
+                    <div class="text-xs text-slate-400 mt-1">${new Date(msg.Timestamp).toLocaleString()}</div>
+                </div>
+            `).join('');
+            dom.messagesList.scrollTop = dom.messagesList.scrollHeight;
+        } catch (error) {
+            dom.messagesList.innerHTML = `<p class="text-center text-red-500">Failed to load messages.</p>`;
+        }
+    };
+    
+    await fetchMessages();
+    appState.messengerPollInterval = setInterval(fetchMessages, 30000);
 }
 
-async function fetchAndRenderMessages() {
-    try {
-        const response = await fetch(`${API_URL}?request=getMessages&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
-        if (!response.ok) throw new Error('Failed to fetch messages.');
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
-
-        if (JSON.stringify(appState.userMessages) !== JSON.stringify(data.messages)) {
-            appState.userMessages = data.messages || [];
-            renderMessages();
-        }
-    } catch (error) {
-        console.error("Error loading messages:", error);
-        dom.messengerError.textContent = `Error loading messages.`;
-        dom.messengerError.classList.remove('hidden');
-    }
-}
-
-function renderMessages() {
-    dom.messagesList.innerHTML = '';
-    if (appState.userMessages.length === 0) {
-        dom.messagesList.innerHTML = `<p class="text-center text-slate-500">No messages yet.</p>`;
-        return;
-    }
-
-    appState.userMessages.forEach(msg => {
-        const messageDiv = document.createElement('div');
-        const timestamp = new Date(msg.Timestamp).toLocaleString('en-GB');
-
-        if (msg.UserMessage && String(msg.UserMessage).trim() !== '') {
-            messageDiv.innerHTML += `<div class="flex justify-end mb-2"><div class="bg-blue-500 text-white p-3 rounded-lg max-w-[80%]"><p class="text-sm">${msg.UserMessage}</p><p class="text-xs text-right opacity-80 mt-1">${timestamp} (You)</p></div></div>`;
-        }
-        if (msg.AdminReply && String(msg.AdminReply).trim() !== '') {
-            messageDiv.innerHTML += `<div class="flex justify-start mb-2"><div class="bg-gray-200 text-slate-800 p-3 rounded-lg max-w-[80%]"><p class="text-sm">${msg.AdminReply}</p><p class="text-xs text-left opacity-80 mt-1">${timestamp} (Admin)</p></div></div>`;
-        }
-        dom.messagesList.appendChild(messageDiv);
-    });
-    dom.messagesList.scrollTop = dom.messagesList.scrollHeight;
-}
 
 export async function handleSendMessageBtn() {
-    dom.messengerError.classList.add('hidden');
-    const messageText = dom.messageInput.value.trim();
-
-    if (!messageText) return;
-
-    dom.sendMessageBtn.disabled = true;
-    dom.sendMessageBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
+    const message = dom.messageInput.value.trim();
+    if (!message) return;
+    
     const payload = {
         eventType: 'sendMessage',
         userId: appState.currentUser.UniqueID,
         userName: appState.currentUser.Name,
-        message: messageText
+        message: message
     };
 
     try {
-        await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-        await fetchAndRenderMessages();
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (result.error) throw new Error(result.error);
+        
         dom.messageInput.value = '';
+        const newMessageEl = document.createElement('div');
+        newMessageEl.className = 'mb-2 text-right';
+        newMessageEl.innerHTML = `
+            <div class="inline-block p-2 rounded-lg bg-blue-500 text-white">${message}</div>
+            <div class="text-xs text-slate-400 mt-1">Sending...</div>
+        `;
+        dom.messagesList.appendChild(newMessageEl);
+        dom.messagesList.scrollTop = dom.messagesList.scrollHeight;
+
     } catch (error) {
-        console.error("Error sending message:", error);
-        dom.messengerError.textContent = `Failed to send message.`;
+        dom.messengerError.textContent = error.message;
         dom.messengerError.classList.remove('hidden');
-    } finally {
-        dom.sendMessageBtn.disabled = false;
-        dom.sendMessageBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
     }
 }
 
-/**
- * Loads user progress (viewed lectures, bookmarks) from localStorage.
- */
-export function loadUserProgress() {
-    if (!appState.currentUser || appState.currentUser.Role === 'Guest') return;
-    const savedLectures = localStorage.getItem(`viewedLectures_${appState.currentUser.UniqueID}`);
-    if (savedLectures) {
-        appState.viewedLectures = new Set(JSON.parse(savedLectures));
+document.addEventListener('click', e => {
+    if (e.target.matches('#avatar-selection-grid img')) {
+        document.querySelectorAll('#avatar-selection-grid img').forEach(img => img.classList.remove('selected', 'border-blue-500'));
+        e.target.classList.add('selected', 'border-blue-500');
     }
-    const savedBookmarks = localStorage.getItem(`bookmarkedQuestions_${appState.currentUser.UniqueID}`);
-    if (savedBookmarks) {
-        appState.bookmarkedQuestions = new Set(JSON.parse(savedBookmarks));
-    }
-}
+});
