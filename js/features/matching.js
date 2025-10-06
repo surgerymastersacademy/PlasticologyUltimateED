@@ -1,4 +1,4 @@
-// V.1.6 - 2025-10-06
+// V.1.8 - 2025-10-06
 // js/features/matching.js
 
 import { appState } from '../state.js';
@@ -9,6 +9,9 @@ import { logUserActivity } from '../api.js';
 
 let draggedAnswer = null; 
 
+/**
+ * Standalone chapter filter updater for the matching feature.
+ */
 export function updateMatchingChapterFilter() {
     const selectedSources = Array.from(dom.sourceSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
 
@@ -18,6 +21,7 @@ export function updateMatchingChapterFilter() {
     }
 
     const chapterCounts = questionsToConsider.reduce((acc, q) => {
+        // Use capital 'C' to match Google Sheet column
         const chapter = q.Chapter || 'Uncategorized';
         acc[chapter] = (acc[chapter] || 0) + 1;
         return acc;
@@ -27,6 +31,9 @@ export function updateMatchingChapterFilter() {
     ui.populateFilterOptions(dom.chapterSelectMatching, chapterNames, 'matching-chapter', chapterCounts);
 }
 
+/**
+ * Main handler to start the matching exam process.
+ */
 export function handleStartMatchingExam() {
     const setCount = parseInt(dom.matchingSetCount.value, 10) || 10;
     const timePerSet = parseInt(dom.matchingTimerInput.value, 10) || 60;
@@ -35,7 +42,8 @@ export function handleStartMatchingExam() {
     const selectedChapters = Array.from(dom.chapterSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
     const selectedSources = Array.from(dom.sourceSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
 
-    let filteredQuestions = appState.allQuestions.filter(q => q.question && q.CorrectAnswer);
+    // Filter questions robustly
+    let filteredQuestions = appState.allQuestions.filter(q => q.question && q.CorrectAnswer && q.Chapter);
 
     if (selectedChapters.length > 0) {
         filteredQuestions = filteredQuestions.filter(q => selectedChapters.includes(q.Chapter));
@@ -55,7 +63,6 @@ export function handleStartMatchingExam() {
     const examSets = [];
     for (let i = 0; i < setCount; i++) {
         const setQuestions = shuffledPool.splice(0, 5);
-        // FIX: Ensure we use the now-consistent 'question' and 'CorrectAnswer' keys
         const premises = setQuestions.map(q => ({ question: q.question, uniqueId: q.UniqueID }));
         let answers = setQuestions.map(q => ({ CorrectAnswer: q.CorrectAnswer, uniqueId: q.UniqueID }));
         
@@ -68,8 +75,9 @@ export function handleStartMatchingExam() {
     launchMatchingExam(`Custom Matching Exam`, examSets, totalTime);
 }
 
+// --- The rest of the file remains unchanged ---
+
 function launchMatchingExam(title, sets, totalTime) {
-    console.log("Data Sent to UI:", sets[0]); // Debugging: Check data before rendering
     appState.currentMatching = {
         sets: sets,
         setIndex: 0,
@@ -104,7 +112,6 @@ function renderCurrentSet() {
     restoreUserMatchesForCurrentSet();
 }
 
-// ... (The rest of the file from startMatchingTimer() to the end remains unchanged)
 function startMatchingTimer() {
     if (appState.currentMatching.timerInterval) {
         clearInterval(appState.currentMatching.timerInterval);
