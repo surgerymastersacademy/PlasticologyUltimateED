@@ -1,299 +1,358 @@
-// js/features/matching.js (Version 1.1 - Corrected Chapter Loading & UI)
+// js/features/matching.js (Version 1.2 - Custom Matching Exam Mode)
 
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
 import { logUserActivity } from '../api.js';
 import { showMainMenuScreen } from '../main.js';
+import { formatTime } from '../utils.js';
 
 let draggedAnswer = null; // To hold the element being dragged
 
 /**
- * Shows the initial screen for the Matching Bank, allowing users to select a chapter.
+ * Shows the main menu for creating a custom matching exam.
  */
-export function showMatchingBrowseScreen() {
-    // --- START OF FIX ---
-    // Instead of using allChaptersNames from lectures, build the list directly from the MCQ Bank.
-    const chapterCounts = appState.allQuestions.reduce((acc, q) => {
-        const chapter = q.chapter || 'Uncategorized';
-        acc[chapter] = (acc[chapter] || 0) + 1;
+export function showMatchingMenuScreen() {
+    ui.showScreen(dom.matchingMenuContainer);
+    appState.navigationHistory.push(showMatchingMenuScreen);
+    populateMatchingFilters();
+}
+
+/**
+ * Populates the filter options (chapters and sources) for the matching exam.
+ */
+function populateMatchingFilters() {
+    const allSources = [...new Set(appState.allQuestions.map(q => q.source || 'Uncategorized'))].sort();
+    const sourceCounts = appState.allQuestions.reduce((acc, q) => {
+        const source = q.source || 'Uncategorized';
+        acc[source] = (acc[source] || 0) + 1;
         return acc;
     }, {});
 
-    const chaptersWithEnoughQuestions = Object.keys(chapterCounts).filter(chapter => chapterCounts[chapter] >= 5);
-    // --- END OF FIX ---
+    ui.populateFilterOptions(dom.sourceSelectMatching, allSources, 'matching-source', sourceCounts);
+    updateMatchingChapterFilter();
+}
 
-    dom.listTitle.textContent = 'Choose a Chapter to Start';
-    dom.listItems.innerHTML = '';
+/**
+ * Updates the chapter filter based on the selected sources.
+ */
+export function updateMatchingChapterFilter() {
+    const selectedSources = [...dom.sourceSelectMatching.querySelectorAll('input:checked')].map(el => el.value);
+    
+    let relevantQuestions = selectedSources.length === 0 
+        ? appState.allQuestions
+        : appState.allQuestions.filter(q => selectedSources.includes(q.source || 'Uncategorized'));
 
-    if (chaptersWithEnoughQuestions.length === 0) {
-        dom.listItems.innerHTML = `<p class="text-slate-500 col-span-full text-center">No chapters have enough questions (min 5) for a matching game.</p>`;
-    } else {
-        chaptersWithEnoughQuestions.sort().forEach(chapter => { // Sort alphabetically
-            const button = document.createElement('button');
-            button.className = 'action-btn p-4 bg-white rounded-lg shadow-sm text-center hover:bg-slate-50';
-            button.innerHTML = `<h3 class="font-bold text-slate-800">${chapter}</h3> <p class="text-sm text-slate-500">${chapterCounts[chapter]} Qs available</p>`;
-            button.addEventListener('click', () => startMatchingGame(chapter));
-            dom.listItems.appendChild(button);
+    const chapterCounts = {};
+    relevantQuestions.forEach(q => {
+        const chapter = q.chapter || 'Uncategorized';
+        chapterCounts[chapter] = (chapterCounts[chapter] || 0) + 1;
+    });
+
+    ui.populateFilterOptions(dom.chapterSelectMatching, Object.keys(chapterCounts).sort(), 'matching-chapter', chapterCounts);
+}
+
+
+/**
+ * Handles the logic for starting a new custom matching exam.
+ */
+export function handleStartMatchingExam() {
+    dom.matchingError.classList.add('hidden');
+    const requestedSetCount = parseInt(dom.matchingSetCount.value, 10) || 1;
+    const timePerQuestion = parseInt(dom.matchingTimerInput.value, 10) || 45;
+
+    const selectedChapters = [...dom.chapterSelectMatching.querySelectorAll('input:checked')].map(el => el.value);
+    const selectedSources = [...dom.sourceSelectMatching.querySelectorAll('input:checked')].map(el => el.value);
+
+    let filteredQuestions = appState.allQuestions;
+    if (selectedChapters.length > 0) {
+        filteredQuestions = filteredQuestions.filter(q => selectedChapters.includes(q.chapter));
+    }
+    if (selectedSources.length > 0) {
+        filteredQuestions = filteredQuestions.filter(q => selectedSources.includes(q.source));
+    }
+
+    const totalRequiredQuestions = requestedSetCount * 5;
+    if (filteredQuestions.length < totalRequiredQuestions) {
+        dom.matchingError.textContent = `Only ${filteredQuestions.length} questions are available for your selected filters. You need at least ${totalRequiredQuestions}.`;
+        dom.matchingError.classList.remove('hidden');
+        return;
+    }
+
+    // Create the sets
+    const shuffledPool = [...filteredQuestions].sort(() => Math.random() - 0.5);
+    const examSets = [];
+    for (let i = 0; i < requestedSetCount; i++) {
+        const setQuestions = shuffledPool.splice(0, 5);
+        const premises = setQuestions.map(q => ({ text: q.question, uniqueId: q.UniqueID, hint: q.hint }));
+        const answers = setQuestions.map(q => {
+            const correctAnswer = q.answerOptions.find(opt => opt.isCorrect);
+            return { text: correctAnswer ? correctAnswer.text : 'N/A', uniqueId: q.UniqueID };
+        });
+        examSets.push({
+            questions: setQuestions,
+            premises: premises,
+            answers: [...answers].sort(() => Math.random() - 0.5)
         });
     }
 
-    ui.showScreen(dom.listContainer);
-    appState.navigationHistory.push(showMatchingBrowseScreen);
+    const totalTime = requestedSetCount * 5 * timePerQuestion;
+    const examTitle = selectedChapters.length > 0 ? selectedChapters.join(', ') : 'General Matching Exam';
+
+    launchMatchingExam(examTitle, examSets, totalTime);
 }
 
 /**
- * Starts a new matching game for a given chapter.
- * @param {string} chapterName - The name of the chapter to create the game from.
+ * Initializes and launches the matching exam UI.
+ * @param {string} title The title of the exam.
+ * @param {Array} sets The array of question sets.
+ * @param {number} totalTimeSeconds The total time for the exam in seconds.
  */
-function startMatchingGame(chapterName) {
-    const questionsInChapter = appState.allQuestions.filter(q => q.chapter === chapterName);
-    const gameQuestions = [...questionsInChapter].sort(() => 0.5 - Math.random()).slice(0, 5);
-
-    // Prepare game data
-    const premises = gameQuestions.map(q => ({
-        text: q.question,
-        uniqueId: q.UniqueID,
-        hint: q.hint
-    }));
-
-    const answers = gameQuestions.map(q => {
-        const correctAnswer = q.answerOptions.find(opt => opt.isCorrect);
-        return {
-            text: correctAnswer ? correctAnswer.text : 'N/A',
-            uniqueId: q.UniqueID
-        };
-    });
-
-    appState.currentMatchingGame = {
-        questions: gameQuestions,
-        premises: premises,
-        answers: [...answers].sort(() => 0.5 - Math.random()), // Shuffle answers for display
-        userMatches: {},
-        score: 0,
-        flaggedIndices: new Set(),
-        chapter: chapterName,
+function launchMatchingExam(title, sets, totalTimeSeconds) {
+    appState.currentMatchingExam = {
+        sets: sets,
+        currentSetIndex: 0,
+        totalSets: sets.length,
+        timerInterval: null,
+        userMatches: Array(sets.length).fill({}),
+        flaggedSets: new Set(),
+        title: title,
+        isReviewMode: false,
+        finalScore: 0
     };
 
-    renderMatchingGame();
-    appState.navigationHistory.push(() => startMatchingGame(chapterName));
+    ui.showScreen(dom.matchingContainer);
+    dom.matchingTitle.textContent = title;
+    
+    startMatchingTimer(totalTimeSeconds);
+    renderCurrentSet();
+    appState.navigationHistory.push(() => launchMatchingExam(title, sets, totalTimeSeconds));
 }
 
 /**
- * Renders the main UI for the matching game.
+ * Renders the current set of premises and answers.
  */
-function renderMatchingGame() {
-    ui.showScreen(dom.matchingContainer);
-    dom.matchingTitle.textContent = `Matching: ${appState.currentMatchingGame.chapter}`;
+function renderCurrentSet() {
+    const exam = appState.currentMatchingExam;
+    const currentSet = exam.sets[exam.currentSetIndex];
 
-    // Reset UI
-    dom.premisesColumn.innerHTML = '';
-    dom.answersColumn.innerHTML = '';
-    dom.matchingResultsArea.innerHTML = '';
-    dom.matchingResultsArea.classList.add('hidden');
-    dom.checkMatchingAnswersBtn.classList.add('hidden'); 
-    dom.matchingHomeBtn.classList.add('hidden');
+    dom.matchingSetProgressText.textContent = `Set: ${exam.currentSetIndex + 1} / ${exam.totalSets}`;
     updateProgressBar();
 
-    // Render Premises (Slots)
-    appState.currentMatchingGame.premises.forEach((premise, index) => {
+    // Reset UI for the current set
+    dom.premisesColumn.innerHTML = '';
+    dom.answersColumn.innerHTML = '';
+    dom.matchingResultsArea.classList.add('hidden');
+    dom.matchingFinalControls.classList.add('hidden');
+    
+    // Render Premises
+    currentSet.premises.forEach((premise, index) => {
         const premiseDiv = document.createElement('div');
         premiseDiv.className = 'premise-item flex items-start gap-4';
+        const userMatch = exam.userMatches[exam.currentSetIndex][premise.uniqueId];
+        let existingAnswerHTML = 'Drop answer here';
+        
+        if (userMatch) {
+            const answerText = currentSet.answers.find(a => a.uniqueId === userMatch)?.text || 
+                               exam.sets.flat().flatMap(s => s.answers).find(a => a.uniqueId === userMatch)?.text || 
+                               'Previously Placed Answer';
+            existingAnswerHTML = `<div class="answer-item bg-white p-3 rounded-lg shadow-sm border" data-answer-id="${userMatch}">${answerText}</div>`;
+        }
+        
         premiseDiv.innerHTML = `
             <div class="flex-grow">
                 <p class="font-semibold text-slate-800">${index + 1}. ${premise.text}</p>
                 <div class="premise-slot min-h-[50px] bg-slate-200 mt-2 p-3 rounded-lg border-2 border-slate-300 flex items-center justify-center text-slate-500" data-premise-id="${premise.uniqueId}">
-                    Drop answer here
+                    ${existingAnswerHTML}
                 </div>
             </div>
         `;
         dom.premisesColumn.appendChild(premiseDiv);
     });
 
-    // Render Answers (Draggable)
-    appState.currentMatchingGame.answers.forEach(answer => {
-        const answerDiv = document.createElement('div');
-        answerDiv.className = 'answer-item bg-white p-3 rounded-lg shadow-sm border cursor-move';
-        answerDiv.textContent = answer.text;
-        answerDiv.draggable = true;
-        answerDiv.dataset.answerId = answer.uniqueId;
-        dom.answersColumn.appendChild(answerDiv);
+    // Render only the un-matched answers for this set
+    const matchedAnswerIds = Object.values(exam.userMatches[exam.currentSetIndex]);
+    currentSet.answers.forEach(answer => {
+        if (!matchedAnswerIds.includes(answer.uniqueId)) {
+            const answerDiv = document.createElement('div');
+            answerDiv.className = 'answer-item bg-white p-3 rounded-lg shadow-sm border cursor-move';
+            answerDiv.textContent = answer.text;
+            answerDiv.draggable = true;
+            answerDiv.dataset.answerId = answer.uniqueId;
+            dom.answersColumn.appendChild(answerDiv);
+        }
     });
 
+    updateNavigationButtons();
     addDragDropListeners();
 }
 
 /**
- * Adds all necessary event listeners for the drag-and-drop functionality.
+ * Adds event listeners for drag-and-drop functionality.
  */
 function addDragDropListeners() {
-    const answers = document.querySelectorAll('.answer-item');
-    const slots = document.querySelectorAll('.premise-slot');
-
-    answers.forEach(answer => {
+    document.querySelectorAll('.answer-item').forEach(answer => {
         answer.addEventListener('dragstart', handleDragStart);
         answer.addEventListener('dragend', handleDragEnd);
     });
-
-    slots.forEach(slot => {
+    document.querySelectorAll('.premise-slot').forEach(slot => {
         slot.addEventListener('dragover', handleDragOver);
         slot.addEventListener('dragleave', handleDragLeave);
         slot.addEventListener('drop', handleDrop);
     });
 }
 
-// --- DRAG & DROP EVENT HANDLERS ---
-
+// Drag & Drop Handlers
 function handleDragStart(e) {
     draggedAnswer = e.target;
     setTimeout(() => e.target.classList.add('dragging'), 0);
 }
-
 function handleDragEnd(e) {
     e.target.classList.remove('dragging');
 }
-
 function handleDragOver(e) {
     e.preventDefault();
-    if (e.target.classList.contains('premise-slot')) {
-        e.target.classList.add('over');
-    }
+    const target = e.target.closest('.premise-slot');
+    if (target) target.classList.add('over');
 }
-
 function handleDragLeave(e) {
-    e.target.classList.remove('over');
+    const target = e.target.closest('.premise-slot');
+    if (target) target.classList.remove('over');
 }
-
 function handleDrop(e) {
     e.preventDefault();
-    const slot = e.target.closest('.premise-slot'); // Ensure we get the slot, even if dropping on text
+    const slot = e.target.closest('.premise-slot');
     if (!slot) return;
-
     slot.classList.remove('over');
-
     if (draggedAnswer) {
         const premiseId = slot.dataset.premiseId;
         const answerId = draggedAnswer.dataset.answerId;
 
-        // If the slot already has an answer, return it to the answer pool
+        // If slot has an answer, return it to the pool
         if (slot.firstChild && slot.firstChild.dataset.answerId) {
             dom.answersColumn.appendChild(slot.firstChild);
         }
-
         slot.innerHTML = '';
         slot.appendChild(draggedAnswer);
         
-        appState.currentMatchingGame.userMatches[premiseId] = answerId;
-
-        // Check if all slots are filled
-        const allSlotsFilled = appState.currentMatchingGame.premises.every(p => appState.currentMatchingGame.userMatches[p.uniqueId]);
-        if (allSlotsFilled) {
-            dom.checkMatchingAnswersBtn.classList.remove('hidden');
-        }
+        const currentMatches = { ...appState.currentMatchingExam.userMatches[appState.currentMatchingExam.currentSetIndex] };
+        currentMatches[premiseId] = answerId;
+        appState.currentMatchingExam.userMatches[appState.currentMatchingExam.currentSetIndex] = currentMatches;
     }
 }
 
-/**
- * Checks the user's matches, displays results, and logs activity.
- */
-function checkMatchingAnswers() {
-    const { premises, userMatches } = appState.currentMatchingGame;
-    let score = 0;
+// Navigation & Timers
+function updateNavigationButtons() {
+    const exam = appState.currentMatchingExam;
+    dom.matchingPreviousSetBtn.disabled = exam.currentSetIndex === 0;
+    dom.matchingNextSetBtn.classList.toggle('hidden', exam.currentSetIndex === exam.totalSets - 1);
+    dom.matchingFinalControls.classList.toggle('hidden', exam.currentSetIndex !== exam.totalSets - 1);
+}
 
-    premises.forEach(premise => {
-        const premiseId = premise.uniqueId;
-        const correctId = premiseId; // In this logic, the premise and answer share the same UniqueID
-        const userAnwerId = userMatches[premiseId];
-        const isCorrect = correctId === userAnwerId;
-        
-        const slot = dom.premisesColumn.querySelector(`[data-premise-id="${premiseId}"]`);
-        if (slot) {
-            slot.classList.add(isCorrect ? 'matched-correct' : 'matched-incorrect');
+function startMatchingTimer(totalTimeSeconds) {
+    clearInterval(appState.currentMatchingExam.timerInterval);
+    let timeLeft = totalTimeSeconds;
+    dom.matchingTimer.textContent = formatTime(timeLeft);
+    appState.currentMatchingExam.timerInterval = setInterval(() => {
+        timeLeft--;
+        dom.matchingTimer.textContent = formatTime(timeLeft);
+        if (timeLeft <= 0) {
+            clearInterval(appState.currentMatchingExam.timerInterval);
+            endMatchingExam(true); // Force end
         }
+    }, 1000);
+}
 
-        if (isCorrect) {
-            score++;
-        }
-    });
+function handleNextSet() {
+    if (appState.currentMatchingExam.currentSetIndex < appState.currentMatchingExam.totalSets - 1) {
+        appState.currentMatchingExam.currentSetIndex++;
+        renderCurrentSet();
+    }
+}
 
-    appState.currentMatchingGame.score = score;
-    updateProgressBar(true);
-    showMatchingResults();
+function handlePreviousSet() {
+    if (appState.currentMatchingExam.currentSetIndex > 0) {
+        appState.currentMatchingExam.currentSetIndex--;
+        renderCurrentSet();
+    }
+}
 
-    // Disable dragging
-    document.querySelectorAll('.answer-item').forEach(item => {
-        item.draggable = false;
-        item.classList.remove('cursor-move');
-        item.classList.add('cursor-not-allowed');
+function endMatchingExam(isForced = false) {
+    if (isForced) {
+        checkAllAnswersAndShowResults();
+    } else {
+        ui.showConfirmationModal('End Exam?', 'Are you sure you want to end this matching exam and see your results?', () => {
+            checkAllAnswersAndShowResults();
+        });
+    }
+}
+
+// Results & Logging
+function checkAllAnswersAndShowResults() {
+    clearInterval(appState.currentMatchingExam.timerInterval);
+    const { sets, userMatches } = appState.currentMatchingExam;
+    let totalScore = 0;
+
+    sets.forEach((set, setIndex) => {
+        set.premises.forEach(premise => {
+            if (userMatches[setIndex] && userMatches[setIndex][premise.uniqueId] === premise.uniqueId) {
+                totalScore++;
+            }
+        });
     });
     
-    dom.checkMatchingAnswersBtn.classList.add('hidden');
-    dom.matchingHomeBtn.classList.remove('hidden');
+    appState.currentMatchingExam.finalScore = totalScore;
+    renderFinalResults();
 
     logUserActivity({
         eventType: 'FinishMatchingQuiz',
-        chapter: appState.currentMatchingGame.chapter,
-        score: score,
-        totalQuestions: premises.length,
+        chapter: appState.currentMatchingExam.title,
+        score: totalScore,
+        totalQuestions: sets.length * 5,
     });
 }
 
-/**
- * Displays the final results and rationales after checking answers.
- */
-function showMatchingResults() {
-    const { questions, userMatches } = appState.currentMatchingGame;
-    dom.matchingResultsArea.innerHTML = '<h3 class="text-xl font-bold text-slate-800 mb-4">Review & Rationales</h3>';
-    dom.matchingResultsArea.classList.remove('hidden');
+function renderFinalResults() {
+    ui.showScreen(dom.quizContainer); // Reuse quiz results container
+    dom.questionContainer.classList.add('hidden');
+    dom.controlsContainer.classList.add('hidden');
+    dom.resultsContainer.classList.remove('hidden');
 
-    questions.forEach(q => {
-        const isCorrect = userMatches[q.UniqueID] === q.UniqueID;
-        const correctAnswer = q.answerOptions.find(opt => opt.isCorrect);
-        const userAnswerElement = dom.premisesColumn.querySelector(`[data-premise-id="${q.UniqueID}"]`).firstChild;
-        const userAnswerText = userAnswerElement ? userAnswerElement.textContent.trim() : "No Answer";
-        
-        const resultDiv = document.createElement('div');
-        resultDiv.className = `p-3 mb-3 border-l-4 ${isCorrect ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'}`;
-        resultDiv.innerHTML = `
-            <p class="font-semibold">${q.question}</p>
-            <p class="text-sm mt-1"><strong>Your Answer:</strong> ${userAnswerText}</p>
-            ${!isCorrect ? `<p class="text-sm mt-1"><strong>Correct Answer:</strong> ${correctAnswer.text}</p>` : ''}
-            <p class="text-sm mt-2 pt-2 border-t"><strong>Rationale:</strong> ${correctAnswer.rationale || 'No rationale provided.'}</p>
-        `;
-        dom.matchingResultsArea.appendChild(resultDiv);
-    });
+    const totalQuestions = appState.currentMatchingExam.sets.length * 5;
+    const finalScore = appState.currentMatchingExam.finalScore;
+
+    dom.resultsTitle.textContent = "Matching Exam Complete!";
+    dom.resultsScoreText.innerHTML = `Your score is <span class="font-bold">${finalScore}</span> out of <span class="font-bold">${totalQuestions}</span>.`;
+    dom.restartBtn.classList.add('hidden');
+    dom.reviewIncorrectBtn.classList.add('hidden');
+    document.getElementById('review-simulation-btn').classList.add('hidden');
 }
 
-/**
- * Updates the progress bar and score text.
- * @param {boolean} isFinished - Whether the game is finished.
- */
-function updateProgressBar(isFinished = false) {
-    const total = appState.currentMatchingGame.premises.length;
-    const score = appState.currentMatchingGame.score;
 
-    if (isFinished) {
-        dom.matchingProgressBar.style.width = `${(score / total) * 100}%`;
-        dom.matchingScoreProgressText.textContent = `Final Score: ${score} / ${total}`;
-    } else {
-        dom.matchingProgressBar.style.width = '0%';
-        dom.matchingScoreProgressText.textContent = `Score: 0 / ${total}`;
-    }
+function updateProgressBar() {
+    const total = appState.currentMatchingExam.totalSets;
+    const current = appState.currentMatchingExam.currentSetIndex + 1;
+    dom.matchingProgressBar.style.width = `${(current / total) * 100}%`;
 }
 
-// Event Listeners (will be attached in main.js)
+
+// Event Listeners
 export function addMatchingEventListeners() {
-    dom.matchingBackBtn.addEventListener('click', () => {
-        // Go back to the browse screen instead of main menu
-        if (appState.navigationHistory.length > 1) {
-            appState.navigationHistory.pop(); // Remove current screen
-            const prevScreenFunc = appState.navigationHistory[appState.navigationHistory.length - 1];
-            if(typeof prevScreenFunc === 'function') prevScreenFunc();
-        } else {
-            showMainMenuScreen();
-        }
+    dom.startMatchingExamBtn.addEventListener('click', handleStartMatchingExam);
+    dom.toggleMatchingOptionsBtn.addEventListener('click', () => dom.customMatchingOptions.classList.toggle('visible'));
+    dom.sourceSelectMatching.addEventListener('change', updateMatchingChapterFilter);
+    dom.selectAllSourcesMatching.addEventListener('change', (e) => {
+        dom.sourceSelectMatching.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
+        updateMatchingChapterFilter();
     });
-    dom.checkMatchingAnswersBtn.addEventListener('click', checkMatchingAnswers);
+    dom.selectAllChaptersMatching.addEventListener('change', (e) => {
+        dom.chapterSelectMatching.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
+    });
+
+    dom.matchingEndBtn.addEventListener('click', () => endMatchingExam(false));
+    dom.matchingNextSetBtn.addEventListener('click', handleNextSet);
+    dom.matchingPreviousSetBtn.addEventListener('click', handlePreviousSet);
+    dom.checkMatchingAnswersBtn.addEventListener('click', () => endMatchingExam(false));
     dom.matchingHomeBtn.addEventListener('click', showMainMenuScreen);
 }
 
