@@ -1,4 +1,4 @@
-// V.2.1 - 2025-10-07
+// V.2.2 - 2025-10-07
 // js/features/matching.js
 
 import { appState } from '../state.js';
@@ -7,11 +7,8 @@ import * as ui from '../ui.js';
 import { showMainMenuScreen } from '../main.js';
 import { logUserActivity } from '../api.js';
 
-let selectedAnswerElement = null; // To hold the currently selected answer element
+let selectedAnswerElement = null;
 
-/**
- * Standalone chapter filter updater for the matching feature.
- */
 export function updateMatchingChapterFilter() {
     const selectedSources = Array.from(dom.sourceSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
 
@@ -30,9 +27,6 @@ export function updateMatchingChapterFilter() {
     ui.populateFilterOptions(dom.chapterSelectMatching, chapterNames, 'matching-chapter', chapterCounts);
 }
 
-/**
- * Main handler to start the matching exam process.
- */
 export function handleStartMatchingExam() {
     const setCount = parseInt(dom.matchingSetCount.value, 10) || 10;
     const timePerSet = parseInt(dom.matchingTimerInput.value, 10) || 60;
@@ -95,7 +89,7 @@ function launchMatchingExam(title, sets, totalTime) {
     addClickListeners();
 
     dom.endMatchingBtn.onclick = () => endMatchingExam(false);
-    dom.checkAnswersBtn.onclick = checkCurrentSetAnswers;
+    dom.checkAnswersBtn.onclick = checkCurrentSetAnswers; // This button will now trigger the final score calculation
     dom.matchingNextSetBtn.onclick = nextSet;
     dom.matchingPreviousSetBtn.onclick = prevSet;
 }
@@ -107,8 +101,6 @@ function renderCurrentSet() {
     updateNavigationButtons();
     restoreUserMatchesForCurrentSet();
 }
-
-// --- Click Logic Implementation ---
 
 function addClickListeners() {
     dom.matchingContainer.addEventListener('click', handleMatchingClick);
@@ -179,9 +171,6 @@ function handleReturnAnswer(droppedAnswerEl) {
     }
 }
 
-
-// --- Timer, Navigation, and Results Logic ---
-
 function startMatchingTimer() {
     if (appState.currentMatching.timerInterval) {
         clearInterval(appState.currentMatching.timerInterval);
@@ -198,6 +187,9 @@ function startMatchingTimer() {
     }, 1000);
 }
 
+/**
+ * UPDATED: This function now also triggers the final score calculation.
+ */
 function checkCurrentSetAnswers() {
     appState.currentMatching.isReviewMode = true;
     removeClickListeners();
@@ -227,25 +219,32 @@ function checkCurrentSetAnswers() {
             }
         }
     });
+
+    // After showing the review, automatically trigger the final score modal after a short delay
+    setTimeout(() => {
+        calculateAndShowFinalScore();
+    }, 2000); // Wait 2 seconds for the user to see the review
 }
 
 function endMatchingExam(isTimeUp = false) {
     clearInterval(appState.currentMatching.timerInterval);
     removeClickListeners();
 
-    if (isTimeUp && !appState.currentMatching.isReviewMode) {
+    if (isTimeUp) {
+        // If time is up, force check the answers of the current (and final) set
         checkCurrentSetAnswers();
-        ui.showConfirmationModal(
-            "Time's up!",
-            `The exam has ended. Let's see your final score.`,
-            () => calculateAndShowFinalScore()
-        );
     } else {
+        // If user clicks end, just calculate score directly
         calculateAndShowFinalScore();
     }
 }
 
 function calculateAndShowFinalScore() {
+    // Prevent this from running multiple times
+    if (document.getElementById('modal-title')?.textContent === 'Exam Complete!') {
+        return;
+    }
+
     let finalScore = 0;
     appState.currentMatching.sets.forEach((set, index) => {
         const userMatchesForSet = appState.currentMatching.userMatches[index];
