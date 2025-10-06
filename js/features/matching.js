@@ -1,302 +1,327 @@
-// js/features/matching.js (NEW FILE - COMPLETE)
+// V.1.1 - 2025-10-06
+// js/features/matching.js
 
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
-import { logUserActivity } from '../api.js';
-import { formatTime } from '../utils.js';
 import { showMainMenuScreen } from '../main.js';
 
-let draggedAnswer = null; // Variable to hold the dragged element info
+let draggedAnswer = null; // To hold the element being dragged
 
 /**
- * Shows the matching bank menu and populates filters.
- */
-export function showMatchingMenuScreen() {
-    ui.showScreen(dom.matchingMenuContainer);
-    appState.navigationHistory.push(showMatchingMenuScreen);
-    dom.matchingError.classList.add('hidden');
-
-    // Populate filters
-    const chapters = [...new Set(appState.allQuestions.map(q => q.chapter || 'Uncategorized'))].sort();
-    const sources = [...new Set(appState.allQuestions.map(q => q.source || 'Uncategorized'))].sort();
-    const chapterCounts = appState.allQuestions.reduce((acc, q) => {
-        const chapter = q.chapter || 'Uncategorized';
-        acc[chapter] = (acc[chapter] || 0) + 1;
-        return acc;
-    }, {});
-    const sourceCounts = appState.allQuestions.reduce((acc, q) => {
-        const source = q.source || 'Uncategorized';
-        acc[source] = (acc[source] || 0) + 1;
-        return acc;
-    }, {});
-
-    ui.populateFilterOptions(dom.chapterSelectMatching, chapters, 'chapter-matching', chapterCounts);
-    ui.populateFilterOptions(dom.sourceSelectMatching, sources, 'source-matching', sourceCounts);
-}
-
-/**
- * Gathers user input, filters questions, and creates the exam sets.
+ * Main handler to start the matching exam process.
  */
 export function handleStartMatchingExam() {
-    // 1. Collect user inputs
-    const requestedSetCount = parseInt(dom.matchingSetCount.value, 10);
+    const setCount = parseInt(dom.matchingSetCount.value, 10);
     const timePerSet = parseInt(dom.matchingTimerInput.value, 10);
-    const selectedChapters = Array.from(dom.chapterSelectMatching.querySelectorAll('input:checked')).map(el => el.value);
-    const selectedSources = Array.from(dom.sourceSelectMatching.querySelectorAll('input:checked')).map(el => el.value);
 
-    // 2. Filter questions
+    // --- Validation ---
+    if (!setCount || setCount <= 0) {
+        dom.matchingError.textContent = 'Please enter a valid number of sets.';
+        dom.matchingError.classList.remove('hidden');
+        return;
+    }
+    if (!timePerSet || timePerSet < 10) {
+        dom.matchingError.textContent = 'Please enter a time of at least 10 seconds per set.';
+        dom.matchingError.classList.remove('hidden');
+        return;
+    }
+    dom.matchingError.classList.add('hidden');
+
+    // --- Filtering Questions ---
+    const selectedChapters = Array.from(dom.chapterSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
+    const selectedSources = Array.from(dom.sourceSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
+
     let filteredQuestions = appState.allQuestions;
+
     if (selectedChapters.length > 0) {
-        filteredQuestions = filteredQuestions.filter(q => selectedChapters.includes(q.chapter));
+        filteredQuestions = filteredQuestions.filter(q => selectedChapters.includes(q.Chapter));
     }
     if (selectedSources.length > 0) {
         filteredQuestions = filteredQuestions.filter(q => selectedSources.includes(q.source));
     }
 
-    // 3. Validate if enough questions are available
-    const requiredQuestions = requestedSetCount * 5;
+    const requiredQuestions = setCount * 5;
     if (filteredQuestions.length < requiredQuestions) {
-        dom.matchingError.textContent = `Not enough questions found. You need ${requiredQuestions}, but only found ${filteredQuestions.length} matching your criteria.`;
+        dom.matchingError.textContent = `Not enough questions found (${filteredQuestions.length}) to create ${setCount} sets. Please select more chapters/sources or reduce the number of sets.`;
         dom.matchingError.classList.remove('hidden');
         return;
     }
-     dom.matchingError.classList.add('hidden');
 
-    // 4. Create exam sets
+    // --- Creating Exam Sets ---
     const shuffledPool = [...filteredQuestions].sort(() => Math.random() - 0.5);
     const examSets = [];
-    for (let i = 0; i < requestedSetCount; i++) {
+    for (let i = 0; i < setCount; i++) {
         const setQuestions = shuffledPool.splice(0, 5);
-        const premises = setQuestions.map(q => ({
-            uniqueId: q.UniqueID,
-            text: q.Question
-        }));
-        let answers = setQuestions.map(q => {
-            const correctAnswer = q.answerOptions.find(opt => opt.isCorrect);
-            return {
-                uniqueId: q.UniqueID,
-                text: correctAnswer ? correctAnswer.text : 'N/A'
-            };
-        });
+        const premises = setQuestions.map(q => ({ question: q.question, uniqueId: q.UniqueID }));
+        let answers = setQuestions.map(q => ({ CorrectAnswer: q.CorrectAnswer, uniqueId: q.UniqueID }));
         
-        // Shuffle the answers for this set
-        answers = answers.sort(() => Math.random() - 0.5);
+        // Shuffle answers for the current set
+        answers.sort(() => Math.random() - 0.5);
 
         examSets.push({ premises, answers });
     }
-    
-    // 5. Launch the exam
-    const examTitle = `Matching Exam (${requestedSetCount} Set${requestedSetCount > 1 ? 's' : ''})`;
-    launchMatchingExam(examTitle, examSets, timePerSet);
+
+    const totalTime = setCount * timePerSet;
+    launchMatchingExam(`Custom Matching Exam`, examSets, totalTime);
 }
 
-
 /**
- * Initializes the exam state and launches the UI.
- * @param {string} title
- * @param {Array} sets
- * @param {number} timePerSet
+ * Initializes and launches the matching exam UI.
  */
-function launchMatchingExam(title, sets, timePerSet) {
-    const totalTime = sets.length * timePerSet;
-    const totalQuestions = sets.length * 5;
-
-    appState.currentMatchingExam = {
-        title,
-        sets,
-        currentSetIndex: 0,
-        userMatches: sets.map(set => new Array(set.premises.length).fill(null)),
+function launchMatchingExam(title, sets, totalTime) {
+    appState.currentMatching = {
+        sets: sets,
+        setIndex: 0,
+        userMatches: sets.map(() => ({})), // Array of objects to store matches for each set
         timerInterval: null,
-        totalTime,
-        score: 0
+        totalTime: totalTime,
+        timeLeft: totalTime,
+        score: 0,
+        totalPremises: sets.reduce((acc, set) => acc + set.premises.length, 0),
+        isReviewMode: false
     };
-    
-    ui.showScreen(dom.matchingContainer);
-    appState.navigationHistory.push(() => launchMatchingExam(title, sets, timePerSet));
-    dom.matchingExamTitle.textContent = title;
-    dom.matchingTotal.textContent = totalQuestions;
-    dom.matchingScore.textContent = 0;
-    
-    dom.matchingCheckAnswersBtn.classList.remove('hidden');
-    dom.matchingNextSetBtn.classList.add('hidden');
-    dom.matchingCheckAnswersBtn.disabled = false;
-    dom.matchingCheckAnswersBtn.textContent = 'Check Answers';
-    dom.matchingCheckAnswersBtn.onclick = handleCheckAnswers;
 
-    startMatchingTimer();
+    dom.matchingTitle.textContent = title;
+    ui.showScreen(dom.matchingContainer);
     renderCurrentSet();
+    startMatchingTimer();
+    addDragDropListeners();
+
+    // Attach event listeners for this specific exam instance
+    dom.endMatchingBtn.onclick = () => endMatchingExam(false);
+    dom.checkAnswersBtn.onclick = checkCurrentSetAnswers;
+    dom.matchingNextSetBtn.onclick = nextSet;
+    dom.matchingPreviousSetBtn.onclick = prevSet;
 }
 
 /**
  * Renders the current set of premises and answers.
  */
 function renderCurrentSet() {
-    const { sets, currentSetIndex } = appState.currentMatchingExam;
-    const currentSet = sets[currentSetIndex];
-
-    dom.premisesContainer.innerHTML = '';
-    dom.answersContainer.innerHTML = '';
-
-    // Render Premises (Drop Zones)
-    currentSet.premises.forEach((premise, index) => {
-        const premiseEl = document.createElement('div');
-        premiseEl.className = 'premise-slot';
-        premiseEl.dataset.premiseIndex = index;
-        premiseEl.innerHTML = `
-            <span class="premise-question-text">${index + 1}. ${premise.text}</span>
-            <div class="premise-drop-zone" data-premise-id="${premise.uniqueId}">Drop here</div>
-        `;
-        premiseEl.addEventListener('dragover', handleDragOver);
-        premiseEl.addEventListener('drop', handleDrop);
-        dom.premisesContainer.appendChild(premiseEl);
-    });
-
-    // Render Answers (Draggable)
-    currentSet.answers.forEach((answer, index) => {
-        const answerEl = document.createElement('div');
-        answerEl.className = 'answer-option';
-        answerEl.draggable = true;
-        answerEl.dataset.answerId = answer.uniqueId;
-        answerEl.textContent = answer.text;
-        answerEl.addEventListener('dragstart', handleDragStart);
-        dom.answersContainer.appendChild(answerEl);
-    });
-
-    dom.matchingSetIndicator.textContent = `Set ${currentSetIndex + 1} of ${sets.length}`;
+    const { sets, setIndex, userMatches } = appState.currentMatching;
+    const currentSet = sets[setIndex];
+    ui.renderMatchingSet(currentSet, setIndex, sets.length);
+    updateNavigationButtons();
+    restoreUserMatchesForCurrentSet();
 }
 
-// --- DRAG & DROP LOGIC ---
+/**
+ * Starts the exam timer.
+ */
+function startMatchingTimer() {
+    if (appState.currentMatching.timerInterval) {
+        clearInterval(appState.currentMatching.timerInterval);
+    }
+
+    appState.currentMatching.timerInterval = setInterval(() => {
+        appState.currentMatching.timeLeft--;
+        const minutes = Math.floor(appState.currentMatching.timeLeft / 60).toString().padStart(2, '0');
+        const seconds = (appState.currentMatching.timeLeft % 60).toString().padStart(2, '0');
+        dom.matchingTimer.textContent = `${minutes}:${seconds}`;
+
+        if (appState.currentMatching.timeLeft <= 0) {
+            endMatchingExam(true); // Automatically end when time is up
+        }
+    }, 1000);
+}
+
+/**
+ * Adds document-level event listeners for drag and drop.
+ */
+function addDragDropListeners() {
+    document.addEventListener('dragstart', handleDragStart);
+    document.addEventListener('dragover', handleDragOver);
+    document.addEventListener('dragleave', handleDragLeave);
+    document.addEventListener('drop', handleDrop);
+    document.addEventListener('dragend', handleDragEnd);
+}
+
+/**
+ * Removes the drag and drop listeners.
+ */
+function removeDragDropListeners() {
+    document.removeEventListener('dragstart', handleDragStart);
+    document.removeEventListener('dragover', handleDragOver);
+    document.removeEventListener('dragleave', handleDragLeave);
+    document.removeEventListener('drop', handleDrop);
+    document.removeEventListener('dragend', handleDragEnd);
+}
+
+// --- Drag & Drop Event Handlers ---
 
 function handleDragStart(e) {
-    draggedAnswer = {
-        id: e.target.dataset.answerId,
-        text: e.target.textContent,
-        element: e.target
-    };
-    e.dataTransfer.effectAllowed = 'move';
+    if (e.target.classList.contains('answer-draggable')) {
+        draggedAnswer = e.target;
+        setTimeout(() => e.target.classList.add('dragging'), 0);
+        // If it was in a premise box, remove it from state
+        const parentPremise = e.target.closest('.premise-drop-zone');
+        if (parentPremise) {
+            const premiseId = parentPremise.dataset.premiseId;
+            delete appState.currentMatching.userMatches[appState.currentMatching.setIndex][premiseId];
+        }
+    }
 }
 
 function handleDragOver(e) {
     e.preventDefault();
     const dropZone = e.target.closest('.premise-drop-zone');
     if (dropZone) {
-         // Add a visual indicator
-        dom.premisesContainer.querySelectorAll('.premise-slot').forEach(el => el.classList.remove('drag-over'));
-        e.target.closest('.premise-slot').classList.add('drag-over');
+        dropZone.classList.add('drag-over');
+    }
+}
+
+function handleDragLeave(e) {
+    const dropZone = e.target.closest('.premise-drop-zone');
+    if (dropZone) {
+        dropZone.classList.remove('drag-over');
     }
 }
 
 function handleDrop(e) {
     e.preventDefault();
-    dom.premisesContainer.querySelectorAll('.premise-slot').forEach(el => el.classList.remove('drag-over'));
-
     const dropZone = e.target.closest('.premise-drop-zone');
     if (dropZone && draggedAnswer) {
-        // Update state
-        const premiseIndex = parseInt(e.target.closest('.premise-slot').dataset.premiseIndex, 10);
-        const { currentSetIndex } = appState.currentMatchingExam;
-        appState.currentMatchingExam.userMatches[currentSetIndex][premiseIndex] = draggedAnswer.id;
+        dropZone.classList.remove('drag-over');
 
-        // Update UI
-        dropZone.textContent = draggedAnswer.text;
-        dropZone.classList.add('filled');
-        
-        // Hide the dragged answer
-        draggedAnswer.element.style.display = 'none';
-        
-        // Return any previously dropped answer back to the list
-        const previousAnswerId = dropZone.dataset.previousAnswer;
-        if (previousAnswerId) {
-             const previousAnswerEl = dom.answersContainer.querySelector(`[data-answer-id="${previousAnswerId}"]`);
-             if(previousAnswerEl) previousAnswerEl.style.display = 'flex';
+        // Check if there's already an answer, and if so, move it back to the answer area
+        const existingAnswer = dropZone.querySelector('.answer-draggable');
+        if (existingAnswer) {
+            dom.matchingAnswersArea.appendChild(existingAnswer);
         }
-        dropZone.dataset.previousAnswer = draggedAnswer.id;
 
+        const placeholder = dropZone.querySelector('.dropped-answer-placeholder');
+        if (placeholder) {
+            dropZone.insertBefore(draggedAnswer, placeholder);
+            dropZone.classList.add('has-answer');
+        }
+
+        // Update state
+        const premiseId = dropZone.dataset.premiseId;
+        const answerId = draggedAnswer.dataset.answerId;
+        appState.currentMatching.userMatches[appState.currentMatching.setIndex][premiseId] = answerId;
+    }
+}
+
+function handleDragEnd(e) {
+    if (draggedAnswer) {
+        draggedAnswer.classList.remove('dragging');
         draggedAnswer = null;
     }
 }
 
-// --- TIMER & RESULTS ---
+/**
+ * Checks answers for the current set and provides visual feedback.
+ */
+function checkCurrentSetAnswers() {
+    const { sets, setIndex, userMatches } = appState.currentMatching;
+    const currentSet = sets[setIndex];
+    const currentMatches = userMatches[setIndex];
 
-function startMatchingTimer() {
-    clearInterval(appState.currentMatchingExam.timerInterval);
-    let timeLeft = appState.currentMatchingExam.totalTime;
-    dom.matchingTimer.textContent = formatTime(timeLeft);
+    currentSet.premises.forEach(premise => {
+        const dropZone = dom.matchingPremisesArea.querySelector(`[data-premise-id="${premise.uniqueId}"]`);
+        const droppedAnswerId = currentMatches[premise.uniqueId];
+        const droppedAnswerEl = dropZone.querySelector('.answer-draggable');
 
-    appState.currentMatchingExam.timerInterval = setInterval(() => {
-        timeLeft--;
-        dom.matchingTimer.textContent = formatTime(timeLeft);
-        if (timeLeft <= 0) {
-            clearInterval(appState.currentMatchingExam.timerInterval);
-            handleCheckAnswers(); // Auto-submit when time is up
+        if (droppedAnswerEl) {
+            if (droppedAnswerId === premise.uniqueId) {
+                // Correct
+                droppedAnswerEl.style.backgroundColor = '#d1fae5'; // green-200
+                droppedAnswerEl.style.borderColor = '#10b981'; // green-500
+            } else {
+                // Incorrect
+                droppedAnswerEl.style.backgroundColor = '#fee2e2'; // red-200
+                droppedAnswerEl.style.borderColor = '#ef4444'; // red-500
+            }
         }
-    }, 1000);
+    });
+
+    // Disable further dragging for this set
+    dom.matchingContainer.querySelectorAll('.answer-draggable').forEach(el => el.draggable = false);
+    dom.checkAnswersBtn.disabled = true;
 }
 
-function handleCheckAnswers() {
-    clearInterval(appState.currentMatchingExam.timerInterval);
-    dom.matchingCheckAnswersBtn.disabled = true;
+/**
+ * Ends the exam, calculates the final score, and shows results.
+ */
+function endMatchingExam(isTimeUp = false) {
+    clearInterval(appState.currentMatching.timerInterval);
+    removeDragDropListeners();
 
-    const { sets, userMatches } = appState.currentMatchingExam;
-    let totalScore = 0;
+    if (isTimeUp) {
+        alert("Time's up!");
+    }
 
-    // Disable dragging
-    dom.answersContainer.querySelectorAll('.answer-option').forEach(el => el.draggable = false);
-
-    // Score all sets
-    sets.forEach((set, setIndex) => {
-        set.premises.forEach((premise, premiseIndex) => {
-            if (premise.uniqueId === userMatches[setIndex][premiseIndex]) {
-                totalScore++;
+    // Calculate final score
+    let finalScore = 0;
+    appState.currentMatching.sets.forEach((set, index) => {
+        const userMatchesForSet = appState.currentMatching.userMatches[index];
+        set.premises.forEach(premise => {
+            if (userMatchesForSet[premise.uniqueId] === premise.uniqueId) {
+                finalScore++;
             }
         });
     });
-    
-    appState.currentMatchingExam.score = totalScore;
-    dom.matchingScore.textContent = totalScore;
+    appState.currentMatching.score = finalScore;
 
-    // Show visual feedback for the current set
-    const currentSetIndex = appState.currentMatchingExam.currentSetIndex;
-    const currentSet = sets[currentSetIndex];
-    currentSet.premises.forEach((premise, premiseIndex) => {
-        const dropZone = dom.premisesContainer.querySelector(`[data-premise-id="${premise.uniqueId}"]`);
-        if (dropZone) {
-            const isCorrect = premise.uniqueId === userMatches[currentSetIndex][premiseIndex];
-            dropZone.classList.add(isCorrect ? 'correct-match' : 'incorrect-match');
-        }
-    });
+    // Show results
+    ui.showConfirmationModal(
+        'Exam Complete!',
+        `You scored ${finalScore} out of ${appState.currentMatching.totalPremises}.`,
+        showMainMenuScreen
+    );
+    // Here you would also log the activity to the server if needed
+    // logUserActivity({ eventType: 'FinishMatchingQuiz', ... });
+}
 
-    // Log the final result after checking the last set
-    if (currentSetIndex === sets.length - 1) {
-        logUserActivity({
-            eventType: 'logMatchingActivity',
-            score: appState.currentMatchingExam.score,
-            totalQuestions: sets.length * 5,
-            details: {
-                sets: sets.map(s => ({
-                    premises: s.premises.map(p => p.uniqueId),
-                    answers: s.answers.map(a => a.uniqueId)
-                })),
-                userMatches: userMatches
-            }
-        });
-        dom.matchingCheckAnswersBtn.textContent = 'Finish & Exit';
-        dom.matchingCheckAnswersBtn.onclick = showMainMenuScreen;
-        dom.matchingCheckAnswersBtn.disabled = false;
-    } else {
-        // Show "Next Set" button
-        dom.matchingNextSetBtn.classList.remove('hidden');
-        dom.matchingCheckAnswersBtn.classList.add('hidden');
+
+/**
+ * Moves to the next set.
+ */
+function nextSet() {
+    if (appState.currentMatching.setIndex < appState.currentMatching.sets.length - 1) {
+        appState.currentMatching.setIndex++;
+        renderCurrentSet();
     }
 }
 
-export function handleNextSet() {
-    appState.currentMatchingExam.currentSetIndex++;
-    if (appState.currentMatchingExam.currentSetIndex < appState.currentMatchingExam.sets.length) {
-        dom.matchingNextSetBtn.classList.add('hidden');
-        dom.matchingCheckAnswersBtn.classList.remove('hidden');
-        dom.matchingCheckAnswersBtn.disabled = false;
+/**
+ * Moves to the previous set.
+ */
+function prevSet() {
+    if (appState.currentMatching.setIndex > 0) {
+        appState.currentMatching.setIndex--;
         renderCurrentSet();
+    }
+}
+
+/**
+ * Updates the visibility of navigation buttons.
+ */
+function updateNavigationButtons() {
+    const { setIndex, sets } = appState.currentMatching;
+    dom.matchingPreviousSetBtn.classList.toggle('hidden', setIndex === 0);
+    dom.matchingNextSetBtn.classList.toggle('hidden', setIndex === sets.length - 1);
+    dom.checkAnswersBtn.classList.toggle('hidden', setIndex !== sets.length - 1);
+    dom.checkAnswersBtn.disabled = false;
+}
+
+/**
+ * Restores the user's previous matches on a set when navigating back and forth.
+ */
+function restoreUserMatchesForCurrentSet() {
+    const { setIndex, userMatches } = appState.currentMatching;
+    const matchesForCurrentSet = userMatches[setIndex];
+
+    for (const premiseId in matchesForCurrentSet) {
+        const answerId = matchesForCurrentSet[premiseId];
+        const answerEl = dom.matchingAnswersArea.querySelector(`[data-answer-id="${answerId}"]`);
+        const premiseEl = dom.matchingPremisesArea.querySelector(`[data-premise-id="${premiseId}"]`);
+
+        if (answerEl && premiseEl) {
+            const placeholder = premiseEl.querySelector('.dropped-answer-placeholder');
+            premiseEl.insertBefore(answerEl, placeholder);
+            premiseEl.classList.add('has-answer');
+        }
     }
 }
