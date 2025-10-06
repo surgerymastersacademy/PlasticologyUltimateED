@@ -1,4 +1,4 @@
-/* V.1.2 - 2025-10-06 */
+/* V.2.0 - 2025-10-07 */
 /* Custom styles */
 
 /* NEW: Theme Variables */
@@ -373,27 +373,26 @@ html.animation-off .animation-off-icon { display: none; }
     font-weight: 600;
 }
 
-/* --- NEW / UPDATED: Matching Bank Styles --- */
-.answer-draggable.dragging {
-    opacity: 0.5;
-    transform: scale(0.95);
-}
-
-.premise-drop-zone {
+/* --- UPDATED: Matching Bank Styles for Click-to-Match --- */
+.answer-clickable, .premise-drop-zone {
+    cursor: pointer;
     transition: background-color 0.2s ease;
-    position: relative;
 }
 
-.premise-drop-zone.drag-over {
+.answer-clickable:hover {
     background-color: #eef2ff; /* indigo-100 */
-    border-color: #818cf8; /* indigo-400 */
-    border-style: dashed;
 }
 
-.premise-drop-zone .answer-draggable {
+.answer-clickable.answer-selected {
+    background-color: #c7d2fe !important; /* indigo-300 */
+    border-color: #818cf8 !important; /* indigo-400 */
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.5);
+    transform: scale(1.02);
+}
+
+.premise-drop-zone .answer-clickable {
     width: 100%;
     text-align: center;
-    cursor: default;
 }
 
 .premise-drop-zone.has-answer .dropped-answer-placeholder {
@@ -421,4 +420,5 @@ html.animation-off .animation-off-icon { display: none; }
     background-color: #d1fae5; /* green-200 */
     border-radius: 0.375rem;
     border-left: 4px solid #10b981; /* green-500 */
+    cursor: default;
 }
