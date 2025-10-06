@@ -1,4 +1,4 @@
-// js/dom.js (FINAL AND COMPLETE VERSION)
+// js/dom.js (Version 1.1 - Added Custom Matching Exam elements)
 
 // This file contains references to all DOM elements used in the application.
 
@@ -104,7 +104,7 @@ export const endQuizBtn = document.getElementById('end-quiz-btn');
 export const scoreProgressText = document.getElementById('score-progress-text');
 export const scoreBarCorrect = document.getElementById('score-bar-correct');
 export const scoreBarIncorrect = document.getElementById('score-bar-incorrect');
-export const scoreBarAnswered = document.getElementById('score-bar-answered'); // New
+export const scoreBarAnswered = document.getElementById('score-bar-answered');
 export const resultsContainer = document.getElementById('results-container');
 export const resultsTitle = document.getElementById('results-title');
 export const resultsScoreText = document.getElementById('results-score-text');
@@ -198,7 +198,7 @@ export const qbankSearchError = document.getElementById('qbank-search-error');
 export const qbankSearchResultsContainer = document.getElementById('qbank-search-results-container');
 export const qbankSearchResultsInfo = document.getElementById('qbank-search-results-info');
 export const qbankStartSearchQuizBtn = document.getElementById('qbank-start-search-quiz-btn');
-export const qbankClearSearchBtn = document.getElementById('qbank-clear-search-btn'); // New
+export const qbankClearSearchBtn = document.getElementById('qbank-clear-search-btn');
 export const selectAllSourcesMock = document.getElementById('select-all-sources-mock');
 export const selectAllChaptersMock = document.getElementById('select-all-chapters-mock');
 export const practiceBookmarkedBtn = document.getElementById('practice-bookmarked-btn');
@@ -287,16 +287,53 @@ export const theoryNoteBtn = document.getElementById('theory-note-btn');
 export const theoryStatusBtn = document.getElementById('theory-status-btn');
 export const theorySourceText = document.getElementById('theory-source-text');
 export const matchingBtn = document.getElementById('matching-btn');
+
+// --- Matching Bank --- (Old simple UI, kept for reference if needed)
+// export const matchingContainer = document.getElementById('matching-container');
+// export const matchingBackBtn = document.getElementById('matching-back-btn');
+// export const matchingTitle = document.getElementById('matching-title');
+// export const premisesColumn = document.getElementById('premises-column');
+// export const answersColumn = document.getElementById('answers-column');
+// export const checkMatchingAnswersBtn = document.getElementById('check-matching-answers-btn');
+// export const matchingScoreProgressText = document.getElementById('matching-score-progress-text');
+// export const matchingProgressBar = document.getElementById('matching-progress-bar');
+// export const matchingResultsArea = document.getElementById('matching-results-area');
+// export const matchingHomeBtn = document.getElementById('matching-home-btn');
+
+// --- NEW: Custom Matching Exam Elements ---
+export const matchingMenuContainer = document.getElementById('matching-menu-container');
+export const matchingSetCount = document.getElementById('matching-set-count');
+export const matchingTimerInput = document.getElementById('matching-timer-input');
+export const toggleMatchingOptionsBtn = document.getElementById('toggle-matching-options-btn');
+export const customMatchingOptions = document.getElementById('custom-matching-options');
+export const sourceSelectMatching = document.getElementById('source-select-matching');
+export const selectAllSourcesMatching = document.getElementById('select-all-sources-matching');
+export const chapterSelectMatching = document.getElementById('chapter-select-matching');
+export const selectAllChaptersMatching = document.getElementById('select-all-chapters-matching');
+export const startMatchingExamBtn = document.getElementById('start-matching-exam-btn');
+export const matchingError = document.getElementById('matching-error');
 export const matchingContainer = document.getElementById('matching-container');
-export const matchingBackBtn = document.getElementById('matching-back-btn');
+export const matchingEndBtn = document.getElementById('matching-end-btn');
+export const matchingTimer = document.getElementById('matching-timer');
 export const matchingTitle = document.getElementById('matching-title');
+export const matchingSetProgressText = document.getElementById('matching-set-progress-text');
+export const matchingProgressBar = document.getElementById('matching-progress-bar');
+export const matchingScoreProgressText = document.getElementById('matching-score-progress-text');
+export const matchingGameArea = document.getElementById('matching-game-area');
 export const premisesColumn = document.getElementById('premises-column');
 export const answersColumn = document.getElementById('answers-column');
+export const matchingControlsContainer = document.getElementById('matching-controls-container');
+export const matchingPreviousSetBtn = document.getElementById('matching-previous-set-btn');
+export const matchingNavigatorBtn = document.getElementById('matching-navigator-btn');
+export const matchingFlagBtn = document.getElementById('matching-flag-btn');
+export const matchingHintBtn = document.getElementById('matching-hint-btn');
+export const matchingNextSetBtn = document.getElementById('matching-next-set-btn');
+export const matchingFinalControls = document.getElementById('matching-final-controls');
 export const checkMatchingAnswersBtn = document.getElementById('check-matching-answers-btn');
-export const matchingScoreProgressText = document.getElementById('matching-score-progress-text');
-export const matchingProgressBar = document.getElementById('matching-progress-bar');
-export const matchingResultsArea = document.getElementById('matching-results-area');
 export const matchingHomeBtn = document.getElementById('matching-home-btn');
+export const matchingResultsArea = document.getElementById('matching-results-area');
+export const matchingBackBtn = document.getElementById('matching-back-btn');
+
 
 // --- NEW: Registration Elements ---
 export const registrationModal = document.getElementById('registration-modal');
@@ -319,4 +356,3 @@ export const registerExamDate = document.getElementById('register-exam-date');
 // --- NEW: Subscription Status in User Card ---
 export const cardSubscriptionStatus = document.getElementById('card-subscription-status');
 export const cardSubscriptionExpiry = document.getElementById('card-subscription-expiry');
-
