@@ -1,4 +1,4 @@
-// js/features/matching.js (NEW FILE)
+// js/features/matching.js (CORRECTED FILE)
 
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
@@ -12,10 +12,16 @@ let draggedAnswer = null; // To hold the element being dragged
  * Shows the initial screen for the Matching Bank, allowing users to select a chapter.
  */
 export function showMatchingBrowseScreen() {
-    const chaptersWithEnoughQuestions = appState.allChaptersNames.filter(chapter => {
-        const questionsInChapter = appState.allQuestions.filter(q => q.chapter === chapter);
-        return questionsInChapter.length >= 5;
-    });
+    // --- START OF FIX ---
+    // Instead of using allChaptersNames from lectures, build the list directly from the MCQ Bank.
+    const chapterCounts = appState.allQuestions.reduce((acc, q) => {
+        const chapter = q.chapter || 'Uncategorized';
+        acc[chapter] = (acc[chapter] || 0) + 1;
+        return acc;
+    }, {});
+
+    const chaptersWithEnoughQuestions = Object.keys(chapterCounts).filter(chapter => chapterCounts[chapter] >= 5);
+    // --- END OF FIX ---
 
     dom.listTitle.textContent = 'Choose a Chapter to Start';
     dom.listItems.innerHTML = '';
@@ -23,10 +29,10 @@ export function showMatchingBrowseScreen() {
     if (chaptersWithEnoughQuestions.length === 0) {
         dom.listItems.innerHTML = `<p class="text-slate-500 col-span-full text-center">No chapters have enough questions (min 5) for a matching game.</p>`;
     } else {
-        chaptersWithEnoughQuestions.forEach(chapter => {
+        chaptersWithEnoughQuestions.sort().forEach(chapter => { // Sort alphabetically
             const button = document.createElement('button');
             button.className = 'action-btn p-4 bg-white rounded-lg shadow-sm text-center hover:bg-slate-50';
-            button.innerHTML = `<h3 class="font-bold text-slate-800">${chapter}</h3>`;
+            button.innerHTML = `<h3 class="font-bold text-slate-800">${chapter}</h3> <p class="text-sm text-slate-500">${chapterCounts[chapter]} Qs available</p>`;
             button.addEventListener('click', () => startMatchingGame(chapter));
             dom.listItems.appendChild(button);
         });
@@ -85,7 +91,7 @@ function renderMatchingGame() {
     dom.answersColumn.innerHTML = '';
     dom.matchingResultsArea.innerHTML = '';
     dom.matchingResultsArea.classList.add('hidden');
-    dom.checkMatchingAnswersBtn.classList.add('hidden');
+    dom.checkMatchingAnswersBtn.classList.remove('hidden'); // Ensure button is visible on new game
     dom.matchingHomeBtn.classList.add('hidden');
     updateProgressBar();
 
@@ -160,10 +166,12 @@ function handleDragLeave(e) {
 
 function handleDrop(e) {
     e.preventDefault();
-    const slot = e.target;
+    const slot = e.target.closest('.premise-slot'); // Ensure we get the slot, even if dropping on text
+    if (!slot) return;
+
     slot.classList.remove('over');
 
-    if (slot.classList.contains('premise-slot') && draggedAnswer) {
+    if (draggedAnswer) {
         const premiseId = slot.dataset.premiseId;
         const answerId = draggedAnswer.dataset.answerId;
 
@@ -178,7 +186,8 @@ function handleDrop(e) {
         appState.currentMatchingGame.userMatches[premiseId] = answerId;
 
         // Check if all slots are filled
-        if (Object.keys(appState.currentMatchingGame.userMatches).length === appState.currentMatchingGame.premises.length) {
+        const allSlotsFilled = appState.currentMatchingGame.premises.every(p => appState.currentMatchingGame.userMatches[p.uniqueId]);
+        if (allSlotsFilled) {
             dom.checkMatchingAnswersBtn.classList.remove('hidden');
         }
     }
@@ -212,7 +221,11 @@ function checkMatchingAnswers() {
     showMatchingResults();
 
     // Disable dragging
-    document.querySelectorAll('.answer-item').forEach(item => item.draggable = false);
+    document.querySelectorAll('.answer-item').forEach(item => {
+        item.draggable = false;
+        item.classList.remove('cursor-move');
+        item.classList.add('cursor-not-allowed');
+    });
     
     dom.checkMatchingAnswersBtn.classList.add('hidden');
     dom.matchingHomeBtn.classList.remove('hidden');
@@ -236,13 +249,15 @@ function showMatchingResults() {
     questions.forEach(q => {
         const isCorrect = userMatches[q.UniqueID] === q.UniqueID;
         const correctAnswer = q.answerOptions.find(opt => opt.isCorrect);
+        const userAnswerElement = dom.premisesColumn.querySelector(`[data-premise-id="${q.UniqueID}"]`).firstChild;
+        const userAnswerText = userAnswerElement ? userAnswerElement.textContent.trim() : "No Answer";
         
         const resultDiv = document.createElement('div');
         resultDiv.className = `p-3 mb-3 border-l-4 ${isCorrect ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'}`;
         resultDiv.innerHTML = `
             <p class="font-semibold">${q.question}</p>
-            <p class="text-sm mt-1"><strong>Your Answer:</strong> ${dom.premisesColumn.querySelector(`[data-premise-id="${q.UniqueID}"]`).textContent.trim()}</p>
-            <p class="text-sm mt-1"><strong>Correct Answer:</strong> ${correctAnswer.text}</p>
+            <p class="text-sm mt-1"><strong>Your Answer:</strong> ${userAnswerText}</p>
+            ${!isCorrect ? `<p class="text-sm mt-1"><strong>Correct Answer:</strong> ${correctAnswer.text}</p>` : ''}
             <p class="text-sm mt-2 pt-2 border-t"><strong>Rationale:</strong> ${correctAnswer.rationale || 'No rationale provided.'}</p>
         `;
         dom.matchingResultsArea.appendChild(resultDiv);
@@ -268,7 +283,17 @@ function updateProgressBar(isFinished = false) {
 
 // Event Listeners (will be attached in main.js)
 export function addMatchingEventListeners() {
-    dom.matchingBackBtn.addEventListener('click', showMatchingBrowseScreen);
+    dom.matchingBackBtn.addEventListener('click', () => {
+        // Go back to the browse screen instead of main menu
+        if (appState.navigationHistory.length > 1) {
+            appState.navigationHistory.pop(); // Remove current screen
+            const prevScreenFunc = appState.navigationHistory[appState.navigationHistory.length - 1];
+            if(typeof prevScreenFunc === 'function') prevScreenFunc();
+        } else {
+            showMainMenuScreen();
+        }
+    });
     dom.checkMatchingAnswersBtn.addEventListener('click', checkMatchingAnswers);
     dom.matchingHomeBtn.addEventListener('click', showMainMenuScreen);
 }
+
