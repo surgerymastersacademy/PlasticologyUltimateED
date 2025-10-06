@@ -1,4 +1,4 @@
-// V.1.8 - 2025-10-06
+// V.2.0 - 2025-10-07
 // js/features/matching.js
 
 import { appState } from '../state.js';
@@ -7,7 +7,7 @@ import * as ui from '../ui.js';
 import { showMainMenuScreen } from '../main.js';
 import { logUserActivity } from '../api.js';
 
-let draggedAnswer = null; 
+let selectedAnswerElement = null; // To hold the currently selected answer element
 
 /**
  * Standalone chapter filter updater for the matching feature.
@@ -21,7 +21,6 @@ export function updateMatchingChapterFilter() {
     }
 
     const chapterCounts = questionsToConsider.reduce((acc, q) => {
-        // Use capital 'C' to match Google Sheet column
         const chapter = q.Chapter || 'Uncategorized';
         acc[chapter] = (acc[chapter] || 0) + 1;
         return acc;
@@ -42,7 +41,6 @@ export function handleStartMatchingExam() {
     const selectedChapters = Array.from(dom.chapterSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
     const selectedSources = Array.from(dom.sourceSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
 
-    // Filter questions robustly
     let filteredQuestions = appState.allQuestions.filter(q => q.question && q.CorrectAnswer && q.Chapter);
 
     if (selectedChapters.length > 0) {
@@ -75,8 +73,6 @@ export function handleStartMatchingExam() {
     launchMatchingExam(`Custom Matching Exam`, examSets, totalTime);
 }
 
-// --- The rest of the file remains unchanged ---
-
 function launchMatchingExam(title, sets, totalTime) {
     appState.currentMatching = {
         sets: sets,
@@ -96,7 +92,7 @@ function launchMatchingExam(title, sets, totalTime) {
     ui.showScreen(dom.matchingContainer);
     renderCurrentSet();
     startMatchingTimer();
-    addDragDropListeners();
+    addClickListeners(); // Use click listeners instead of drag/drop
 
     dom.endMatchingBtn.onclick = () => endMatchingExam(false);
     dom.checkAnswersBtn.onclick = checkCurrentSetAnswers;
@@ -112,123 +108,129 @@ function renderCurrentSet() {
     restoreUserMatchesForCurrentSet();
 }
 
+// --- Click Logic Implementation ---
+
+function addClickListeners() {
+    dom.matchingContainer.addEventListener('click', handleMatchingClick);
+}
+
+function removeClickListeners() {
+    dom.matchingContainer.removeEventListener('click', handleMatchingClick);
+    if (selectedAnswerElement) {
+        selectedAnswerElement.classList.remove('answer-selected');
+        selectedAnswerElement = null;
+    }
+}
+
+function handleMatchingClick(e) {
+    const target = e.target;
+    if (appState.currentMatching.isReviewMode) return;
+
+    // Case 1: Clicked an answer in the right-hand list
+    if (target.matches('#matching-answers-area .answer-clickable')) {
+        handleSelectAnswer(target);
+    }
+    // Case 2: Clicked an empty premise box
+    else if (target.closest('.premise-drop-zone:not(.has-answer)')) {
+        handleSelectPremise(target.closest('.premise-drop-zone'));
+    }
+    // Case 3: Clicked an answer that's already in a premise box (to return it)
+    else if (target.matches('.premise-drop-zone .answer-clickable')) {
+        handleReturnAnswer(target);
+    }
+}
+
+function handleSelectAnswer(answerEl) {
+    // Deselect if it's already selected
+    if (answerEl === selectedAnswerElement) {
+        answerEl.classList.remove('answer-selected');
+        selectedAnswerElement = null;
+        return;
+    }
+
+    // Deselect any other selected answer
+    if (selectedAnswerElement) {
+        selectedAnswerElement.classList.remove('answer-selected');
+    }
+
+    // Select the new one
+    selectedAnswerElement = answerEl;
+    selectedAnswerElement.classList.add('answer-selected');
+}
+
+function handleSelectPremise(premiseEl) {
+    if (!selectedAnswerElement) return; // Do nothing if no answer is selected
+
+    const premiseId = premiseEl.dataset.premiseId;
+    const answerId = selectedAnswerElement.dataset.answerId;
+
+    // Move the element and update state
+    premiseEl.querySelector('.dropped-answer-placeholder').insertAdjacentElement('beforebegin', selectedAnswerElement);
+    premiseEl.classList.add('has-answer');
+    appState.currentMatching.userMatches[appState.currentMatching.setIndex][premiseId] = answerId;
+
+    // Clear selection
+    selectedAnswerElement.classList.remove('answer-selected');
+    selectedAnswerElement = null;
+}
+
+function handleReturnAnswer(droppedAnswerEl) {
+    const parentPremise = droppedAnswerEl.closest('.premise-drop-zone');
+    const premiseId = parentPremise.dataset.premiseId;
+
+    // Move element back to the answers area
+    dom.matchingAnswersArea.appendChild(droppedAnswerEl);
+    parentPremise.classList.remove('has-answer');
+    
+    // Update state
+    delete appState.currentMatching.userMatches[appState.currentMatching.setIndex][premiseId];
+
+    // Clear selection if this was the selected element
+    if (droppedAnswerEl === selectedAnswerElement) {
+        selectedAnswerElement.classList.remove('answer-selected');
+        selectedAnswerElement = null;
+    }
+}
+
+
+// --- Timer, Navigation, and Results Logic (mostly unchanged) ---
+
 function startMatchingTimer() {
     if (appState.currentMatching.timerInterval) {
         clearInterval(appState.currentMatching.timerInterval);
     }
-
     const timerState = appState.timers.matching;
     appState.currentMatching.timerInterval = setInterval(() => {
         timerState.timeLeft--;
         const minutes = Math.floor(timerState.timeLeft / 60).toString().padStart(2, '0');
         const seconds = (timerState.timeLeft % 60).toString().padStart(2, '0');
         dom.matchingTimer.textContent = `${minutes}:${seconds}`;
-
         if (timerState.timeLeft <= 0) {
             endMatchingExam(true);
         }
     }, 1000);
 }
 
-function addDragDropListeners() {
-    document.addEventListener('dragstart', handleDragStart);
-    document.addEventListener('dragover', handleDragOver);
-    document.addEventListener('dragleave', handleDragLeave);
-    document.addEventListener('drop', handleDrop);
-    document.addEventListener('dragend', handleDragEnd);
-}
-
-function removeDragDropListeners() {
-    document.removeEventListener('dragstart', handleDragStart);
-    document.removeEventListener('dragover', handleDragOver);
-    document.removeEventListener('dragleave', handleDragLeave);
-    document.removeEventListener('drop', handleDrop);
-    document.removeEventListener('dragend', handleDragEnd);
-}
-
-function handleDragStart(e) {
-    if (e.target.classList.contains('answer-draggable')) {
-        draggedAnswer = e.target;
-        setTimeout(() => e.target.classList.add('dragging'), 0);
-        const parentPremise = e.target.closest('.premise-drop-zone');
-        if (parentPremise) {
-            const premiseId = parentPremise.dataset.premiseId;
-            delete appState.currentMatching.userMatches[appState.currentMatching.setIndex][premiseId];
-            parentPremise.classList.remove('has-answer');
-        }
-    }
-}
-
-function handleDragOver(e) {
-    e.preventDefault();
-    const dropZone = e.target.closest('.premise-drop-zone');
-    if (dropZone) {
-        dropZone.classList.add('drag-over');
-    }
-}
-
-function handleDragLeave(e) {
-    const dropZone = e.target.closest('.premise-drop-zone');
-    if (dropZone) {
-        dropZone.classList.remove('drag-over');
-    }
-}
-
-function handleDrop(e) {
-    e.preventDefault();
-    const dropZone = e.target.closest('.premise-drop-zone');
-    if (dropZone && draggedAnswer) {
-        dropZone.classList.remove('drag-over');
-
-        const existingAnswer = dropZone.querySelector('.answer-draggable');
-        if (existingAnswer) {
-            dom.matchingAnswersArea.appendChild(existingAnswer);
-        }
-        
-        const placeholder = dropZone.querySelector('.dropped-answer-placeholder');
-        if(placeholder) {
-            placeholder.insertAdjacentElement('beforebegin', draggedAnswer);
-        } else {
-            dropZone.appendChild(draggedAnswer);
-        }
-        dropZone.classList.add('has-answer');
-
-        const premiseId = dropZone.dataset.premiseId;
-        const answerId = draggedAnswer.dataset.answerId;
-        appState.currentMatching.userMatches[appState.currentMatching.setIndex][premiseId] = answerId;
-    }
-}
-
-function handleDragEnd() {
-    if (draggedAnswer) {
-        draggedAnswer.classList.remove('dragging');
-        draggedAnswer = null;
-    }
-}
-
 function checkCurrentSetAnswers() {
+    appState.currentMatching.isReviewMode = true; // Lock the UI from further changes
+    removeClickListeners(); // Prevent further clicks
+
     const { sets, setIndex, userMatches } = appState.currentMatching;
     const currentSet = sets[setIndex];
     const currentMatches = userMatches[setIndex];
 
-    dom.matchingContainer.querySelectorAll('.answer-draggable').forEach(el => el.draggable = false);
-    dom.matchingContainer.querySelectorAll('.premise-drop-zone').forEach(el => el.classList.remove('drag-over'));
     dom.checkAnswersBtn.disabled = true;
 
     currentSet.premises.forEach(premise => {
         const dropZone = dom.matchingPremisesArea.querySelector(`[data-premise-id="${premise.uniqueId}"]`);
         const userDroppedAnswerId = currentMatches[premise.uniqueId];
-        const droppedAnswerEl = dropZone.querySelector('.answer-draggable');
+        const droppedAnswerEl = dropZone.querySelector('.answer-clickable');
 
         if (userDroppedAnswerId === premise.uniqueId) {
-            if (droppedAnswerEl) {
-                droppedAnswerEl.classList.add('correct-match');
-            }
+            if (droppedAnswerEl) droppedAnswerEl.classList.add('correct-match');
         } else {
-            if (droppedAnswerEl) {
-                droppedAnswerEl.classList.add('incorrect-match');
-            }
-
+            if (droppedAnswerEl) droppedAnswerEl.classList.add('incorrect-match');
+            
             const correctAnswer = currentSet.answers.find(ans => ans.uniqueId === premise.uniqueId);
             if (correctAnswer) {
                 const correctAnswerEl = document.createElement('div');
@@ -242,7 +244,7 @@ function checkCurrentSetAnswers() {
 
 function endMatchingExam(isTimeUp = false) {
     clearInterval(appState.currentMatching.timerInterval);
-    removeDragDropListeners();
+    removeClickListeners();
 
     if (isTimeUp && !appState.currentMatching.isReviewMode) {
         checkCurrentSetAnswers();
@@ -284,15 +286,19 @@ function calculateAndShowFinalScore() {
 
 function nextSet() {
     if (appState.currentMatching.setIndex < appState.currentMatching.sets.length - 1) {
+        appState.currentMatching.isReviewMode = false;
         appState.currentMatching.setIndex++;
         renderCurrentSet();
+        addClickListeners();
     }
 }
 
 function prevSet() {
     if (appState.currentMatching.setIndex > 0) {
+        appState.currentMatching.isReviewMode = false;
         appState.currentMatching.setIndex--;
         renderCurrentSet();
+        addClickListeners();
     }
 }
 
@@ -310,7 +316,7 @@ function restoreUserMatchesForCurrentSet() {
 
     for (const premiseId in matchesForCurrentSet) {
         const answerId = matchesForCurrentSet[premiseId];
-        const answerEl = document.querySelector(`.answer-draggable[data-answer-id="${answerId}"]`);
+        const answerEl = document.querySelector(`.answer-clickable[data-answer-id="${answerId}"]`);
         const premiseEl = dom.matchingPremisesArea.querySelector(`[data-premise-id="${premiseId}"]`);
 
         if (answerEl && premiseEl) {
