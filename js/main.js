@@ -21,6 +21,8 @@ import { analyzePerformanceByChapter } from './features/performance.js';
 import { showTheoryMenuScreen, launchTheorySession } from './features/theory.js';
 // --- NEW: Import registration handlers ---
 import { showRegistrationModal, hideRegistrationModal, handleRegistrationSubmit } from './features/registration.js';
+// --- NEW: Import matching game handlers ---
+import { showMatchingBrowseScreen, addMatchingEventListeners } from './features/matching.js';
 
 
 // SHARED & EXPORTED FUNCTIONS
@@ -186,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     dom.freeTestBtn.addEventListener('click', startFreeTest);
-    [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn, dom.theoryBackBtn].forEach(btn => {
+    [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn, dom.theoryBackBtn, dom.matchingBackBtn].forEach(btn => {
         btn.addEventListener('click', () => {
             if (appState.navigationHistory.length > 1) {
                 appState.navigationHistory.pop();
@@ -206,6 +208,8 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.osceBtn.addEventListener('click', () => { if (checkPermission('OSCEBank')) { ui.showScreen(dom.osceContainer); appState.navigationHistory.push(() => ui.showScreen(dom.osceContainer)); } });
     dom.libraryBtn.addEventListener('click', () => { if (checkPermission('Library')) { ui.renderBooks(); ui.showScreen(dom.libraryContainer); appState.navigationHistory.push(() => ui.showScreen(dom.libraryContainer)); } });
     dom.studyPlannerBtn.addEventListener('click', () => { if (checkPermission('StudyPlanner')) showStudyPlannerScreen(); });
+    // NEW: Add event listener for Matching Bank
+    dom.matchingBtn.addEventListener('click', () => { if(checkPermission('MatchingBank')) showMatchingBrowseScreen(); });
     dom.userProfileHeaderBtn.addEventListener('click', () => showUserCardModal(false));
     dom.editProfileBtn.addEventListener('click', () => toggleProfileEditMode(true));
     dom.cancelEditProfileBtn.addEventListener('click', () => toggleProfileEditMode(false));
@@ -362,6 +366,8 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.clearLogCancelBtn.addEventListener('click', () => { dom.clearLogModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
     dom.clearLogBtn.addEventListener('click', () => { dom.clearLogModal.classList.remove('hidden'); dom.modalBackdrop.classList.remove('hidden'); });
 
+    // NEW: Initialize matching game event listeners
+    addMatchingEventListeners();
 
     initializeApp();
 });
