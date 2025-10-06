@@ -1,7 +1,7 @@
-// V.1.1 - 2025-10-06
+// V.1.3 - 2025-10-06
 // js/state.js
 
-export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec'; // <-- Don't forget to put your NEW URL here!
+export const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlWVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec';
 
 export const SIMULATION_Q_COUNT = 100;
 export const SIMULATION_TOTAL_TIME_MINUTES = 120;
@@ -43,6 +43,14 @@ export const appState = {
     modalConfirmAction: null,
     qbankSearchResults: [],
     messengerPollInterval: null,
+    
+    // Timers object - THIS WAS MISSING
+    timers: {
+        quiz: null,
+        osce: null,
+        theory: null,
+        matching: null
+    },
 
     // Current Quiz State
     currentQuiz: {
@@ -88,15 +96,14 @@ export const appState = {
         timerInterval: null
     },
 
-    // --- NEW: Add matching exam state ---
+    // Current matching exam state
     currentMatching: {
         sets: [],
         setIndex: 0,
-        userMatches: [], // Will be an array of objects e.g. [{premiseId: answerId}, ...]
+        userMatches: [],
         timerInterval: null,
         score: 0,
         totalPremises: 0,
         isReviewMode: false
     },
 };
-
