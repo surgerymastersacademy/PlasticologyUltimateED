@@ -1,10 +1,11 @@
-// V.1.1 - 2025-10-06
+// V.1.1.1 - 2025-10-06
 // js/features/matching.js
 
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
 import { showMainMenuScreen } from '../main.js';
+import { logUserActivity } from '../api.js'; // Make sure this import is added
 
 let draggedAnswer = null; // To hold the element being dragged
 
@@ -99,7 +100,7 @@ function launchMatchingExam(title, sets, totalTime) {
  * Renders the current set of premises and answers.
  */
 function renderCurrentSet() {
-    const { sets, setIndex, userMatches } = appState.currentMatching;
+    const { sets, setIndex } = appState.currentMatching;
     const currentSet = sets[setIndex];
     ui.renderMatchingSet(currentSet, setIndex, sets.length);
     updateNavigationButtons();
@@ -263,6 +264,14 @@ function endMatchingExam(isTimeUp = false) {
         });
     });
     appState.currentMatching.score = finalScore;
+    
+    // Log the activity to the server
+    logUserActivity({
+        eventType: 'FinishMatchingQuiz',
+        quizTitle: 'Matching Exam',
+        score: finalScore,
+        totalQuestions: appState.currentMatching.totalPremises
+    });
 
     // Show results
     ui.showConfirmationModal(
@@ -270,8 +279,6 @@ function endMatchingExam(isTimeUp = false) {
         `You scored ${finalScore} out of ${appState.currentMatching.totalPremises}.`,
         showMainMenuScreen
     );
-    // Here you would also log the activity to the server if needed
-    // logUserActivity({ eventType: 'FinishMatchingQuiz', ... });
 }
 
 
