@@ -1,4 +1,4 @@
-// V.1.1 - 2025-10-06
+// V.2.1 - 2025-10-07
 // js/ui.js
 
 import * as dom from './dom.js';
@@ -228,11 +228,7 @@ export function showAnnouncementsModal() {
 }
 
 /**
- * Populates a container with checkbox filter options. REQUIRED FOR CUSTOM MOCK.
- * @param {HTMLElement} containerElement
- * @param {Array<string>} items
- * @param {string} inputNamePrefix
- * @param {object} counts
+ * Populates a container with checkbox filter options.
  */
 export function populateFilterOptions(containerElement, items, inputNamePrefix, counts) {
     containerElement.innerHTML = '';
@@ -251,13 +247,15 @@ export function populateFilterOptions(containerElement, items, inputNamePrefix, 
     });
 }
 
-// --- NEW: Renders a single set for the matching exam ---
+/**
+ * Renders a single set for the matching exam.
+ */
 export function renderMatchingSet(set, setIndex, totalSets) {
     dom.matchingProgressText.textContent = `Set ${setIndex + 1} of ${totalSets}`;
     dom.matchingPremisesArea.innerHTML = '';
     dom.matchingAnswersArea.innerHTML = '';
 
-    // Render Premises (as drop zones)
+    // Render Premises (as clickable drop zones)
     set.premises.forEach(premise => {
         const premiseEl = document.createElement('div');
         premiseEl.className = 'p-3 border rounded-lg bg-slate-50 min-h-[60px] flex items-center premise-drop-zone';
@@ -269,11 +267,11 @@ export function renderMatchingSet(set, setIndex, totalSets) {
         dom.matchingPremisesArea.appendChild(premiseEl);
     });
 
-    // Render Answers (as draggable items)
+    // Render Answers (as clickable items)
     set.answers.forEach(answer => {
         const answerEl = document.createElement('div');
-        answerEl.className = 'p-3 border rounded-lg bg-white shadow-sm cursor-grab active:cursor-grabbing answer-draggable';
-        answerEl.draggable = true;
+        // This class is essential for the click logic to find the element
+        answerEl.className = 'p-3 border rounded-lg bg-white shadow-sm answer-clickable';
         answerEl.dataset.answerId = answer.uniqueId;
         answerEl.textContent = answer.CorrectAnswer;
         dom.matchingAnswersArea.appendChild(answerEl);
