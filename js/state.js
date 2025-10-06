@@ -1,4 +1,4 @@
-// V.1.3 - 2025-10-06
+// V.3.0 FINAL - 2025-10-07
 // js/state.js
 
 export const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlWVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec';
@@ -10,7 +10,7 @@ export const AVATAR_BASE_URL = "https://api.dicebear.com/7.x/initials/svg?seed="
 export const AVATAR_OPTIONS = [ "User", "Avatar", "Profile", "Person", "Guest", "Student", "Doctor", "Nurse", "Medical", "Health", "Science", "Knowledge", "Book", "Study", "Exam", "Quiz", "Success", "Champion", "Winner", "Learner" ];
 
 export const appState = {
-    // Content Data
+    // Content Data (Loaded once)
     allQuestions: [],
     allFreeTestQuestions: [],
     allOsceCases: [],
@@ -22,7 +22,7 @@ export const appState = {
     allChaptersNames: [],
     allTheoryQuestions: [],
     
-    // User Data
+    // User-Specific Data (Loaded on login)
     currentUser: null,
     userCardData: null,
     viewedLectures: new Set(),
@@ -36,7 +36,7 @@ export const appState = {
     studyPlans: [],
     activeStudyPlan: null,
 
-    // Navigation & UI State
+    // UI & Navigation State
     navigationHistory: [],
     activityChartInstance: null,
     currentNote: { type: null, itemId: null, itemTitle: null },
@@ -44,7 +44,7 @@ export const appState = {
     qbankSearchResults: [],
     messengerPollInterval: null,
     
-    // Timers object - THIS WAS MISSING
+    // Timers Object for all features
     timers: {
         quiz: null,
         osce: null,
@@ -52,7 +52,7 @@ export const appState = {
         matching: null
     },
 
-    // Current Quiz State
+    // Current Activity States (mutable)
     currentQuiz: {
         questions: [],
         originalQuestions: [],
@@ -68,8 +68,6 @@ export const appState = {
         isPracticingMistakes: false,
         timePerQuestion: 45,
     },
-
-    // Current OSCE State
     currentOsce: {
         cases: [],
         caseIndex: 0,
@@ -79,15 +77,11 @@ export const appState = {
         score: 0,
         totalQuestions: 0,
     },
-
-    // Current Learning Mode State
     currentLearning: {
         questions: [],
         currentIndex: 0,
         title: ''
     },
-
-    // Current theory session state
     currentTheorySession: {
         questions: [],
         currentIndex: 0,
@@ -95,8 +89,6 @@ export const appState = {
         title: '',
         timerInterval: null
     },
-
-    // Current matching exam state
     currentMatching: {
         sets: [],
         setIndex: 0,
