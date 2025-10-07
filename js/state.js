@@ -1,7 +1,6 @@
-// V.3.0 FINAL - 2025-10-07
-// js/state.js
+// js/state.js (FINAL CORRECTED VERSION FOR MULTI-PLANNER)
 
-export const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlWVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec';
+export const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlWVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec'; // <-- Don't forget to put your NEW URL here!
 
 export const SIMULATION_Q_COUNT = 100;
 export const SIMULATION_TOTAL_TIME_MINUTES = 120;
@@ -10,7 +9,7 @@ export const AVATAR_BASE_URL = "https://api.dicebear.com/7.x/initials/svg?seed="
 export const AVATAR_OPTIONS = [ "User", "Avatar", "Profile", "Person", "Guest", "Student", "Doctor", "Nurse", "Medical", "Health", "Science", "Knowledge", "Book", "Study", "Exam", "Quiz", "Success", "Champion", "Winner", "Learner" ];
 
 export const appState = {
-    // Content Data (Loaded once)
+    // Content Data
     allQuestions: [],
     allFreeTestQuestions: [],
     allOsceCases: [],
@@ -20,9 +19,10 @@ export const appState = {
     allAnnouncements: [],
     allRoles: [],
     allChaptersNames: [],
+    // --- NEW: Add theory questions data ---
     allTheoryQuestions: [],
     
-    // User-Specific Data (Loaded on login)
+    // User Data
     currentUser: null,
     userCardData: null,
     viewedLectures: new Set(),
@@ -32,27 +32,21 @@ export const appState = {
     userQuizNotes: [],
     userLectureNotes: [],
     userMessages: [],
+    // --- NEW: Add theory logs data ---
     userTheoryLogs: [],
-    studyPlans: [],
-    activeStudyPlan: null,
+    // --- MODIFICATION: Updated planner state for multiple plans ---
+    studyPlans: [], // Will hold an array of all user's plans
+    activeStudyPlan: null, // Will hold the currently active plan object
 
-    // UI & Navigation State
+    // Navigation & UI State
     navigationHistory: [],
     activityChartInstance: null,
     currentNote: { type: null, itemId: null, itemTitle: null },
     modalConfirmAction: null,
     qbankSearchResults: [],
     messengerPollInterval: null,
-    
-    // Timers Object for all features
-    timers: {
-        quiz: null,
-        osce: null,
-        theory: null,
-        matching: null
-    },
 
-    // Current Activity States (mutable)
+    // Current Quiz State
     currentQuiz: {
         questions: [],
         originalQuestions: [],
@@ -68,6 +62,8 @@ export const appState = {
         isPracticingMistakes: false,
         timePerQuestion: 45,
     },
+
+    // Current OSCE State
     currentOsce: {
         cases: [],
         caseIndex: 0,
@@ -77,11 +73,15 @@ export const appState = {
         score: 0,
         totalQuestions: 0,
     },
+
+    // Current Learning Mode State
     currentLearning: {
         questions: [],
         currentIndex: 0,
         title: ''
     },
+
+    // --- NEW: Add theory session state ---
     currentTheorySession: {
         questions: [],
         currentIndex: 0,
@@ -89,13 +89,6 @@ export const appState = {
         title: '',
         timerInterval: null
     },
-    currentMatching: {
-        sets: [],
-        setIndex: 0,
-        userMatches: [],
-        timerInterval: null,
-        score: 0,
-        totalPremises: 0,
-        isReviewMode: false
-    },
 };
+
+

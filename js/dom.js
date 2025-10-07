@@ -1,4 +1,3 @@
-// V.1.1 - 2025-10-06
 // js/dom.js (FINAL AND COMPLETE VERSION)
 
 // This file contains references to all DOM elements used in the application.
@@ -309,27 +308,3 @@ export const registerExamDate = document.getElementById('register-exam-date');
 // --- NEW: Subscription Status in User Card ---
 export const cardSubscriptionStatus = document.getElementById('card-subscription-status');
 export const cardSubscriptionExpiry = document.getElementById('card-subscription-expiry');
-
-// --- NEW: Matching Bank Elements ---
-export const matchingBtn = document.getElementById('matching-btn');
-export const matchingMenuContainer = document.getElementById('matching-menu-container');
-export const matchingBackBtn = document.getElementById('matching-back-btn');
-export const matchingSetCount = document.getElementById('matching-set-count');
-export const matchingTimerInput = document.getElementById('matching-timer-input');
-export const selectAllSourcesMatching = document.getElementById('select-all-sources-matching');
-export const sourceSelectMatching = document.getElementById('source-select-matching');
-export const selectAllChaptersMatching = document.getElementById('select-all-chapters-matching');
-export const chapterSelectMatching = document.getElementById('chapter-select-matching');
-export const startMatchingExamBtn = document.getElementById('start-matching-exam-btn');
-export const matchingError = document.getElementById('matching-error');
-export const matchingContainer = document.getElementById('matching-container');
-export const endMatchingBtn = document.getElementById('end-matching-btn');
-export const matchingTitle = document.getElementById('matching-title');
-export const matchingTimer = document.getElementById('matching-timer');
-export const matchingProgressText = document.getElementById('matching-progress-text');
-export const matchingPremisesArea = document.getElementById('matching-premises-area');
-export const matchingAnswersArea = document.getElementById('matching-answers-area');
-export const matchingControlsContainer = document.getElementById('matching-controls-container');
-export const matchingPreviousSetBtn = document.getElementById('matching-previous-set-btn');
-export const checkAnswersBtn = document.getElementById('check-answers-btn');
-export const matchingNextSetBtn = document.getElementById('matching-next-set-btn');

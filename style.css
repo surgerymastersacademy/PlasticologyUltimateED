@@ -1,4 +1,3 @@
-/* V.2.0 - 2025-10-07 */
 /* Custom styles */
 
 /* NEW: Theme Variables */
@@ -371,54 +370,4 @@ html.animation-off .animation-off-icon { display: none; }
     color: #4f46e5; /* indigo-600 */
     border-bottom-color: #4f46e5; /* indigo-600 */
     font-weight: 600;
-}
-
-/* --- UPDATED: Matching Bank Styles for Click-to-Match --- */
-.answer-clickable, .premise-drop-zone {
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.answer-clickable:hover {
-    background-color: #eef2ff; /* indigo-100 */
-}
-
-.answer-clickable.answer-selected {
-    background-color: #c7d2fe !important; /* indigo-300 */
-    border-color: #818cf8 !important; /* indigo-400 */
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.5);
-    transform: scale(1.02);
-}
-
-.premise-drop-zone .answer-clickable {
-    width: 100%;
-    text-align: center;
-}
-
-.premise-drop-zone.has-answer .dropped-answer-placeholder {
-    display: none;
-}
-
-/* Styles for results */
-.correct-match {
-    background-color: #d1fae5 !important;
-    border-color: #10b981 !important;
-}
-
-.incorrect-match {
-    background-color: #fee2e2 !important;
-    border-color: #ef4444 !important;
-    text-decoration: line-through;
-}
-
-.correct-answer-reveal {
-    margin-top: 0.5rem;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #065f46; /* green-900 */
-    background-color: #d1fae5; /* green-200 */
-    border-radius: 0.375rem;
-    border-left: 4px solid #10b981; /* green-500 */
-    cursor: default;
 }

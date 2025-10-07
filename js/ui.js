@@ -1,5 +1,4 @@
-// V.2.1 - 2025-10-07
-// js/ui.js
+// js/ui.js (FINAL AND COMPLETE VERSION)
 
 import * as dom from './dom.js';
 import { appState } from './state.js';
@@ -16,7 +15,7 @@ export function showScreen(screenToShow, isGuest = false) {
     dom.modalBackdrop.classList.add('hidden');
 
     // Hide all main content containers
-    [dom.loginContainer, dom.mainMenuContainer, dom.lecturesContainer, dom.qbankContainer, dom.listContainer, dom.quizContainer, dom.activityLogContainer, dom.notesContainer, dom.libraryContainer, dom.leaderboardContainer, dom.osceContainer, dom.osceQuizContainer, dom.learningModeContainer, dom.studyPlannerContainer, dom.theoryContainer, dom.matchingMenuContainer, dom.matchingContainer].forEach(screen => {
+    [dom.loginContainer, dom.mainMenuContainer, dom.lecturesContainer, dom.qbankContainer, dom.listContainer, dom.quizContainer, dom.activityLogContainer, dom.notesContainer, dom.libraryContainer, dom.leaderboardContainer, dom.osceContainer, dom.osceQuizContainer, dom.learningModeContainer, dom.studyPlannerContainer, dom.theoryContainer].forEach(screen => {
         if (screen) screen.classList.add('hidden');
     });
 
@@ -228,7 +227,11 @@ export function showAnnouncementsModal() {
 }
 
 /**
- * Populates a container with checkbox filter options.
+ * Populates a container with checkbox filter options. REQUIRED FOR CUSTOM MOCK.
+ * @param {HTMLElement} containerElement
+ * @param {Array<string>} items
+ * @param {string} inputNamePrefix
+ * @param {object} counts
  */
 export function populateFilterOptions(containerElement, items, inputNamePrefix, counts) {
     containerElement.innerHTML = '';
@@ -244,36 +247,5 @@ export function populateFilterOptions(containerElement, items, inputNamePrefix, 
         const count = counts[item] || 0;
         div.innerHTML = `<input id="${safeId}" name="${inputNamePrefix}" value="${item}" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"><label for="${safeId}" class="ml-3 text-sm text-gray-600">${item} ${count > 0 ? `(${count} Qs)` : ''}</label>`;
         containerElement.appendChild(div);
-    });
-}
-
-/**
- * Renders a single set for the matching exam.
- */
-export function renderMatchingSet(set, setIndex, totalSets) {
-    dom.matchingProgressText.textContent = `Set ${setIndex + 1} of ${totalSets}`;
-    dom.matchingPremisesArea.innerHTML = '';
-    dom.matchingAnswersArea.innerHTML = '';
-
-    // Render Premises (as clickable drop zones)
-    set.premises.forEach(premise => {
-        const premiseEl = document.createElement('div');
-        premiseEl.className = 'p-3 border rounded-lg bg-slate-50 min-h-[60px] flex items-center premise-drop-zone';
-        premiseEl.dataset.premiseId = premise.uniqueId;
-        premiseEl.innerHTML = `
-            <div class="dropped-answer-placeholder w-1/3 text-sm text-slate-400 italic">Drop here</div>
-            <div class="premise-text w-2/3 pl-2">${premise.question}</div>
-        `;
-        dom.matchingPremisesArea.appendChild(premiseEl);
-    });
-
-    // Render Answers (as clickable items)
-    set.answers.forEach(answer => {
-        const answerEl = document.createElement('div');
-        // This class is essential for the click logic to find the element
-        answerEl.className = 'p-3 border rounded-lg bg-white shadow-sm answer-clickable';
-        answerEl.dataset.answerId = answer.uniqueId;
-        answerEl.textContent = answer.CorrectAnswer;
-        dom.matchingAnswersArea.appendChild(answerEl);
     });
 }
