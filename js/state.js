@@ -1,94 +1,102 @@
-// js/state.js (FINAL CORRECTED VERSION FOR MULTI-PLANNER)
+// ===================================================
+// Plasticology Ultimate Edition
+// File: js/state.js
+// Version: v1.1.3 — 2025-10-08
+// Description: Centralized state management with API config, theme, and safety flags.
+// ===================================================
 
-export const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlWVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec'; // <-- Don't forget to put your NEW URL here!
-
-export const SIMULATION_Q_COUNT = 100;
-export const SIMULATION_TOTAL_TIME_MINUTES = 120;
-export const DEFAULT_TIME_PER_QUESTION = 45;
-export const AVATAR_BASE_URL = "https://api.dicebear.com/7.x/initials/svg?seed=";
-export const AVATAR_OPTIONS = [ "User", "Avatar", "Profile", "Person", "Guest", "Student", "Doctor", "Nurse", "Medical", "Health", "Science", "Knowledge", "Book", "Study", "Exam", "Quiz", "Success", "Champion", "Winner", "Learner" ];
-
+// ===== App State =====
 export const appState = {
-    // Content Data
-    allQuestions: [],
-    allFreeTestQuestions: [],
-    allOsceCases: [],
-    allOsceQuestions: [],
-    groupedLectures: {},
-    mcqBooks: [],
-    allAnnouncements: [],
-    allRoles: [],
-    allChaptersNames: [],
-    // --- NEW: Add theory questions data ---
-    allTheoryQuestions: [],
-    
-    // User Data
-    currentUser: null,
-    userCardData: null,
-    viewedLectures: new Set(),
-    bookmarkedQuestions: new Set(),
-    answeredQuestions: new Set(),
-    fullActivityLog: [],
-    userQuizNotes: [],
-    userLectureNotes: [],
-    userMessages: [],
-    // --- NEW: Add theory logs data ---
-    userTheoryLogs: [],
-    // --- MODIFICATION: Updated planner state for multiple plans ---
-    studyPlans: [], // Will hold an array of all user's plans
-    activeStudyPlan: null, // Will hold the currently active plan object
-
-    // Navigation & UI State
-    navigationHistory: [],
-    activityChartInstance: null,
-    currentNote: { type: null, itemId: null, itemTitle: null },
-    modalConfirmAction: null,
-    qbankSearchResults: [],
-    messengerPollInterval: null,
-
-    // Current Quiz State
-    currentQuiz: {
-        questions: [],
-        originalQuestions: [],
-        userAnswers: [],
-        originalUserAnswers: [],
-        currentQuestionIndex: 0,
-        score: 0,
-        timerInterval: null,
-        simulationTimerInterval: null,
-        flaggedIndices: new Set(),
-        isReviewMode: false,
-        isSimulationMode: false,
-        isPracticingMistakes: false,
-        timePerQuestion: 45,
-    },
-
-    // Current OSCE State
-    currentOsce: {
-        cases: [],
-        caseIndex: 0,
-        questionIndex: 0,
-        timerInterval: null,
-        userAnswers: {},
-        score: 0,
-        totalQuestions: 0,
-    },
-
-    // Current Learning Mode State
-    currentLearning: {
-        questions: [],
-        currentIndex: 0,
-        title: ''
-    },
-
-    // --- NEW: Add theory session state ---
-    currentTheorySession: {
-        questions: [],
-        currentIndex: 0,
-        isExamMode: false,
-        title: '',
-        timerInterval: null
-    },
+  user: null,
+  allRoles: [],
+  settings: {},
+  flags: {
+    isOnline: navigator.onLine,
+    isDarkMode: false,
+    hasError: false,
+  },
+  startTime: new Date().toISOString(),
 };
 
+// ===== API URL Configuration =====
+export const API_URL = (() => {
+  try {
+    const localOverride = localStorage.getItem("API_URL_OVERRIDE");
+    if (localOverride) {
+      console.log("%cUsing local API override", "color:#eab308;");
+      return localOverride;
+    }
+    return "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+  } catch (err) {
+    console.warn("Failed to resolve API_URL:", err);
+    return "";
+  }
+})();
 
+// ===== Theme Initialization =====
+export function initTheme() {
+  try {
+    const stored = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const theme = stored || (prefersDark ? "dark" : "light");
+    document.documentElement.classList.remove("dark", "light");
+    document.documentElement.classList.add(theme);
+    appState.flags.isDarkMode = theme === "dark";
+    console.log("%cTheme initialized:", "color:#3b82f6;", theme);
+  } catch (err) {
+    console.error("Theme init failed:", err);
+    appState.flags.hasError = true;
+  }
+}
+
+// ===== App State Initialization =====
+export function initAppState() {
+  try {
+    console.log("%cInitializing App State...", "color:#06b6d4;");
+    initTheme();
+    window.addEventListener("online", () => appState.flags.isOnline = true);
+    window.addEventListener("offline", () => appState.flags.isOnline = false);
+  } catch (err) {
+    console.error("Error initializing app state:", err);
+    appState.flags.hasError = true;
+  }
+}
+
+// ===== Session Management =====
+export function saveSession(userData) {
+  try {
+    localStorage.setItem("userData", JSON.stringify(userData));
+    appState.user = userData;
+    console.log("%cUser session saved", "color:#16a34a;");
+  } catch (err) {
+    console.error("Failed to save session:", err);
+  }
+}
+
+export function loadUserData() {
+  try {
+    const data = localStorage.getItem("userData");
+    if (data) {
+      appState.user = JSON.parse(data);
+      console.log("%cLoaded user data from session", "color:#16a34a;");
+      return appState.user;
+    }
+    return null;
+  } catch (err) {
+    console.error("Failed to load user data:", err);
+    return null;
+  }
+}
+
+export function clearSession() {
+  try {
+    localStorage.removeItem("userData");
+    console.log("%cSession cleared", "color:#f97316;");
+    appState.user = null;
+  } catch (err) {
+    console.error("Failed to clear session:", err);
+  }
+}
+
+// ===== Export for debugging =====
+window.appState = appState;

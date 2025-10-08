@@ -365,3 +365,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initializeApp();
 });
+
+// ===================================================
+// Plasticology Ultimate Edition — Non-breaking Additions
+// Version: v1.1.2 — 2025-10-08
+// Notes:
+//  - This block is APPENDED to the original main.js without deleting or altering existing code.
+//  - Adds safety hooks, debug banner, and preloader fallback.
+// ===================================================
+
+(() => {
+  try {
+    // Debug banner (visible in DevTools only)
+    console.log("%cPlasticology • main.js v1.1.2 additions loaded", "color:#0ea5e9;font-weight:700;");
+
+    // Fallback: ensure preloader hides even if earlier handlers failed
+    window.addEventListener("load", () => {
+      setTimeout(() => {
+        const pre = document.getElementById("global-preloader");
+        if (pre && !pre.classList.contains("fade-out")) {
+          pre.classList.add("fade-out");
+          setTimeout(() => { try { pre.remove(); } catch(_) {} }, 1500);
+        }
+      }, 1800);
+    });
+
+    // Connection status logs (non-intrusive)
+    window.addEventListener("online",  () => console.log("%c[Net] Online",  "color:#16a34a;"));
+    window.addEventListener("offline", () => console.warn("%c[Net] Offline", "color:#f59e0b;"));
+
+    // Attempt dynamic import of error reporter without failing the app
+    (async () => {
+      try {
+        if (!window.__errorReporterLoaded) {
+          const mod = await import("./features/error-reporter.js");
+          window.__reportClientError = mod.reportClientError;
+          window.__errorReporterLoaded = true;
+        }
+      } catch (e) {
+        // Silently ignore if module not available; app continues normally
+        console.warn("error-reporter not available (non-fatal).");
+      }
+    })();
+  } catch (e) {
+    // Last-chance guard: never throw from this block
+    console.error("v1.1.2 additions experienced a non-fatal error:", e);
+  }
+})();
