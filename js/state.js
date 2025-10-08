@@ -26,7 +26,7 @@ export const API_URL = (() => {
       console.log("%cUsing local API override", "color:#eab308;");
       return localOverride;
     }
-    return "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+    return "https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec";
   } catch (err) {
     console.warn("Failed to resolve API_URL:", err);
     return "";
