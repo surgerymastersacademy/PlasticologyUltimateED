@@ -1,318 +1,211 @@
-// V.2.2 - 2025-10-07
-// js/features/matching.js
 
-import { appState } from '../state.js';
-import * as dom from '../dom.js';
-import * as ui from '../ui.js';
-import { showMainMenuScreen } from '../main.js';
-import { logUserActivity } from '../api.js';
+// Matching Bank - Dashboard Integrated
+(function(){
+  const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec";
 
-let selectedAnswerElement = null;
+  // Simple event bus-safe init
+  window.initMatchingBank = function initMatchingBank(){
+    const section = document.getElementById('matching-bank-section');
+    if (!section) return;
 
-export function updateMatchingChapterFilter() {
-    const selectedSources = Array.from(dom.sourceSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
+    // Build UI if empty
+    if (!section.dataset.built){
+      section.innerHTML = `
+        <div class="matching-menu-container">
+          <h2 class="mb-2"><i class="fas fa-puzzle-piece"></i> Matching Bank <small class="muted">Test Connections</small></h2>
+          <div class="matching-grid">
+            <label>عدد المجموعات
+              <input type="number" id="matching-set-count" value="1" min="1" max="20">
+            </label>
+            <label>الوقت/مجموعة (ث)
+              <input type="number" id="matching-timer-input" value="60" min="10">
+            </label>
+            <button id="start-matching-btn" class="btn primary">ابدأ</button>
+            <button id="check-answers-btn" class="btn">Check Answers</button>
+          </div>
+        </div>
+        <div id="matching-exam-container" class="hidden">
+          <div id="matching-question-area" class="matching-two-col">
+            <div class="premise-column"></div>
+            <div class="answers-column" id="matching-answers-area"></div>
+          </div>
+          <div id="result-container" class="mt-2"></div>
+        </div>
+      `;
+      section.dataset.built = "1";
 
-    let questionsToConsider = appState.allQuestions;
-    if (selectedSources.length > 0) {
-        questionsToConsider = appState.allQuestions.filter(q => selectedSources.includes(q.source || 'Uncategorized'));
+      attachMatchingLogic();
+    }
+  };
+
+  function attachMatchingLogic(){
+    const startBtn = document.getElementById('start-matching-btn');
+    const examContainer = document.getElementById('matching-exam-container');
+    const premisesColumn = document.querySelector('.premise-column');
+    const answersColumn = document.getElementById('matching-answers-area');
+    const checkBtn = document.getElementById('check-answers-btn');
+    const resultContainer = document.getElementById('result-container');
+
+    const mockQuestions = [
+      { id: 1, question: "ما هو السبب الرئيسي لمرض السكري؟", answer: "نقص الإنسولين أو مقاومة الجسم له" },
+      { id: 2, question: "ما هو العرض الأساسي لالتهاب الزائدة الدودية؟", answer: "ألم في الجانب الأيمن السفلي من البطن" },
+      { id: 3, question: "ما هو العلاج الأولي للحساسية؟", answer: "مضادات الهيستامين" },
+      { id: 4, question: "أي إجراء يُستخدم لإزالة الزائدة الدودية؟", answer: "استئصال الزائدة الدودية" },
+      { id: 5, question: "ما هو الفحص الأفضل لتشخيص كسر في العظم؟", answer: "الأشعة السينية (X-Ray)" }
+    ];
+
+    let selectedAnswerElement = null;
+    let userMatches = {};
+
+    function shuffleArray(arr){ return [...arr].sort(()=>Math.random()-0.5); }
+
+    function startMatching(){
+      examContainer.classList.remove('hidden');
+      resultContainer.innerHTML = "";
+      premisesColumn.innerHTML = "";
+      answersColumn.innerHTML = "";
+      userMatches = {};
+      selectedAnswerElement = null;
+
+      const shuffled = shuffleArray(mockQuestions);
+      const answersShuffled = shuffleArray(mockQuestions);
+
+      shuffled.forEach((item, idx) => {
+        const dropZone = document.createElement('div');
+        dropZone.className = 'premise-drop-zone card';
+        dropZone.dataset.premiseId = item.id;
+        dropZone.innerHTML = `<strong>${idx+1}.</strong> ${item.question}`;
+        dropZone.addEventListener('click', ()=>handlePremiseClick(dropZone));
+        premisesColumn.appendChild(dropZone);
+      });
+
+      answersShuffled.forEach(item => {
+        const ans = document.createElement('div');
+        ans.className = 'answer-option chip';
+        ans.textContent = item.answer;
+        ans.dataset.answerId = item.id;
+        ans.addEventListener('click', ()=>handleAnswerClick(ans));
+        answersColumn.appendChild(ans);
+      });
     }
 
-    const chapterCounts = questionsToConsider.reduce((acc, q) => {
-        const chapter = q.Chapter || 'Uncategorized';
-        acc[chapter] = (acc[chapter] || 0) + 1;
-        return acc;
-    }, {});
-
-    const chapterNames = Object.keys(chapterCounts).sort();
-    ui.populateFilterOptions(dom.chapterSelectMatching, chapterNames, 'matching-chapter', chapterCounts);
-}
-
-export function handleStartMatchingExam() {
-    const setCount = parseInt(dom.matchingSetCount.value, 10) || 10;
-    const timePerSet = parseInt(dom.matchingTimerInput.value, 10) || 60;
-    dom.matchingError.classList.add('hidden');
-
-    const selectedChapters = Array.from(dom.chapterSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
-    const selectedSources = Array.from(dom.sourceSelectMatching.querySelectorAll('input:checked')).map(cb => cb.value);
-
-    let filteredQuestions = appState.allQuestions.filter(q => q.question && q.CorrectAnswer && q.Chapter);
-
-    if (selectedChapters.length > 0) {
-        filteredQuestions = filteredQuestions.filter(q => selectedChapters.includes(q.Chapter));
-    }
-    if (selectedSources.length > 0) {
-        filteredQuestions = filteredQuestions.filter(q => selectedSources.includes(q.source));
-    }
-
-    const requiredQuestions = setCount * 5;
-    if (filteredQuestions.length < requiredQuestions) {
-        dom.matchingError.textContent = `Not enough questions found (${filteredQuestions.length}) to create ${setCount} sets. Please select more chapters/sources or reduce the number of sets.`;
-        dom.matchingError.classList.remove('hidden');
-        return;
-    }
-
-    const shuffledPool = [...filteredQuestions].sort(() => Math.random() - 0.5);
-    const examSets = [];
-    for (let i = 0; i < setCount; i++) {
-        const setQuestions = shuffledPool.splice(0, 5);
-        const premises = setQuestions.map(q => ({ question: q.question, uniqueId: q.UniqueID }));
-        let answers = setQuestions.map(q => ({ CorrectAnswer: q.CorrectAnswer, uniqueId: q.UniqueID }));
-        
-        answers.sort(() => Math.random() - 0.5);
-
-        examSets.push({ premises, answers });
-    }
-
-    const totalTime = setCount * timePerSet;
-    launchMatchingExam(`Custom Matching Exam`, examSets, totalTime);
-}
-
-function launchMatchingExam(title, sets, totalTime) {
-    appState.currentMatching = {
-        sets: sets,
-        setIndex: 0,
-        userMatches: sets.map(() => ({})),
-        timerInterval: null,
-        score: 0,
-        totalPremises: sets.reduce((acc, set) => acc + set.premises.length, 0),
-        isReviewMode: false
-    };
-    appState.timers.matching = {
-        totalTime: totalTime,
-        timeLeft: totalTime
-    };
-
-    dom.matchingTitle.textContent = title;
-    ui.showScreen(dom.matchingContainer);
-    renderCurrentSet();
-    startMatchingTimer();
-    addClickListeners();
-
-    dom.endMatchingBtn.onclick = () => endMatchingExam(false);
-    dom.checkAnswersBtn.onclick = checkCurrentSetAnswers; // This button will now trigger the final score calculation
-    dom.matchingNextSetBtn.onclick = nextSet;
-    dom.matchingPreviousSetBtn.onclick = prevSet;
-}
-
-function renderCurrentSet() {
-    const { sets, setIndex } = appState.currentMatching;
-    const currentSet = sets[setIndex];
-    ui.renderMatchingSet(currentSet, setIndex, sets.length);
-    updateNavigationButtons();
-    restoreUserMatchesForCurrentSet();
-}
-
-function addClickListeners() {
-    dom.matchingContainer.addEventListener('click', handleMatchingClick);
-}
-
-function removeClickListeners() {
-    dom.matchingContainer.removeEventListener('click', handleMatchingClick);
-    if (selectedAnswerElement) {
-        selectedAnswerElement.classList.remove('answer-selected');
-        selectedAnswerElement = null;
-    }
-}
-
-function handleMatchingClick(e) {
-    const target = e.target;
-    if (appState.currentMatching.isReviewMode) return;
-
-    if (target.matches('#matching-answers-area .answer-clickable')) {
-        handleSelectAnswer(target);
-    }
-    else if (target.closest('.premise-drop-zone:not(.has-answer)')) {
-        handleSelectPremise(target.closest('.premise-drop-zone'));
-    }
-    else if (target.matches('.premise-drop-zone .answer-clickable')) {
-        handleReturnAnswer(target);
-    }
-}
-
-function handleSelectAnswer(answerEl) {
-    if (answerEl === selectedAnswerElement) {
-        answerEl.classList.remove('answer-selected');
+    function handleAnswerClick(el){
+      if (selectedAnswerElement === el){
+        el.classList.remove('answer-selected');
         selectedAnswerElement = null;
         return;
-    }
-    if (selectedAnswerElement) {
+      }
+      if (selectedAnswerElement){
         selectedAnswerElement.classList.remove('answer-selected');
+      }
+      selectedAnswerElement = el;
+      el.classList.add('answer-selected');
     }
-    selectedAnswerElement = answerEl;
-    selectedAnswerElement.classList.add('answer-selected');
-}
 
-function handleSelectPremise(premiseEl) {
-    if (!selectedAnswerElement) return;
-
-    const premiseId = premiseEl.dataset.premiseId;
-    const answerId = selectedAnswerElement.dataset.answerId;
-
-    premiseEl.querySelector('.dropped-answer-placeholder').insertAdjacentElement('beforebegin', selectedAnswerElement);
-    premiseEl.classList.add('has-answer');
-    appState.currentMatching.userMatches[appState.currentMatching.setIndex][premiseId] = answerId;
-
-    selectedAnswerElement.classList.remove('answer-selected');
-    selectedAnswerElement = null;
-}
-
-function handleReturnAnswer(droppedAnswerEl) {
-    const parentPremise = droppedAnswerEl.closest('.premise-drop-zone');
-    const premiseId = parentPremise.dataset.premiseId;
-
-    dom.matchingAnswersArea.appendChild(droppedAnswerEl);
-    parentPremise.classList.remove('has-answer');
-    
-    delete appState.currentMatching.userMatches[appState.currentMatching.setIndex][premiseId];
-
-    if (droppedAnswerEl === selectedAnswerElement) {
-        selectedAnswerElement.classList.remove('answer-selected');
-        selectedAnswerElement = null;
+    function handlePremiseClick(zone){
+      if (!selectedAnswerElement) return;
+      const existing = zone.querySelector('.answer-option');
+      if (existing) {
+        document.getElementById('matching-answers-area').appendChild(existing);
+      }
+      zone.appendChild(selectedAnswerElement);
+      userMatches[zone.dataset.premiseId] = selectedAnswerElement.dataset.answerId;
+      selectedAnswerElement.classList.remove('answer-selected');
+      selectedAnswerElement = null;
     }
-}
 
-function startMatchingTimer() {
-    if (appState.currentMatching.timerInterval) {
-        clearInterval(appState.currentMatching.timerInterval);
-    }
-    const timerState = appState.timers.matching;
-    appState.currentMatching.timerInterval = setInterval(() => {
-        timerState.timeLeft--;
-        const minutes = Math.floor(timerState.timeLeft / 60).toString().padStart(2, '0');
-        const seconds = (timerState.timeLeft % 60).toString().padStart(2, '0');
-        dom.matchingTimer.textContent = `${minutes}:${seconds}`;
-        if (timerState.timeLeft <= 0) {
-            endMatchingExam(true);
-        }
-    }, 1000);
-}
+    function checkAnswers(){
+      let correct = 0;
+      document.querySelectorAll('.premise-drop-zone').forEach(zone=>{
+        const pid = zone.dataset.premiseId;
+        const matchedAid = userMatches[pid];
+        const correctRow = mockQuestions.find(q=>q.id == pid);
+        const correctAnswer = correctRow ? correctRow.answer : null;
 
-/**
- * UPDATED: This function now also triggers the final score calculation.
- */
-function checkCurrentSetAnswers() {
-    appState.currentMatching.isReviewMode = true;
-    removeClickListeners();
+        const userAnswerEl = zone.querySelector('.answer-option');
+        if (!userAnswerEl) return;
 
-    const { sets, setIndex, userMatches } = appState.currentMatching;
-    const currentSet = sets[setIndex];
-    const currentMatches = userMatches[setIndex];
-
-    dom.checkAnswersBtn.disabled = true;
-
-    currentSet.premises.forEach(premise => {
-        const dropZone = dom.matchingPremisesArea.querySelector(`[data-premise-id="${premise.uniqueId}"]`);
-        const userDroppedAnswerId = currentMatches[premise.uniqueId];
-        const droppedAnswerEl = dropZone.querySelector('.answer-clickable');
-
-        if (userDroppedAnswerId === premise.uniqueId) {
-            if (droppedAnswerEl) droppedAnswerEl.classList.add('correct-match');
+        if (String(correctRow.id) === String(matchedAid)){
+          userAnswerEl.classList.add('correct-match');
+          correct++;
         } else {
-            if (droppedAnswerEl) droppedAnswerEl.classList.add('incorrect-match');
-            
-            const correctAnswer = currentSet.answers.find(ans => ans.uniqueId === premise.uniqueId);
-            if (correctAnswer) {
-                const correctAnswerEl = document.createElement('div');
-                correctAnswerEl.className = 'correct-answer-reveal';
-                correctAnswerEl.innerHTML = `<i class="fas fa-check-circle text-green-600 mr-2"></i> ${correctAnswer.CorrectAnswer}`;
-                dropZone.appendChild(correctAnswerEl);
-            }
+          userAnswerEl.classList.add('incorrect-match');
+          const reveal = document.createElement('div');
+          reveal.className = 'correct-answer-reveal';
+          reveal.textContent = `الصحيح: ${correctAnswer}`;
+          zone.appendChild(reveal);
         }
-    });
+      });
 
-    // After showing the review, automatically trigger the final score modal after a short delay
-    setTimeout(() => {
-        calculateAndShowFinalScore();
-    }, 2000); // Wait 2 seconds for the user to see the review
-}
-
-function endMatchingExam(isTimeUp = false) {
-    clearInterval(appState.currentMatching.timerInterval);
-    removeClickListeners();
-
-    if (isTimeUp) {
-        // If time is up, force check the answers of the current (and final) set
-        checkCurrentSetAnswers();
-    } else {
-        // If user clicks end, just calculate score directly
-        calculateAndShowFinalScore();
-    }
-}
-
-function calculateAndShowFinalScore() {
-    // Prevent this from running multiple times
-    if (document.getElementById('modal-title')?.textContent === 'Exam Complete!') {
-        return;
+      resultContainer.innerHTML = `<h3>النتيجة: ${correct} من 5 صحيحة</h3>`;
+      sendResultToSheet(correct, 5, userMatches);
     }
 
-    let finalScore = 0;
-    appState.currentMatching.sets.forEach((set, index) => {
-        const userMatchesForSet = appState.currentMatching.userMatches[index];
-        set.premises.forEach(premise => {
-            if (userMatchesForSet[premise.uniqueId] === premise.uniqueId) {
-                finalScore++;
-            }
-        });
-    });
-    appState.currentMatching.score = finalScore;
-    
-    logUserActivity({
-        eventType: 'FinishMatchingQuiz',
-        quizTitle: 'Matching Exam',
-        score: finalScore,
-        totalQuestions: appState.currentMatching.totalPremises
-    });
-
-    ui.showConfirmationModal(
-        'Exam Complete!',
-        `You scored ${finalScore} out of ${appState.currentMatching.totalPremises}.`,
-        showMainMenuScreen
-    );
-}
-
-function nextSet() {
-    if (appState.currentMatching.setIndex < appState.currentMatching.sets.length - 1) {
-        appState.currentMatching.isReviewMode = false;
-        appState.currentMatching.setIndex++;
-        renderCurrentSet();
-        addClickListeners();
+    function sendResultToSheet(score, total, userMatches){
+      const payload = {
+        Timestamp: new Date().toISOString(),
+        UserID: "student123@example.com",
+        UserName: "Student Tester",
+        EventType: "FinishMatchingQuiz",
+        Chapter: "",
+        Score: score,
+        TotalQuestions: total,
+        Details: JSON.stringify(userMatches),
+        AttemptedQuestions: Object.keys(userMatches).length
+      };
+      try{
+        fetch(APP_SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(payload)
+        }).then(()=>console.log("MatchingBank: result sent."));
+      }catch(e){ console.warn("MatchingBank send failed", e); }
     }
-}
 
-function prevSet() {
-    if (appState.currentMatching.setIndex > 0) {
-        appState.currentMatching.isReviewMode = false;
-        appState.currentMatching.setIndex--;
-        renderCurrentSet();
-        addClickListeners();
+    startBtn.addEventListener('click', startMatching);
+    checkBtn.addEventListener('click', checkAnswers);
+  }
+
+  // Inject nav item dynamically if sidebar/nav exists; else create fallback floating button
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const addNav = ()=>{
+      const candidates = Array.from(document.querySelectorAll('aside, .sidebar, nav, .nav, .menu, .drawer, .sidenav'));
+      let container = candidates.find(el => el.querySelector('ul')) || candidates[0];
+      let ul = container ? (container.querySelector('ul') || container) : null;
+
+      if (ul){
+        const li = document.createElement('li');
+        li.className = 'nav-item';
+        li.id = 'nav-matching';
+        li.innerHTML = '<i class="fas fa-puzzle-piece"></i> Matching Bank';
+        li.style.cursor = 'pointer';
+        li.addEventListener('click', openMatchingSection);
+        ul.appendChild(li);
+      } else {
+        // Fallback floating button
+        const btn = document.createElement('button');
+        btn.id = 'nav-matching-fallback';
+        btn.title = 'Matching Bank';
+        btn.innerHTML = '🧩 Matching';
+        btn.className = 'floating-matching-btn';
+        btn.addEventListener('click', openMatchingSection);
+        document.body.appendChild(btn);
+      }
+    };
+
+    function openMatchingSection(){
+      // Hide other sections
+      document.querySelectorAll('.feature-section').forEach(s=>s.classList.add('hidden'));
+      // Show our section
+      const sec = document.getElementById('matching-bank-section');
+      if (sec){ sec.classList.remove('hidden'); }
+      // Build UI
+      if (window.initMatchingBank) window.initMatchingBank();
+      // Scroll into view
+      sec && sec.scrollIntoView({behavior:'smooth', block:'start'});
     }
-}
 
-function updateNavigationButtons() {
-    const { setIndex, sets } = appState.currentMatching;
-    dom.matchingPreviousSetBtn.style.visibility = setIndex === 0 ? 'hidden' : 'visible';
-    dom.matchingNextSetBtn.style.visibility = setIndex === sets.length - 1 ? 'hidden' : 'visible';
-    dom.checkAnswersBtn.style.visibility = setIndex === sets.length - 1 ? 'visible' : 'hidden';
-    dom.checkAnswersBtn.disabled = false;
-}
-
-function restoreUserMatchesForCurrentSet() {
-    const { setIndex, userMatches } = appState.currentMatching;
-    const matchesForCurrentSet = userMatches[setIndex];
-
-    for (const premiseId in matchesForCurrentSet) {
-        const answerId = matchesForCurrentSet[premiseId];
-        const answerEl = document.querySelector(`.answer-clickable[data-answer-id="${answerId}"]`);
-        const premiseEl = dom.matchingPremisesArea.querySelector(`[data-premise-id="${premiseId}"]`);
-
-        if (answerEl && premiseEl) {
-             const placeholder = premiseEl.querySelector('.dropped-answer-placeholder');
-            if(placeholder) {
-                placeholder.insertAdjacentElement('beforebegin', answerEl);
-            } else {
-                premiseEl.appendChild(answerEl);
-            }
-            premiseEl.classList.add('has-answer');
-        }
-    }
-}
+    addNav();
+  });
+})();

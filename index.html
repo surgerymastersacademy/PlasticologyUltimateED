@@ -11,63 +11,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
-
-    <!-- v1.1.0 START: Error monitor + Lazy preload + Theme setup -->
-    <script>
-      window.lazyPreload = function(resources = []) {
-        try {
-          resources.forEach(src => {
-            const link = document.createElement("link");
-            link.rel = "prefetch";
-            link.href = src;
-            document.head.appendChild(link);
-          });
-        } catch (err) {
-          console.warn("Lazy preload failed:", err);
-        }
-      };
-    </script>
-
-    <script type="module">
-      import { reportClientError } from "./js/features/error-reporter.js";
-      window.addEventListener("error", (e) => {
-        reportClientError({
-          type: "error",
-          message: e.message,
-          file: e.filename,
-          line: e.lineno,
-          col: e.colno,
-          stack: e.error?.stack || "n/a",
-        });
-      });
-      window.addEventListener("unhandledrejection", (e) => {
-        reportClientError({
-          type: "promise",
-          message: e.reason?.message || e.reason,
-          stack: e.reason?.stack || "n/a",
-        });
-      });
-    </script>
-
-    <script>
-      try {
-        const currentTheme = localStorage.getItem("theme") || "light";
-        document.documentElement.classList.remove("dark", "light");
-        document.documentElement.classList.add(currentTheme);
-      } catch (e) {
-        console.warn("Theme init failed:", e);
-      }
-    </script>
-    <!-- v1.1.0 END -->
-
-    <!-- v1.1.0 START: Preloader CSS -->
-    <style>
-      #global-preloader { position: fixed; top:0; left:0; width:100%; height:100%; background: linear-gradient(180deg,#f8fafc 0%,#e2e8f0 100%); z-index: 9999; display:flex; align-items:center; justify-content:center; flex-direction:column; font-family:'Inter',sans-serif; transition: opacity .4s ease-out; }
-      #global-preloader.fade-out { opacity: 0; pointer-events: none; }
-      #global-preloader img { height: 80px; margin-bottom: 16px; animation: pulse 1.5s infinite ease-in-out; }
-      @keyframes pulse { 0%,100% { opacity:1 } 50%{opacity:.5} }
-    </style>
-    <!-- v1.1.0 END: Preloader CSS -->
 </head>
 <body class="flex items-center justify-center min-h-screen p-2 sm:p-4">
 
@@ -1032,32 +975,10 @@
     <script type="module" src="js/main.js"></script>
     <script src="js/login-animation.js"></script>
 
-  <!-- v1.1.0 START: Extra helpers -->
-  <script>
-    document.getElementById("theme-toggle")?.addEventListener("click", () => {
-      const html = document.documentElement;
-      const isDark = html.classList.contains("dark");
-      html.classList.toggle("dark", !isDark);
-      html.classList.toggle("light", isDark);
-      localStorage.setItem("theme", isDark ? "light" : "dark");
-    });
-  </script>
+<!-- Matching Bank Section -->
+<div id="matching-bank-section" class="feature-section hidden"></div>
 
-  <script>
-    window.addEventListener("load", () => {
-      window.lazyPreload && window.lazyPreload([
-        "./js/state.js",
-        "./js/api.js",
-        "./js/ui.js",
-        "./js/utils.js",
-        "./js/features/userProfile.js",
-        "./js/features/dashboard.js",
-        "./js/features/quiz.js",
-        "./js/features/osce.js"
-      ]);
-    });
-  </script>
-  <!-- v1.1.0 END: Extra helpers -->
+<script src="js/features/matching.js" defer></script>
 </body>
 </html>
 
