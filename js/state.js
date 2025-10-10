@@ -1,4 +1,11 @@
-// js/state.js (FINAL CORRECTED VERSION FOR MULTI-PLANNER)
+// js/state.js
+
+// ===========================
+// Update Title: Matching Bank Feature Integration
+// Date: 10/10/2025
+// Version: v1.0
+// Description: Added state management properties for the Matching Bank feature.
+// ===========================
 
 export const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlWVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec'; // <-- Don't forget to put your NEW URL here!
 
@@ -89,6 +96,14 @@ export const appState = {
         title: '',
         timerInterval: null
     },
+
+    // NEW: Matching Bank State
+    matchingExam: {
+        sets: [],
+        config: {},
+        userMatches: {}, // Keyed by set index
+        scores: {}, // Keyed by set index
+    },
+    currentMatchingSetIndex: 0,
+    matchingTimerInterval: null,
 };
-
-
