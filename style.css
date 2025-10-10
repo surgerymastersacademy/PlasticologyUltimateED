@@ -371,27 +371,3 @@ html.animation-off .animation-off-icon { display: none; }
     border-bottom-color: #4f46e5; /* indigo-600 */
     font-weight: 600;
 }
-
-
-/* === Matching Bank (Dashboard) === */
-.matching-menu-container { margin: 16px 0; background:#fff; padding:16px; border-radius:12px; box-shadow: 0 2px 6px rgba(0,0,0,.06); }
-.matching-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:12px; align-items:end; }
-.matching-grid label { display:flex; flex-direction:column; gap:6px; font-weight:600; }
-.matching-grid input { padding:8px 10px; border:1px solid #d1d5db; border-radius:8px; }
-.btn { padding:10px 14px; border:1px solid #d1d5db; border-radius:10px; background:#f8fafc; cursor:pointer; }
-.btn.primary { background:#2563eb; color:white; border-color:#1d4ed8; }
-.btn:hover { filter:brightness(0.98); }
-.muted { color:#6b7280; font-weight:400; }
-
-.matching-two-col { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
-.premise-column, .answers-column { background:#fff; padding:12px; border-radius:12px; min-height:260px; border:1px solid #e5e7eb; }
-.card { padding:10px; border:1px dashed #cbd5e1; border-radius:10px; margin-bottom:10px; background:#ffffff; }
-
-.answer-option { padding:8px 10px; margin:6px 0; background:#eef2ff; border:1px solid #c7d2fe; border-radius:8px; cursor:pointer; }
-.answer-selected { outline:2px solid #3b82f6; background:#dbeafe; }
-.correct-match { background:#dcfce7 !important; border-color:#22c55e !important; }
-.incorrect-match { background:#fee2e2 !important; border-color:#ef4444 !important; }
-.correct-answer-reveal { margin-top:6px; font-size:.9em; color:#166534; background:#dcfce7; padding:6px; border-radius:6px; }
-
-.floating-matching-btn { position:fixed; right:16px; bottom:16px; padding:10px 14px; border-radius:999px; background:#111827; color:#fff; border:none; box-shadow:0 6px 18px rgba(0,0,0,.2); z-index:9999; }
-
