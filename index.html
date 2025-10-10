@@ -160,6 +160,11 @@
                             <span class="text-2xl font-bold">Learning Mode</span>
                             <span class="font-light">Study Questions</span>
                         </button>
+                        <button id="matching-btn" class="main-menu-btn flex flex-col items-center justify-center p-8 rounded-xl text-white bg-gradient-to-r from-slate-500 to-gray-600">
+                            <i class="fas fa-puzzle-piece text-5xl mb-4"></i>
+                            <span class="text-2xl font-bold">Matching Bank</span>
+                            <span class="font-light">Test Connections</span>
+                        </button>
                         <button id="theory-btn" class="main-menu-btn flex flex-col items-center justify-center p-8 rounded-xl text-white bg-gradient-to-r from-yellow-500 to-orange-600">
                             <i class="fas fa-book-medical text-5xl mb-4"></i>
                             <span class="text-2xl font-bold">Theory Bank</span>
@@ -188,6 +193,75 @@
                         <div class="col-span-2 md:col-span-1"></div>
                     </div>
                 </div>
+            </div>
+
+            <div id="matching-menu-container" class="w-full hidden">
+                <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
+                    <button id="matching-menu-back-btn" class="text-slate-700 hover:text-blue-600 transition-colors" title="Back"><i class="fas fa-arrow-left"></i> Back</button>
+                    <h2 class="text-xl md:text-2xl font-bold text-slate-800">Matching Bank Setup</h2>
+                    <div class="w-16"></div> 
+                </div>
+                <div class="p-6 md:p-8 space-y-6">
+                    <p class="text-center text-slate-500">Configure your matching test. Each set contains 5 premises and 5 answers.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="relative">
+                            <label for="matching-set-count" class="block text-sm font-medium text-slate-700 mb-1">Number of Sets</label>
+                            <input type="number" id="matching-set-count" class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-slate-700" placeholder="e.g., 10" min="1">
+                        </div>
+                        <div class="relative">
+                            <label for="matching-timer-input" class="block text-sm font-medium text-slate-700 mb-1">Time per Set (seconds)</label>
+                            <input type="number" id="matching-timer-input" class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-slate-700" placeholder="e.g., 60" min="10">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <fieldset>
+                           <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Chapters (optional)</legend>
+                           <div id="chapter-select-matching" class="filter-container space-y-2">
+                               <p class="text-slate-400">Loading chapters...</p>
+                           </div>
+                       </fieldset>
+                       <fieldset>
+                           <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Sources (optional)</legend>
+                           <div id="source-select-matching" class="filter-container space-y-2">
+                               <p class="text-slate-400">Loading sources...</p>
+                           </div>
+                       </fieldset>
+                    </div>
+                    <button id="start-matching-btn" class="action-btn w-full mt-4 bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg text-lg">
+                        Start Matching Exam
+                    </button>
+                    <p id="matching-error" class="text-red-500 text-xs italic mt-2 text-center hidden"></p>
+                </div>
+            </div>
+
+            <div id="matching-quiz-container" class="w-full hidden">
+                 <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
+                     <div class="flex items-center gap-4">
+                         <button id="end-matching-quiz-btn" class="text-slate-600 hover:text-red-600 transition-colors text-2xl" title="End Quiz"><i class="fas fa-stop-circle"></i></button>
+                     </div>
+                     <h2 class="text-lg md:text-2xl font-bold text-slate-800 text-center mx-2 truncate">Matching Bank</h2>
+                     <div id="matching-timer" class="text-lg font-mono bg-slate-200 text-slate-800 px-3 py-1 rounded-md">00:00</div>
+                 </div>
+                 <div class="p-6 md:p-8">
+                     <p id="matching-progress-text" class="font-semibold text-slate-600 text-center mb-4">Set 1 of 10</p>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div class="space-y-3">
+                              <h3 class="text-lg font-bold text-slate-700 text-center">Premises</h3>
+                             <div id="matching-premises-area" class="space-y-3">
+                              </div>
+                         </div>
+                         <div class="space-y-3">
+                             <h3 class="text-lg font-bold text-slate-700 text-center">Answers</h3>
+                             <div id="matching-answers-area" class="space-y-3 p-3 bg-slate-50 rounded-lg min-h-[200px]">
+                              </div>
+                         </div>
+                     </div>
+
+                     <div id="matching-controls-container" class="mt-8 flex justify-between items-center">
+                         <button id="matching-previous-btn" class="action-btn bg-slate-300 text-slate-800 font-bold py-3 px-6 rounded-lg hover:bg-slate-400">Previous</button>
+                         <button id="matching-next-btn" class="action-btn bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700">Next</button>
+                     </div>
+                 </div>
             </div>
 
             <div id="library-container" class="w-full hidden">
@@ -976,4 +1050,3 @@
     <script src="js/login-animation.js"></script>
 </body>
 </html>
-
