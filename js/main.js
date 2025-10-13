@@ -1,3 +1,12 @@
+// ===========================
+// Update Title: FINAL FIX - Add Safety Checks to Event Listeners in main.js
+// Date: 13/10/2025
+// Version: v2.0.0
+// Type: إصلاح
+// Description: This is the definitive fix based on the user's original, complete 'main.js' file. It resolves the 'Cannot read properties of null (reading 'addEventListener')' crash by adding safety checks to the back-button event listener loop. This makes the app resilient to missing HTML elements.
+// Dependencies Impacted: main.js
+// ===========================
+
 // js/main.js (FINAL VERSION - With Registration Logic)
 
 import { appState } from './state.js';
@@ -92,40 +101,44 @@ document.addEventListener('DOMContentLoaded', () => {
         // Theme
         const savedTheme = localStorage.getItem('theme') || 'light';
         htmlEl.className = savedTheme;
-        toggleThemeBtn.className = savedTheme;
+        if(toggleThemeBtn) toggleThemeBtn.className = savedTheme;
 
         // Animation
         const savedAnimation = localStorage.getItem('animation') || 'on';
         if (savedAnimation === 'off') {
-            loginCanvas.style.display = 'none';
+            if(loginCanvas) loginCanvas.style.display = 'none';
             htmlEl.classList.add('animation-off');
         } else {
-            loginCanvas.style.display = 'block';
+            if(loginCanvas) loginCanvas.style.display = 'block';
             htmlEl.classList.remove('animation-off');
         }
     }
+    
+    if(toggleThemeBtn) {
+        toggleThemeBtn.addEventListener('click', () => {
+            if (htmlEl.classList.contains('light')) {
+                htmlEl.className = htmlEl.className.replace('light', 'dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                htmlEl.className = htmlEl.className.replace('dark', 'light');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+    }
 
-    toggleThemeBtn.addEventListener('click', () => {
-        if (htmlEl.classList.contains('light')) {
-            htmlEl.className = htmlEl.className.replace('light', 'dark');
-            localStorage.setItem('theme', 'dark');
-        } else {
-            htmlEl.className = htmlEl.className.replace('dark', 'light');
-            localStorage.setItem('theme', 'light');
-        }
-    });
-
-    toggleAnimationBtn.addEventListener('click', () => {
-        if (htmlEl.classList.contains('animation-off')) {
-            htmlEl.classList.remove('animation-off');
-            loginCanvas.style.display = 'block';
-            localStorage.setItem('animation', 'on');
-        } else {
-            htmlEl.classList.add('animation-off');
-            loginCanvas.style.display = 'none';
-            localStorage.setItem('animation', 'off');
-        }
-    });
+    if(toggleAnimationBtn) {
+        toggleAnimationBtn.addEventListener('click', () => {
+            if (htmlEl.classList.contains('animation-off')) {
+                htmlEl.classList.remove('animation-off');
+                if(loginCanvas) loginCanvas.style.display = 'block';
+                localStorage.setItem('animation', 'on');
+            } else {
+                htmlEl.classList.add('animation-off');
+                if(loginCanvas) loginCanvas.style.display = 'none';
+                localStorage.setItem('animation', 'off');
+            }
+        });
+    }
 
     async function initializeApp() {
         dom.loginSubmitBtn.disabled = true;
@@ -186,17 +199,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     dom.freeTestBtn.addEventListener('click', startFreeTest);
+
+    // [MODIFIED SECTION START] - ADDED SAFETY CHECKS
+    // This loop now checks if a button exists before adding a listener, preventing crashes.
     [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn, dom.theoryBackBtn].forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (appState.navigationHistory.length > 1) {
-                appState.navigationHistory.pop();
-                const previousScreen = appState.navigationHistory[appState.navigationHistory.length - 1];
-                if (typeof previousScreen === 'function') previousScreen();
-            } else {
-                showMainMenuScreen();
-            }
-        });
+        if (btn) { // This is the safety check
+            btn.addEventListener('click', () => {
+                if (appState.navigationHistory.length > 1) {
+                    appState.navigationHistory.pop();
+                    const previousScreen = appState.navigationHistory[appState.navigationHistory.length - 1];
+                    if (typeof previousScreen === 'function') previousScreen();
+                } else {
+                    showMainMenuScreen();
+                }
+            });
+        }
     });
+    // [MODIFIED SECTION END]
 
     // Main Menu & Header
     dom.lecturesBtn.addEventListener('click', () => { if (checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); appState.navigationHistory.push(() => ui.showScreen(dom.lecturesContainer)); } });
