@@ -1,12 +1,3 @@
-// ===========================
-// Update Title: FIX - Complete DOM File Restoration & Correction
-// Date: 13/10/2025
-// Version: v1.2
-// Type: إصلاح
-// Description: This is the final, correct version of dom.js. It restores all original DOM elements and adds the complete, corrected set of elements required for the Theory module, fixing the crash.
-// Dependencies Impacted: The entire application.
-// ===========================
-
 // js/dom.js (FINAL AND COMPLETE VERSION)
 
 // This file contains references to all DOM elements used in the application.
@@ -271,6 +262,30 @@ export const qbankPanelPractice = document.getElementById('qbank-panel-practice'
 export const qbankPanelBrowse = document.getElementById('qbank-panel-browse');
 export const qbankMainContent = document.getElementById('qbank-main-content');
 export const theoryBtn = document.getElementById('theory-btn');
+export const theoryContainer = document.getElementById('theory-container');
+export const theoryControls = document.getElementById('theory-controls');
+export const theoryViewer = document.getElementById('theory-viewer');
+export const theoryBackBtn = document.getElementById('theory-back-btn');
+export const theorySearchInput = document.getElementById('theory-search-input');
+export const theorySearchBtn = document.getElementById('theory-search-btn');
+export const theoryFlashcardModeBtn = document.getElementById('theory-flashcard-mode-btn');
+export const theoryExamModeBtn = document.getElementById('theory-exam-mode-btn');
+export const theoryBrowseByChapterBtn = document.getElementById('theory-browse-by-chapter-btn');
+export const theoryBrowseBySourceBtn = document.getElementById('theory-browse-by-source-btn');
+export const theoryEndBtn = document.getElementById('theory-end-btn');
+export const theoryTitle = document.getElementById('theory-title');
+export const theoryTimer = document.getElementById('theory-timer');
+export const theoryProgressText = document.getElementById('theory-progress-text');
+export const theoryImgContainer = document.getElementById('theory-img-container');
+export const theoryQuestionText = document.getElementById('theory-question-text');
+export const theoryAnswerContainer = document.getElementById('theory-answer-container');
+export const theoryAnswerText = document.getElementById('theory-answer-text');
+export const theoryShowAnswerBtn = document.getElementById('theory-show-answer-btn');
+export const theoryPrevBtn = document.getElementById('theory-prev-btn');
+export const theoryNextBtn = document.getElementById('theory-next-btn');
+export const theoryNoteBtn = document.getElementById('theory-note-btn');
+export const theoryStatusBtn = document.getElementById('theory-status-btn');
+export const theorySourceText = document.getElementById('theory-source-text');
 
 // --- NEW: Registration Elements ---
 export const registrationModal = document.getElementById('registration-modal');
@@ -293,30 +308,3 @@ export const registerExamDate = document.getElementById('register-exam-date');
 // --- NEW: Subscription Status in User Card ---
 export const cardSubscriptionStatus = document.getElementById('card-subscription-status');
 export const cardSubscriptionExpiry = document.getElementById('card-subscription-expiry');
-
-// ===========================
-// [MODIFIED SECTION START] - ADDED/CORRECTED Theory Module Elements
-// This block ensures all elements needed by theory.js are correctly defined.
-// ===========================
-export const theoryScreen = document.getElementById('theory-screen');
-export const theoryContainer = document.getElementById('theory-container');
-export const theoryFilters = document.getElementById('theory-filters');
-export const theoryChapterSelect = document.getElementById('theory-chapter-select');
-export const theorySourceSelect = document.getElementById('theory-source-select');
-export const startTheoryBtn = document.getElementById('start-theory-btn');
-export const theorySessionContainer = document.getElementById('theory-session-container');
-export const theoryTimer = document.getElementById('theory-timer');
-export const theoryProgressText = document.getElementById('theory-progress-text');
-export const theoryStatusText = document.getElementById('theory-status-text');
-export const theoryQuestionText = document.getElementById('theory-question-text');
-export const theoryEssayTextarea = document.getElementById('theory-essay-textarea');
-export const theoryModelAnswer = document.getElementById('theory-model-answer');
-export const theoryModelAnswerContent = document.getElementById('theory-model-answer-content');
-export const theoryShowAnswerBtn = document.getElementById('theory-show-answer-btn');
-export const theoryMarkCompleteBtn = document.getElementById('theory-mark-complete-btn');
-export const theoryMarkIncompleteBtn = document.getElementById('theory-mark-incomplete-btn');
-export const theoryPrevBtn = document.getElementById('theory-prev-btn');
-export const theoryNextBtn = document.getElementById('theory-next-btn');
-export const theoryBackBtn = document.getElementById('theory-back-btn');
-export const theoryNoteBtn = document.getElementById('theory-note-btn');
-// [MODIFIED SECTION END]
