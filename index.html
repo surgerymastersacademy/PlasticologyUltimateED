@@ -660,121 +660,56 @@
                 </div>
             </div>
 
-            <div id="theory-container" class="w-full hidden">
-                <div id="theory-controls" class="">
-                    <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
-                        <button id="theory-back-btn" class="text-slate-700 hover:text-blue-600 transition-colors" title="Back"><i class="fas fa-arrow-left"></i> Back</button>
-                        <h2 class="text-xl md:text-2xl font-bold text-slate-800">Theory & Essay Bank</h2>
-                        <div class="w-16"></div> 
-                    </div>
-                    <div class="p-6 md:p-8">
-                        <div class="relative flex items-center mb-6">
-                            <input type="text" id="theory-search-input" placeholder="Search by keyword..." class="w-full p-3 pl-10 border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 transition">
-                            <button id="theory-search-btn" class="absolute right-2 bg-yellow-600 text-white rounded-lg px-4 py-1.5 hover:bg-yellow-700">Search</button>
+            <div id="theory-screen" class="w-full hidden p-4 md:p-6">
+                <div id="theory-filters">
+                    <h2 class="text-2xl font-bold mb-4 text-slate-800">Theory Practice</h2>
+                    <div class="space-y-4 max-w-lg mx-auto">
+                        <div>
+                            <label for="theory-chapter-select" class="block text-sm font-medium text-slate-700">Chapter</label>
+                            <select id="theory-chapter-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"></select>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <button id="theory-flashcard-mode-btn" class="action-btn w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-lg">Flashcard Mode</button>
-                            <button id="theory-exam-mode-btn" class="action-btn w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-lg">Thinking Exam Mode</button>
+                        <div>
+                            <label for="theory-source-select" class="block text-sm font-medium text-slate-700">Source</label>
+                            <select id="theory-source-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"></select>
                         </div>
-                         <div class="relative flex py-5 items-center">
-                            <div class="flex-grow border-t border-gray-300"></div>
-                            <span class="flex-shrink mx-4 text-gray-400 text-sm">OR</span>
-                            <div class="flex-grow border-t border-gray-300"></div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <button id="theory-browse-by-chapter-btn" class="action-btn w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 px-6 rounded-lg">Browse by Chapter</button>
-                            <button id="theory-browse-by-source-btn" class="action-btn w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 px-6 rounded-lg">Browse by Source</button>
-                        </div>
+                        <button id="start-theory-btn" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition">Start Session</button>
                     </div>
                 </div>
-                <div id="theory-viewer" class="hidden">
-                     <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
-                        <button id="theory-end-btn" class="text-slate-600 hover:text-red-600 transition-colors" title="End Session"><i class="fas fa-stop-circle text-2xl"></i></button>
-                        <h2 id="theory-title" class="text-lg md:text-2xl font-bold text-slate-800 text-center mx-2 truncate"></h2>
-                        <div id="theory-timer" class="text-lg font-mono bg-slate-200 text-slate-800 px-3 py-1 rounded-md"></div>
+            
+                <div id="theory-session-container" class="hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <p id="theory-progress-text" class="text-sm text-slate-500">Question 1 of X</p>
+                            <p id="theory-status-text" class="text-lg font-semibold text-gray-500">Status: Not Started</p>
+                        </div>
+                        <div id="theory-timer" class="text-xl font-bold text-slate-800">30:00</div>
                     </div>
-                    <div class="p-6 md:p-8">
-                        <p id="theory-progress-text" class="font-semibold text-slate-600 text-center mb-2"></p>
-                        <div id="theory-card" class="bg-white p-6 rounded-lg shadow-md min-h-[50vh] flex flex-col">
-                            <p id="theory-source-text" class="text-sm text-slate-400 mb-2"></p>
-                            <div id="theory-img-container" class="mb-4 text-center"></div>
-                            <h3 id="theory-question-text" class="text-xl font-bold text-slate-800 mb-4 flex-grow"></h3>
-                            <div id="theory-answer-container" class="mt-4 p-4 bg-green-50 border-l-4 border-green-400 hidden">
-                                <h4 class="font-bold text-green-800 mb-2">Model Answer</h4>
-                                <p id="theory-answer-text" class="text-green-900"></p>
-                            </div>
-                            <div class="mt-4 text-center">
-                                <button id="theory-show-answer-btn" class="action-btn bg-blue-600 text-white py-2 px-6 rounded-lg">Show Answer</button>
-                            </div>
+            
+                    <div class="bg-white p-4 rounded-lg shadow-sm space-y-4">
+                        <p id="theory-question-text" class="text-lg font-medium text-slate-900">Question text will load here...</p>
+                        
+                        <div>
+                            <label for="theory-essay-textarea" class="block text-sm font-medium text-slate-700 mb-1">Your Answer / Notes:</label>
+                            <textarea id="theory-essay-textarea" rows="8" class="w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
                         </div>
-                        <div class="mt-6 flex justify-between items-center">
-                            <button id="theory-prev-btn" class="action-btn bg-slate-300 text-slate-800 font-bold py-3 px-6 rounded-lg hover:bg-slate-400">Previous</button>
-                             <div class="flex items-center gap-4">
-                                <button id="theory-note-btn" class="text-2xl text-slate-500 hover:text-amber-500 transition-colors note-icon" title="My Note"><i class="fas fa-sticky-note"></i></button>
-                                <button id="theory-status-btn" class="text-2xl text-slate-500 hover:text-green-500 transition-colors" title="Mark as Completed"><i class="far fa-check-circle"></i></button>
-                            </div>
-                            <button id="theory-next-btn" class="action-btn bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700">Next</button>
+            
+                        <div id="theory-model-answer" class="hidden space-y-2">
+                            <h3 class="font-semibold text-slate-800">Model Answer:</h3>
+                            <div id="theory-model-answer-content" class="prose max-w-none p-3 bg-slate-50 rounded-md border"></div>
                         </div>
+                        
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                <button id="theory-show-answer-btn" class="bg-slate-200 text-slate-800 py-2 px-4 rounded-md hover:bg-slate-300 transition col-span-full">Show Model Answer</button>
+                                <button id="theory-mark-complete-btn" class="bg-green-100 text-green-800 py-2 px-4 rounded-md hover:bg-green-200 transition">Mark as Completed</button>
+                                <button id="theory-mark-incomplete-btn" class="bg-red-100 text-red-800 py-2 px-4 rounded-md hover:bg-red-200 transition">Mark as Incomplete</button>
+                        </div>
+                    </div>
+            
+                    <div class="flex justify-between mt-4">
+                        <button id="theory-prev-btn" class="bg-slate-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-slate-600 transition disabled:opacity-50">Previous</button>
+                        <button id="theory-next-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition disabled:opacity-50">Next</button>
                     </div>
                 </div>
-            </div>
-
-            <div id="theory-screen" class="screen p-4 md:p-6">
-                <div id="theory-filters">
-                    <h2 class="text-2xl font-bold mb-4 text-slate-800">Theory Practice</h2>
-                    <div class="space-y-4 max-w-lg mx-auto">
-                        <div>
-                            <label for="theory-chapter-select" class="block text-sm font-medium text-slate-700">Chapter</label>
-                            <select id="theory-chapter-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"></select>
-                        </div>
-                        <div>
-                            <label for="theory-source-select" class="block text-sm font-medium text-slate-700">Source</label>
-                            <select id="theory-source-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"></select>
-                        </div>
-                        <button id="start-theory-btn" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition">Start Session</button>
-                    </div>
-                </div>
-            
-                <div id="theory-session-container" class="hidden">
-                    <div class="flex justify-between items-center mb-4">
-                        <div>
-                            <p id="theory-progress-text" class="text-sm text-slate-500">Question 1 of X</p>
-                            <p id="theory-status-text" class="text-lg font-semibold text-gray-500">Status: Not Started</p>
-                        </div>
-                        <div id="theory-timer" class="text-xl font-bold text-slate-800">30:00</div>
-                    </div>
-            
-                    <div class="bg-white p-4 rounded-lg shadow-sm space-y-4">
-                        <p id="theory-question-text" class="text-lg font-medium text-slate-900">Question text will load here...</p>
-                        
-                        <div>
-                            <label for="theory-essay-textarea" class="block text-sm font-medium text-slate-700 mb-1">Your Answer / Notes:</label>
-                            <textarea id="theory-essay-textarea" rows="8" class="w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                        </div>
-            
-                        <div id="theory-model-answer" class="hidden space-y-2">
-                            <h3 class="font-semibold text-slate-800">Model Answer:</h3>
-                            <div id="theory-model-answer-content" class="prose max-w-none p-3 bg-slate-50 rounded-md border"></div>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-                             <button id="theory-show-answer-btn" class="bg-slate-200 text-slate-800 py-2 px-4 rounded-md hover:bg-slate-300 transition col-span-full">Show Model Answer</button>
-                             <button id="theory-mark-complete-btn" class="bg-green-100 text-green-800 py-2 px-4 rounded-md hover:bg-green-200 transition">Mark as Completed</button>
-                             <button id="theory-mark-incomplete-btn" class="bg-red-100 text-red-800 py-2 px-4 rounded-md hover:bg-red-200 transition">Mark as Incomplete</button>
-                        </div>
-                    </div>
-            
-                    <div class="flex justify-between mt-4">
-                        <button id="theory-prev-btn" class="bg-slate-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-slate-600 transition disabled:opacity-50">Previous</button>
-                        <button id="theory-next-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition disabled:opacity-50">Next</button>
-                    </div>
-                    
-                    <div id="theory-container"></div>
-                    <div id="theory-controls"></div>
-                    <div id="theory-viewer"></div>
-                    <button id="theory-back-btn"></button>
-                    <button id="theory-note-btn"></button>
-                </div>
             </div>
 
             <div id="study-planner-container" class="w-full hidden">
@@ -1033,3 +968,4 @@
     <script src="js/login-animation.js"></script>
 </body>
 </html>
+
