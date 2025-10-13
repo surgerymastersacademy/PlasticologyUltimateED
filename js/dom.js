@@ -1,383 +1,310 @@
-// js/dom.js
+// js/dom.js (FINAL AND COMPLETE VERSION)
 
-// ===========================
-// Update Title: Bug Fix - DOM Initialization Timing
-// Date: 10/10/2025
-// Version: v1.1
-// Description: Refactored to initialize DOM elements within a function (initializeDomElements) instead of at the top level. This prevents race conditions where the script runs before the DOM is fully loaded, fixing the "Cannot read properties of undefined" TypeError.
-// ===========================
+// This file contains references to all DOM elements used in the application.
 
-export const domElements = {}; // Export an empty object initially
+export const globalHeader = document.getElementById('global-header');
+export const globalHomeBtn = document.getElementById('global-home-btn');
+export const logoutBtn = document.getElementById('logout-btn');
+export const activityLogBtn = document.getElementById('activity-log-btn');
+export const notesBtn = document.getElementById('notes-btn');
+export const announcementsBtn = document.getElementById('announcements-btn');
+export const userNameDisplay = document.getElementById('user-name-display');
+export const headerUserAvatar = document.getElementById('header-user-avatar');
+export const userProfileHeaderBtn = document.getElementById('user-profile-header-btn');
+export const loginContainer = document.getElementById('login-container');
+export const mainMenuContainer = document.getElementById('main-menu-container');
+export const lecturesContainer = document.getElementById('lectures-container');
+export const qbankContainer = document.getElementById('qbank-container');
+export const listContainer = document.getElementById('list-container');
+export const quizContainer = document.getElementById('quiz-container');
+export const activityLogContainer = document.getElementById('activity-log-container');
+export const notesContainer = document.getElementById('notes-container');
+export const libraryContainer = document.getElementById('library-container');
+export const leaderboardContainer = document.getElementById('leaderboard-container');
+export const loginForm = document.getElementById('login-form');
+export const loginLoader = document.getElementById('login-loader');
+export const loginLoadingText = document.getElementById('login-loading-text');
+export const loginError = document.getElementById('login-error');
+export const usernameInput = document.getElementById('username');
+export const passwordInput = document.getElementById('password');
+export const loginSubmitBtn = document.getElementById('login-submit-btn');
+export const freeTestBtn = document.getElementById('free-test-btn');
+export const lecturesBtn = document.getElementById('lectures-btn');
+export const qbankBtn = document.getElementById('qbank-btn');
+export const libraryBtn = document.getElementById('library-btn');
+export const leaderboardBtn = document.getElementById('leaderboard-btn');
+export const lastLectureRibbon = document.getElementById('last-lecture-ribbon');
+export const lastQuizRibbon = document.getElementById('last-quiz-ribbon');
+export const libraryBackBtn = document.getElementById('library-back-btn');
+export const libraryLoader = document.getElementById('library-loader');
+export const libraryList = document.getElementById('library-list');
+export const leaderboardBackBtn = document.getElementById('leaderboard-back-btn');
+export const leaderboardLoader = document.getElementById('leaderboard-loader');
+export const leaderboardList = document.getElementById('leaderboard-list');
+export const currentUserRankDiv = document.getElementById('current-user-rank');
+export const lecturesBackBtn = document.getElementById('lectures-back-btn');
+export const lectureSearchInput = document.getElementById('lecture-search-input');
+export const lecturesLoader = document.getElementById('lectures-loader');
+export const lecturesList = document.getElementById('lectures-list');
+export const notesBackBtn = document.getElementById('notes-back-btn');
+export const notesFilterQuizzes = document.getElementById('notes-filter-quizzes');
+export const notesFilterLectures = document.getElementById('notes-filter-lectures');
+export const notesFilterTheory = document.getElementById('notes-filter-theory');
+export const notesList = document.getElementById('notes-list');
+export const activityBackBtn = document.getElementById('activity-back-btn');
+export const clearLogBtn = document.getElementById('clear-log-btn');
+export const allSummary = document.getElementById('all-summary');
+export const quizSummary = document.getElementById('quiz-summary');
+export const lectureSummary = document.getElementById('lecture-summary');
+export const allLecturesProgress = document.getElementById('all-lectures-progress');
+export const allQuestionsProgress = document.getElementById('all-questions-progress');
+export const totalCorrectAnswers = document.getElementById('total-correct-answers');
+export const totalIncorrectAnswers = document.getElementById('total-incorrect-answers');
+export const overallAccuracy = document.getElementById('overall-accuracy');
+export const lecturesViewedCount = document.getElementById('lectures-viewed-count');
+export const chaptersStartedCount = document.getElementById('chapters-started-count');
+export const activityLogList = document.getElementById('activity-log-list');
+export const logFilterAll = document.getElementById('log-filter-all');
+export const logFilterQuizzes = document.getElementById('log-filter-quizzes');
+export const logFilterLectures = document.getElementById('log-filter-lectures');
+export const activityChartCanvas = document.getElementById('activity-chart');
+export const qbankBackBtn = document.getElementById('qbank-back-btn');
+export const loader = document.getElementById('loader');
+export const loadingText = document.getElementById('loading-text');
+export const mockQCountInput = document.getElementById('mock-q-count');
+export const customTimerInput = document.getElementById('custom-timer-input');
+export const toggleCustomOptionsBtn = document.getElementById('toggle-custom-options-btn');
+export const customExamOptions = document.getElementById('custom-exam-options');
+export const chapterSelectMock = document.getElementById('chapter-select-mock');
+export const sourceSelectMock = document.getElementById('source-select-mock');
+export const startMockBtn = document.getElementById('start-mock-btn');
+export const mockError = document.getElementById('mock-error');
+export const browseByChapterBtn = document.getElementById('browse-by-chapter-btn');
+export const browseBySourceBtn = document.getElementById('browse-by-source-btn');
+export const practiceMistakesBtn = document.getElementById('practice-mistakes-btn');
+export const listBackBtn = document.getElementById('list-back-btn');
+export const listTitle = document.getElementById('list-title');
+export const listItems = document.getElementById('list-items');
+export const quizTitle = document.getElementById('quiz-title');
+export const timerDisplay = document.getElementById('timer');
+export const progressText = document.getElementById('progress-text');
+export const sourceText = document.getElementById('source-text');
+export const questionText = document.getElementById('question-text');
+export const questionImageContainer = document.getElementById('question-image-container');
+export const answerButtons = document.getElementById('answer-buttons-quiz');
+export const questionContainer = document.getElementById('question-container');
+export const controlsContainer = document.getElementById('controls-container');
+export const hintBtn = document.getElementById('hint-btn');
+export const hintText = document.getElementById('hint-text');
+export const previousBtn = document.getElementById('previous-btn');
+export const nextSkipBtn = document.getElementById('next-skip-btn');
+export const flagBtn = document.getElementById('flag-btn');
+export const quizNoteBtn = document.getElementById('quiz-note-btn');
+export const endQuizBtn = document.getElementById('end-quiz-btn');
+export const scoreProgressText = document.getElementById('score-progress-text');
+export const scoreBarCorrect = document.getElementById('score-bar-correct');
+export const scoreBarIncorrect = document.getElementById('score-bar-incorrect');
+export const scoreBarAnswered = document.getElementById('score-bar-answered'); // New
+export const resultsContainer = document.getElementById('results-container');
+export const resultsTitle = document.getElementById('results-title');
+export const resultsScoreText = document.getElementById('results-score-text');
+export const scoreText = document.getElementById('score-text');
+export const totalQuestionsSpan = document.getElementById('total-questions');
+export const restartBtn = document.getElementById('restart-btn');
+export const resultsHomeBtn = document.getElementById('results-home-btn');
+export const reviewIncorrectBtn = document.getElementById('review-incorrect-btn');
+export const modalBackdrop = document.getElementById('modal-backdrop');
+export const confirmationModal = document.getElementById('confirmation-modal');
+export const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+export const modalCancelBtn = document.getElementById('modal-cancel-btn');
+export const questionNavigatorModal = document.getElementById('question-navigator-modal');
+export const navigatorBtn = document.getElementById('navigator-btn');
+export const navigatorGrid = document.getElementById('navigator-grid');
+export const navigatorCloseBtn = document.getElementById('navigator-close-btn');
+export const imageViewerModal = document.getElementById('image-viewer-modal');
+export const modalImage = document.getElementById('modal-image');
+export const imageViewerCloseBtn = document.getElementById('image-viewer-close-btn');
+export const noteModal = document.getElementById('note-modal');
+export const noteModalTitle = document.getElementById('note-modal-title');
+export const noteTextarea = document.getElementById('note-textarea');
+export const noteSaveBtn = document.getElementById('note-save-btn');
+export const noteCancelBtn = document.getElementById('note-cancel-btn');
+export const clearLogModal = document.getElementById('clear-log-modal');
+export const clearQuizLogsBtn = document.getElementById('clear-quiz-logs-btn');
+export const clearLectureLogsBtn = document.getElementById('clear-lecture-logs-btn');
+export const clearAllLogsBtn = document.getElementById('clear-all-logs-btn');
+export const clearLogCancelBtn = document.getElementById('clear-log-cancel-btn');
+export const announcementsModal = document.getElementById('announcements-modal');
+export const announcementsList = document.getElementById('announcements-list');
+export const announcementsCloseBtn = document.getElementById('announcements-close-btn');
+export const osceBtn = document.getElementById('osce-btn');
+export const osceContainer = document.getElementById('osce-container');
+export const osceQuizContainer = document.getElementById('osce-quiz-container');
+export const osceBackBtn = document.getElementById('osce-back-btn');
+export const startOsceSlayerBtn = document.getElementById('start-osce-slayer-btn');
+export const osceCaseCountInput = document.getElementById('osce-case-count');
+export const osceTimePerQInput = document.getElementById('osce-time-per-q');
+export const toggleOsceOptionsBtn = document.getElementById('toggle-osce-options-btn');
+export const customOsceOptions = document.getElementById('custom-osce-options');
+export const chapterSelectOsce = document.getElementById('chapter-select-osce');
+export const sourceSelectOsce = document.getElementById('source-select-osce');
+export const startCustomOsceBtn = document.getElementById('start-custom-osce-btn');
+export const osceError = document.getElementById('osce-error');
+export const endOsceQuizBtn = document.getElementById('end-osce-quiz-btn');
+export const osceQuizTitle = document.getElementById('osce-quiz-title');
+export const osceTimer = document.getElementById('osce-timer');
+export const osceCaseTitle = document.getElementById('osce-case-title');
+export const osceCaseImageContainer = document.getElementById('osce-case-image-container');
+export const osceCaseDescription = document.getElementById('osce-case-description');
+export const osceProgressText = document.getElementById('osce-progress-text');
+export const osceQuestionImageContainer = document.getElementById('osce-question-image-container');
+export const osceQuestionText = document.getElementById('osce-question-text');
+export const osceAnswerArea = document.getElementById('osce-answer-area');
+export const osceModelAnswerArea = document.getElementById('osce-model-answer-area');
+export const oscePreviousBtn = document.getElementById('osce-previous-btn');
+export const osceNextBtn = document.getElementById('osce-next-btn');
+export const radioBtn = document.getElementById('radio-btn');
+export const radioCloseBtn = document.getElementById('radio-close-btn');
+export const osceScoreDisplay = document.getElementById('osce-score');
+export const osceNavigatorBtn = document.getElementById('osce-navigator-btn');
+export const osceNavigatorModal = document.getElementById('osce-navigator-modal');
+export const osceNavigatorContent = document.getElementById('osce-navigator-content');
+export const osceNavigatorCloseBtn = document.getElementById('osce-navigator-close-btn');
+export const osceSelfCorrectionArea = document.getElementById('osce-self-correction-area');
+export const radioBannerContainer = document.getElementById('radio-banner-container');
+export const learningModeBtn = document.getElementById('learning-mode-btn');
+export const learningModeContainer = document.getElementById('learning-mode-container');
+export const learningModeControls = document.getElementById('learning-mode-controls');
+export const learningModeViewer = document.getElementById('learning-mode-viewer');
+export const learningModeBackBtn = document.getElementById('learning-mode-back-btn');
+export const learningBrowseByChapterBtn = document.getElementById('learning-browse-by-chapter-btn');
+export const learningBrowseBySourceBtn = document.getElementById('learning-browse-by-source-btn');
+export const endLearningBtn = document.getElementById('end-learning-btn');
+export const learningTitle = document.getElementById('learning-title');
+export const learningProgressText = document.getElementById('learning-progress-text');
+export const learningSourceText = document.getElementById('learning-source-text');
+export const learningImageContainer = document.getElementById('learning-image-container');
+export const learningQuestionText = document.getElementById('learning-question-text');
+export const learningAnswerButtons = document.getElementById('learning-answer-buttons');
+export const learningPreviousBtn = document.getElementById('learning-previous-btn');
+export const learningNextBtn = document.getElementById('learning-next-btn');
+export const learningSearchInput = document.getElementById('learning-search-input');
+export const learningSearchBtn = document.getElementById('learning-search-btn');
+export const learningSearchError = document.getElementById('learning-search-error');
+export const qbankSearchInput = document.getElementById('qbank-search-input');
+export const qbankSearchQCount = document.getElementById('qbank-search-q-count');
+export const qbankSearchBtn = document.getElementById('qbank-search-btn');
+export const qbankSearchError = document.getElementById('qbank-search-error');
+export const qbankSearchResultsContainer = document.getElementById('qbank-search-results-container');
+export const qbankSearchResultsInfo = document.getElementById('qbank-search-results-info');
+export const qbankStartSearchQuizBtn = document.getElementById('qbank-start-search-quiz-btn');
+export const qbankClearSearchBtn = document.getElementById('qbank-clear-search-btn'); // New
+export const selectAllSourcesMock = document.getElementById('select-all-sources-mock');
+export const selectAllChaptersMock = document.getElementById('select-all-chapters-mock');
+export const practiceBookmarkedBtn = document.getElementById('practice-bookmarked-btn');
+export const bookmarkBtn = document.getElementById('bookmark-btn');
+export const startSimulationBtn = document.getElementById('start-simulation-btn');
+export const simulationError = document.getElementById('simulation-error');
+export const userCardModal = document.getElementById('user-card-modal');
+export const userCardCloseBtn = document.getElementById('user-card-close-btn');
+export const userAvatar = document.getElementById('user-avatar');
+export const cardUserName = document.getElementById('card-user-name');
+export const cardUserNickname = document.getElementById('card-user-nickname');
+export const cardQuizScore = document.getElementById('card-quiz-score');
+export const cardExamDate = document.getElementById('card-exam-date');
+export const cardDaysLeft = document.getElementById('card-days-left');
+export const editProfileBtn = document.getElementById('edit-profile-btn');
+export const profileDetailsView = document.getElementById('profile-details-view');
+export const profileEditView = document.getElementById('profile-edit-view');
+export const editNickname = document.getElementById('edit-nickname');
+export const editExamDate = document.getElementById('edit-exam-date');
+export const avatarSelectionGrid = document.getElementById('avatar-selection-grid');
+export const profileEditError = document.getElementById('profile-edit-error');
+export const cancelEditProfileBtn = document.getElementById('cancel-edit-profile-btn');
+export const saveProfileBtn = document.getElementById('save-profile-btn');
+export const messengerBtn = document.getElementById('messenger-btn');
+export const messengerModal = document.getElementById('messenger-modal');
+export const messengerCloseBtn = document.getElementById('messenger-close-btn');
+export const messagesList = document.getElementById('messages-list');
+export const messageInput = document.getElementById('message-input');
+export const sendMessageBtn = document.getElementById('send-message-btn');
+export const messengerError = document.getElementById('messenger-error');
+export const studyPlannerBtn = document.getElementById('study-planner-btn');
+export const studyPlannerContainer = document.getElementById('study-planner-container');
+export const studyPlannerBackBtn = document.getElementById('study-planner-back-btn');
+export const studyPlannerLoader = document.getElementById('study-planner-loader');
+export const plannerDashboard = document.getElementById('planner-dashboard');
+export const studyPlansList = document.getElementById('study-plans-list');
+export const showCreatePlanModalBtn = document.getElementById('show-create-plan-modal-btn');
+export const activePlanView = document.getElementById('active-plan-view');
+export const activePlanName = document.getElementById('active-plan-name');
+export const backToPlansDashboardBtn = document.getElementById('back-to-plans-dashboard-btn');
+export const studyPlanSummary = document.getElementById('study-plan-summary');
+export const planDaysRemaining = document.getElementById('plan-days-remaining');
+export const planTasksToday = document.getElementById('plan-tasks-today');
+export const planProgressBar = document.getElementById('plan-progress-bar');
+export const studyPlanDaysContainer = document.getElementById('study-plan-days-container');
+export const createPlanModal = document.getElementById('create-plan-modal');
+export const newPlanName = document.getElementById('new-plan-name');
+export const newPlanStartDate = document.getElementById('new-plan-start-date');
+export const newPlanEndDate = document.getElementById('new-plan-end-date');
+export const createPlanError = document.getElementById('create-plan-error');
+export const cancelCreatePlanBtn = document.getElementById('cancel-create-plan-btn');
+export const confirmCreatePlanBtn = document.getElementById('confirm-create-plan-btn');
+export const performanceInsightsContainer = document.getElementById('performance-insights-container');
+export const strengthsList = document.getElementById('strengths-list');
+export const weaknessesList = document.getElementById('weaknesses-list');
+export const qbankTabCreate = document.getElementById('qbank-tab-create');
+export const qbankTabPractice = document.getElementById('qbank-tab-practice');
+export const qbankTabBrowse = document.getElementById('qbank-tab-browse');
+export const qbankPanelCreate = document.getElementById('qbank-panel-create');
+export const qbankPanelPractice = document.getElementById('qbank-panel-practice');
+export const qbankPanelBrowse = document.getElementById('qbank-panel-browse');
+export const qbankMainContent = document.getElementById('qbank-main-content');
+export const theoryBtn = document.getElementById('theory-btn');
+export const theoryContainer = document.getElementById('theory-container');
+export const theoryControls = document.getElementById('theory-controls');
+export const theoryViewer = document.getElementById('theory-viewer');
+export const theoryBackBtn = document.getElementById('theory-back-btn');
+export const theorySearchInput = document.getElementById('theory-search-input');
+export const theorySearchBtn = document.getElementById('theory-search-btn');
+export const theoryFlashcardModeBtn = document.getElementById('theory-flashcard-mode-btn');
+export const theoryExamModeBtn = document.getElementById('theory-exam-mode-btn');
+export const theoryBrowseByChapterBtn = document.getElementById('theory-browse-by-chapter-btn');
+export const theoryBrowseBySourceBtn = document.getElementById('theory-browse-by-source-btn');
+export const theoryEndBtn = document.getElementById('theory-end-btn');
+export const theoryTitle = document.getElementById('theory-title');
+export const theoryTimer = document.getElementById('theory-timer');
+export const theoryProgressText = document.getElementById('theory-progress-text');
+export const theoryImgContainer = document.getElementById('theory-img-container');
+export const theoryQuestionText = document.getElementById('theory-question-text');
+export const theoryAnswerContainer = document.getElementById('theory-answer-container');
+export const theoryAnswerText = document.getElementById('theory-answer-text');
+export const theoryShowAnswerBtn = document.getElementById('theory-show-answer-btn');
+export const theoryPrevBtn = document.getElementById('theory-prev-btn');
+export const theoryNextBtn = document.getElementById('theory-next-btn');
+export const theoryNoteBtn = document.getElementById('theory-note-btn');
+export const theoryStatusBtn = document.getElementById('theory-status-btn');
+export const theorySourceText = document.getElementById('theory-source-text');
 
-/**
- * Populates the domElements object after the DOM has fully loaded.
- */
-export function initializeDomElements() {
-    Object.assign(domElements, {
-        // --- Global & Header ---
-        globalHeader: document.getElementById('global-header'),
-        globalHomeBtn: document.getElementById('global-home-btn'),
-        logoutBtn: document.getElementById('logout-btn'),
-        activityLogBtn: document.getElementById('activity-log-btn'),
-        notesBtn: document.getElementById('notes-btn'),
-        announcementsBtn: document.getElementById('announcements-btn'),
-        userNameDisplay: document.getElementById('user-name-display'),
-        headerUserAvatar: document.getElementById('header-user-avatar'),
-        userProfileHeaderBtn: document.getElementById('user-profile-header-btn'),
-        radioBtn: document.getElementById('radio-btn'),
-        radioCloseBtn: document.getElementById('radio-close-btn'),
-        radioBannerContainer: document.getElementById('radio-banner-container'),
-        messengerBtn: document.getElementById('messenger-btn'),
+// --- NEW: Registration Elements ---
+export const registrationModal = document.getElementById('registration-modal');
+export const registrationForm = document.getElementById('registration-form');
+export const showRegisterLink = document.getElementById('show-register-link');
+export const registerCancelBtn = document.getElementById('register-cancel-btn');
+export const registerSubmitBtn = document.getElementById('register-submit-btn');
+export const registrationError = document.getElementById('registration-error');
+export const registrationSuccess = document.getElementById('registration-success');
+export const registerName = document.getElementById('register-name');
+export const registerUsername = document.getElementById('register-username');
+export const registerEmail = document.getElementById('register-email');
+export const registerMobile = document.getElementById('register-mobile');
+export const registerPassword = document.getElementById('register-password');
+export const registerConfirmPassword = document.getElementById('register-confirm-password');
+export const registerCountry = document.getElementById('register-country');
+export const registerStudyType = document.getElementById('register-study-type');
+export const registerExamDate = document.getElementById('register-exam-date');
 
-        // --- Main Containers ---
-        loginContainer: document.getElementById('login-container'),
-        mainMenuContainer: document.getElementById('main-menu-container'),
-        lecturesContainer: document.getElementById('lectures-container'),
-        qbankContainer: document.getElementById('qbank-container'),
-        listContainer: document.getElementById('list-container'),
-        quizContainer: document.getElementById('quiz-container'),
-        activityLogContainer: document.getElementById('activity-log-container'),
-        notesContainer: document.getElementById('notes-container'),
-        libraryContainer: document.getElementById('library-container'),
-        leaderboardContainer: document.getElementById('leaderboard-container'),
-        osceContainer: document.getElementById('osce-container'),
-        osceQuizContainer: document.getElementById('osce-quiz-container'),
-        learningModeContainer: document.getElementById('learning-mode-container'),
-        studyPlannerContainer: document.getElementById('study-planner-container'),
-        theoryContainer: document.getElementById('theory-container'),
-        matchingMenuContainer: document.getElementById('matching-menu-container'),
-        matchingQuizContainer: document.getElementById('matching-quiz-container'),
-
-        // --- Login ---
-        loginForm: document.getElementById('login-form'),
-        loginLoader: document.getElementById('login-loader'),
-        loginLoadingText: document.getElementById('login-loading-text'),
-        loginError: document.getElementById('login-error'),
-        usernameInput: document.getElementById('username'),
-        passwordInput: document.getElementById('password'),
-        loginSubmitBtn: document.getElementById('login-submit-btn'),
-        freeTestBtn: document.getElementById('free-test-btn'),
-
-        // --- Main Menu ---
-        lecturesBtn: document.getElementById('lectures-btn'),
-        qbankBtn: document.getElementById('qbank-btn'),
-        libraryBtn: document.getElementById('library-btn'),
-        leaderboardBtn: document.getElementById('leaderboard-btn'),
-        lastLectureRibbon: document.getElementById('last-lecture-ribbon'),
-        lastQuizRibbon: document.getElementById('last-quiz-ribbon'),
-        osceBtn: document.getElementById('osce-btn'),
-        learningModeBtn: document.getElementById('learning-mode-btn'),
-        studyPlannerBtn: document.getElementById('study-planner-btn'),
-        theoryBtn: document.getElementById('theory-btn'),
-        matchingBtn: document.getElementById('matching-btn'),
-
-        // --- Library ---
-        libraryBackBtn: document.getElementById('library-back-btn'),
-        libraryLoader: document.getElementById('library-loader'),
-        libraryList: document.getElementById('library-list'),
-
-        // --- Leaderboard ---
-        leaderboardBackBtn: document.getElementById('leaderboard-back-btn'),
-        leaderboardLoader: document.getElementById('leaderboard-loader'),
-        leaderboardList: document.getElementById('leaderboard-list'),
-        currentUserRankDiv: document.getElementById('current-user-rank'),
-
-        // --- Lectures ---
-        lecturesBackBtn: document.getElementById('lectures-back-btn'),
-        lectureSearchInput: document.getElementById('lecture-search-input'),
-        lecturesLoader: document.getElementById('lectures-loader'),
-        lecturesList: document.getElementById('lectures-list'),
-
-        // --- Notes ---
-        notesBackBtn: document.getElementById('notes-back-btn'),
-        notesFilterQuizzes: document.getElementById('notes-filter-quizzes'),
-        notesFilterLectures: document.getElementById('notes-filter-lectures'),
-        notesFilterTheory: document.getElementById('notes-filter-theory'),
-        notesList: document.getElementById('notes-list'),
-
-        // --- Activity Log ---
-        activityBackBtn: document.getElementById('activity-back-btn'),
-        clearLogBtn: document.getElementById('clear-log-btn'),
-        allSummary: document.getElementById('all-summary'),
-        quizSummary: document.getElementById('quiz-summary'),
-        lectureSummary: document.getElementById('lecture-summary'),
-        allLecturesProgress: document.getElementById('all-lectures-progress'),
-        allQuestionsProgress: document.getElementById('all-questions-progress'),
-        totalCorrectAnswers: document.getElementById('total-correct-answers'),
-        totalIncorrectAnswers: document.getElementById('total-incorrect-answers'),
-        overallAccuracy: document.getElementById('overall-accuracy'),
-        lecturesViewedCount: document.getElementById('lectures-viewed-count'),
-        chaptersStartedCount: document.getElementById('chapters-started-count'),
-        activityLogList: document.getElementById('activity-log-list'),
-        logFilterAll: document.getElementById('log-filter-all'),
-        logFilterQuizzes: document.getElementById('log-filter-quizzes'),
-        logFilterLectures: document.getElementById('log-filter-lectures'),
-        activityChartCanvas: document.getElementById('activity-chart'),
-
-        // --- QBank ---
-        qbankBackBtn: document.getElementById('qbank-back-btn'),
-        loader: document.getElementById('loader'),
-        loadingText: document.getElementById('loading-text'),
-        mockQCountInput: document.getElementById('mock-q-count'),
-        customTimerInput: document.getElementById('custom-timer-input'),
-        toggleCustomOptionsBtn: document.getElementById('toggle-custom-options-btn'),
-        customExamOptions: document.getElementById('custom-exam-options'),
-        chapterSelectMock: document.getElementById('chapter-select-mock'),
-        sourceSelectMock: document.getElementById('source-select-mock'),
-        selectAllSourcesMock: document.getElementById('select-all-sources-mock'),
-        selectAllChaptersMock: document.getElementById('select-all-chapters-mock'),
-        startMockBtn: document.getElementById('start-mock-btn'),
-        mockError: document.getElementById('mock-error'),
-        browseByChapterBtn: document.getElementById('browse-by-chapter-btn'),
-        browseBySourceBtn: document.getElementById('browse-by-source-btn'),
-        practiceMistakesBtn: document.getElementById('practice-mistakes-btn'),
-        practiceBookmarkedBtn: document.getElementById('practice-bookmarked-btn'),
-        qbankSearchInput: document.getElementById('qbank-search-input'),
-        qbankSearchQCount: document.getElementById('qbank-search-q-count'),
-        qbankSearchBtn: document.getElementById('qbank-search-btn'),
-        qbankSearchError: document.getElementById('qbank-search-error'),
-        qbankSearchResultsContainer: document.getElementById('qbank-search-results-container'),
-        qbankSearchResultsInfo: document.getElementById('qbank-search-results-info'),
-        qbankStartSearchQuizBtn: document.getElementById('qbank-start-search-quiz-btn'),
-        qbankClearSearchBtn: document.getElementById('qbank-clear-search-btn'),
-        startSimulationBtn: document.getElementById('start-simulation-btn'),
-        simulationError: document.getElementById('simulation-error'),
-        qbankTabCreate: document.getElementById('qbank-tab-create'),
-        qbankTabPractice: document.getElementById('qbank-tab-practice'),
-        qbankTabBrowse: document.getElementById('qbank-tab-browse'),
-        qbankPanelCreate: document.getElementById('qbank-panel-create'),
-        qbankPanelPractice: document.getElementById('qbank-panel-practice'),
-        qbankPanelBrowse: document.getElementById('qbank-panel-browse'),
-        qbankMainContent: document.getElementById('qbank-main-content'),
-
-        // --- List View (Browse) ---
-        listBackBtn: document.getElementById('list-back-btn'),
-        listTitle: document.getElementById('list-title'),
-        listItems: document.getElementById('list-items'),
-
-        // --- Quiz ---
-        quizTitle: document.getElementById('quiz-title'),
-        timerDisplay: document.getElementById('timer'),
-        progressText: document.getElementById('progress-text'),
-        sourceText: document.getElementById('source-text'),
-        questionText: document.getElementById('question-text'),
-        questionImageContainer: document.getElementById('question-image-container'),
-        answerButtons: document.getElementById('answer-buttons-quiz'),
-        questionContainer: document.getElementById('question-container'),
-        controlsContainer: document.getElementById('controls-container'),
-        hintBtn: document.getElementById('hint-btn'),
-        hintText: document.getElementById('hint-text'),
-        previousBtn: document.getElementById('previous-btn'),
-        nextSkipBtn: document.getElementById('next-skip-btn'),
-        flagBtn: document.getElementById('flag-btn'),
-        quizNoteBtn: document.getElementById('quiz-note-btn'),
-        endQuizBtn: document.getElementById('end-quiz-btn'),
-        scoreProgressText: document.getElementById('score-progress-text'),
-        scoreBarCorrect: document.getElementById('score-bar-correct'),
-        scoreBarIncorrect: document.getElementById('score-bar-incorrect'),
-        scoreBarAnswered: document.getElementById('score-bar-answered'),
-        resultsContainer: document.getElementById('results-container'),
-        resultsTitle: document.getElementById('results-title'),
-        resultsScoreText: document.getElementById('results-score-text'),
-        scoreText: document.getElementById('score-text'),
-        totalQuestionsSpan: document.getElementById('total-questions'),
-        restartBtn: document.getElementById('restart-btn'),
-        resultsHomeBtn: document.getElementById('results-home-btn'),
-        reviewIncorrectBtn: document.getElementById('review-incorrect-btn'),
-        reviewSimulationBtn: document.getElementById('review-simulation-btn'),
-
-        // --- OSCE ---
-        osceBackBtn: document.getElementById('osce-back-btn'),
-        startOsceSlayerBtn: document.getElementById('start-osce-slayer-btn'),
-        osceCaseCountInput: document.getElementById('osce-case-count'),
-        osceTimePerQInput: document.getElementById('osce-time-per-q'),
-        toggleOsceOptionsBtn: document.getElementById('toggle-osce-options-btn'),
-        customOsceOptions: document.getElementById('custom-osce-options'),
-        chapterSelectOsce: document.getElementById('chapter-select-osce'),
-        sourceSelectOsce: document.getElementById('source-select-osce'),
-        startCustomOsceBtn: document.getElementById('start-custom-osce-btn'),
-        osceError: document.getElementById('osce-error'),
-        endOsceQuizBtn: document.getElementById('end-osce-quiz-btn'),
-        osceQuizTitle: document.getElementById('osce-quiz-title'),
-        osceTimer: document.getElementById('osce-timer'),
-        osceCaseTitle: document.getElementById('osce-case-title'),
-        osceCaseImageContainer: document.getElementById('osce-case-image-container'),
-        osceCaseDescription: document.getElementById('osce-case-description'),
-        osceProgressText: document.getElementById('osce-progress-text'),
-        osceQuestionImageContainer: document.getElementById('osce-question-image-container'),
-        osceQuestionText: document.getElementById('osce-question-text'),
-        osceAnswerArea: document.getElementById('osce-answer-area'),
-        osceModelAnswerArea: document.getElementById('osce-model-answer-area'),
-        oscePreviousBtn: document.getElementById('osce-previous-btn'),
-        osceNextBtn: document.getElementById('osce-next-btn'),
-        osceScoreDisplay: document.getElementById('osce-score'),
-        osceNavigatorBtn: document.getElementById('osce-navigator-btn'),
-        osceSelfCorrectionArea: document.getElementById('osce-self-correction-area'),
-
-        // --- Learning Mode ---
-        learningModeControls: document.getElementById('learning-mode-controls'),
-        learningModeViewer: document.getElementById('learning-mode-viewer'),
-        learningModeBackBtn: document.getElementById('learning-mode-back-btn'),
-        learningBrowseByChapterBtn: document.getElementById('learning-browse-by-chapter-btn'),
-        learningBrowseBySourceBtn: document.getElementById('learning-browse-by-source-btn'),
-        learningMistakesBtn: document.getElementById('learning-mistakes-btn'),
-        learningBookmarkedBtn: document.getElementById('learning-bookmarked-btn'),
-        endLearningBtn: document.getElementById('end-learning-btn'),
-        learningTitle: document.getElementById('learning-title'),
-        learningProgressText: document.getElementById('learning-progress-text'),
-        learningSourceText: document.getElementById('learning-source-text'),
-        learningImageContainer: document.getElementById('learning-image-container'),
-        learningQuestionText: document.getElementById('learning-question-text'),
-        learningAnswerButtons: document.getElementById('learning-answer-buttons'),
-        learningPreviousBtn: document.getElementById('learning-previous-btn'),
-        learningNextBtn: document.getElementById('learning-next-btn'),
-        learningSearchInput: document.getElementById('learning-search-input'),
-        learningSearchBtn: document.getElementById('learning-search-btn'),
-        learningSearchError: document.getElementById('learning-search-error'),
-
-        // --- Theory ---
-        theoryControls: document.getElementById('theory-controls'),
-        theoryViewer: document.getElementById('theory-viewer'),
-        theoryBackBtn: document.getElementById('theory-back-btn'),
-        theorySearchInput: document.getElementById('theory-search-input'),
-        theorySearchBtn: document.getElementById('theory-search-btn'),
-        theoryFlashcardModeBtn: document.getElementById('theory-flashcard-mode-btn'),
-        theoryExamModeBtn: document.getElementById('theory-exam-mode-btn'),
-        theoryBrowseByChapterBtn: document.getElementById('theory-browse-by-chapter-btn'),
-        theoryBrowseBySourceBtn: document.getElementById('theory-browse-by-source-btn'),
-        theoryEndBtn: document.getElementById('theory-end-btn'),
-        theoryTitle: document.getElementById('theory-title'),
-        theoryTimer: document.getElementById('theory-timer'),
-        theoryProgressText: document.getElementById('theory-progress-text'),
-        theoryImgContainer: document.getElementById('theory-img-container'),
-        theoryQuestionText: document.getElementById('theory-question-text'),
-        theoryAnswerContainer: document.getElementById('theory-answer-container'),
-        theoryAnswerText: document.getElementById('theory-answer-text'),
-        theoryShowAnswerBtn: document.getElementById('theory-show-answer-btn'),
-        theoryPrevBtn: document.getElementById('theory-prev-btn'),
-        theoryNextBtn: document.getElementById('theory-next-btn'),
-        theoryNoteBtn: document.getElementById('theory-note-btn'),
-        theoryStatusBtn: document.getElementById('theory-status-btn'),
-        theorySourceText: document.getElementById('theory-source-text'),
-
-        // --- Study Planner ---
-        studyPlannerBackBtn: document.getElementById('study-planner-back-btn'),
-        studyPlannerLoader: document.getElementById('study-planner-loader'),
-        plannerDashboard: document.getElementById('planner-dashboard'),
-        studyPlansList: document.getElementById('study-plans-list'),
-        showCreatePlanModalBtn: document.getElementById('show-create-plan-modal-btn'),
-        activePlanView: document.getElementById('active-plan-view'),
-        activePlanName: document.getElementById('active-plan-name'),
-        backToPlansDashboardBtn: document.getElementById('back-to-plans-dashboard-btn'),
-        studyPlanSummary: document.getElementById('study-plan-summary'),
-        planDaysRemaining: document.getElementById('plan-days-remaining'),
-        planTasksToday: document.getElementById('plan-tasks-today'),
-        planProgressBar: document.getElementById('plan-progress-bar'),
-        studyPlanDaysContainer: document.getElementById('study-plan-days-container'),
-        performanceInsightsContainer: document.getElementById('performance-insights-container'),
-        strengthsList: document.getElementById('strengths-list'),
-        weaknessesList: document.getElementById('weaknesses-list'),
-
-        // --- Modals ---
-        modalBackdrop: document.getElementById('modal-backdrop'),
-        confirmationModal: document.getElementById('confirmation-modal'),
-        modalTitle: document.getElementById('modal-title'),
-        modalText: document.getElementById('modal-text'),
-        modalConfirmBtn: document.getElementById('modal-confirm-btn'),
-        modalCancelBtn: document.getElementById('modal-cancel-btn'),
-        questionNavigatorModal: document.getElementById('question-navigator-modal'),
-        navigatorGrid: document.getElementById('navigator-grid'),
-        navigatorCloseBtn: document.getElementById('navigator-close-btn'),
-        imageViewerModal: document.getElementById('image-viewer-modal'),
-        modalImage: document.getElementById('modal-image'),
-        imageViewerCloseBtn: document.getElementById('image-viewer-close-btn'),
-        noteModal: document.getElementById('note-modal'),
-        noteModalTitle: document.getElementById('note-modal-title'),
-        noteTextarea: document.getElementById('note-textarea'),
-        noteSaveBtn: document.getElementById('note-save-btn'),
-        noteCancelBtn: document.getElementById('note-cancel-btn'),
-        clearLogModal: document.getElementById('clear-log-modal'),
-        clearQuizLogsBtn: document.getElementById('clear-quiz-logs-btn'),
-        clearLectureLogsBtn: document.getElementById('clear-lecture-logs-btn'),
-        clearAllLogsBtn: document.getElementById('clear-all-logs-btn'),
-        clearLogCancelBtn: document.getElementById('clear-log-cancel-btn'),
-        announcementsModal: document.getElementById('announcements-modal'),
-        announcementsList: document.getElementById('announcements-list'),
-        announcementsCloseBtn: document.getElementById('announcements-close-btn'),
-        osceNavigatorModal: document.getElementById('osce-navigator-modal'),
-        osceNavigatorContent: document.getElementById('osce-navigator-content'),
-        osceNavigatorCloseBtn: document.getElementById('osce-navigator-close-btn'),
-        createPlanModal: document.getElementById('create-plan-modal'),
-        registrationModal: document.getElementById('registration-modal'),
-        userCardModal: document.getElementById('user-card-modal'),
-        messengerModal: document.getElementById('messenger-modal'),
-
-        // --- User Card / Profile ---
-        userCardCloseBtn: document.getElementById('user-card-close-btn'),
-        userAvatar: document.getElementById('user-avatar'),
-        cardUserName: document.getElementById('card-user-name'),
-        cardUserNickname: document.getElementById('card-user-nickname'),
-        cardQuizScore: document.getElementById('card-quiz-score'),
-        cardExamDate: document.getElementById('card-exam-date'),
-        cardDaysLeft: document.getElementById('card-days-left'),
-        editProfileBtn: document.getElementById('edit-profile-btn'),
-        profileDetailsView: document.getElementById('profile-details-view'),
-        profileEditView: document.getElementById('profile-edit-view'),
-        editNickname: document.getElementById('edit-nickname'),
-        editExamDate: document.getElementById('edit-exam-date'),
-        avatarSelectionGrid: document.getElementById('avatar-selection-grid'),
-        profileEditError: document.getElementById('profile-edit-error'),
-        cancelEditProfileBtn: document.getElementById('cancel-edit-profile-btn'),
-        saveProfileBtn: document.getElementById('save-profile-btn'),
-        cardSubscriptionStatus: document.getElementById('card-subscription-status'),
-        cardSubscriptionExpiry: document.getElementById('card-subscription-expiry'),
-
-        // --- Messenger ---
-        messengerCloseBtn: document.getElementById('messenger-close-btn'),
-        messagesList: document.getElementById('messages-list'),
-        messageInput: document.getElementById('message-input'),
-        sendMessageBtn: document.getElementById('send-message-btn'),
-        messengerError: document.getElementById('messenger-error'),
-
-        // --- Create Plan Modal ---
-        newPlanName: document.getElementById('new-plan-name'),
-        newPlanStartDate: document.getElementById('new-plan-start-date'),
-        newPlanEndDate: document.getElementById('new-plan-end-date'),
-        createPlanError: document.getElementById('create-plan-error'),
-        cancelCreatePlanBtn: document.getElementById('cancel-create-plan-btn'),
-        confirmCreatePlanBtn: document.getElementById('confirm-create-plan-btn'),
-
-        // --- Registration Modal ---
-        registrationForm: document.getElementById('registration-form'),
-        registerCancelBtn: document.getElementById('register-cancel-btn'),
-        registerSubmitBtn: document.getElementById('register-submit-btn'),
-        registrationError: document.getElementById('registration-error'),
-        registrationSuccess: document.getElementById('registration-success'),
-        registerName: document.getElementById('register-name'),
-        registerUsername: document.getElementById('register-username'),
-        registerEmail: document.getElementById('register-email'),
-        registerMobile: document.getElementById('register-mobile'),
-        registerPassword: document.getElementById('register-password'),
-        registerConfirmPassword: document.getElementById('register-confirm-password'),
-        registerCountry: document.getElementById('register-country'),
-        registerStudyType: document.getElementById('register-study-type'),
-        registerExamDate: document.getElementById('register-exam-date'),
-        
-        // --- Matching Bank Elements ---
-        matchingMenuBackBtn: document.getElementById('matching-menu-back-btn'),
-        matchingSetCountInput: document.getElementById('matching-set-count'),
-        matchingTimerInput: document.getElementById('matching-timer-input'),
-        chapterSelectMatching: document.getElementById('chapter-select-matching'),
-        sourceSelectMatching: document.getElementById('source-select-matching'),
-        startMatchingBtn: document.getElementById('start-matching-btn'),
-        matchingError: document.getElementById('matching-error'),
-        endMatchingQuizBtn: document.getElementById('end-matching-quiz-btn'),
-        matchingTimer: document.getElementById('matching-timer'),
-        matchingProgressText: document.getElementById('matching-progress-text'),
-        matchingPremisesArea: document.getElementById('matching-premises-area'),
-        matchingAnswersArea: document.getElementById('matching-answers-area'),
-        matchingControlsContainer: document.getElementById('matching-controls-container'),
-        matchingPreviousBtn: document.getElementById('matching-previous-btn'),
-        matchingNextBtn: document.getElementById('matching-next-btn'),
-    });
-}
+// --- NEW: Subscription Status in User Card ---
+export const cardSubscriptionStatus = document.getElementById('card-subscription-status');
+export const cardSubscriptionExpiry = document.getElementById('card-subscription-expiry');

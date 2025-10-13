@@ -1,4 +1,4 @@
-// js/main.js (FINAL VERSION - With Matching Bank Integration)
+// js/main.js (FINAL VERSION - With Registration Logic)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -19,9 +19,8 @@ import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.j
 import { showLeaderboardScreen } from './features/leaderboard.js';
 import { analyzePerformanceByChapter } from './features/performance.js';
 import { showTheoryMenuScreen, launchTheorySession } from './features/theory.js';
+// --- NEW: Import registration handlers ---
 import { showRegistrationModal, hideRegistrationModal, handleRegistrationSubmit } from './features/registration.js';
-// --- NEW: Import Matching Bank handlers ---
-import { initializeMatching, showMatchingMenuScreen } from './features/matching.js';
 
 
 // SHARED & EXPORTED FUNCTIONS
@@ -203,8 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.lecturesBtn.addEventListener('click', () => { if (checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); appState.navigationHistory.push(() => ui.showScreen(dom.lecturesContainer)); } });
     dom.qbankBtn.addEventListener('click', () => { if (checkPermission('MCQBank')) { ui.showScreen(dom.qbankContainer); appState.navigationHistory.push(() => ui.showScreen(dom.qbankContainer)); } });
     dom.learningModeBtn.addEventListener('click', () => { if (checkPermission('LerningMode')) showLearningModeBrowseScreen(); });
-    // NEW: Add Matching Bank button listener
-    dom.matchingBtn.addEventListener('click', () => { if (checkPermission('MatchingBank')) showMatchingMenuScreen(); });
     dom.theoryBtn.addEventListener('click', () => { if (checkPermission('TheoryBank')) showTheoryMenuScreen(); });
     dom.osceBtn.addEventListener('click', () => { if (checkPermission('OSCEBank')) { ui.showScreen(dom.osceContainer); appState.navigationHistory.push(() => ui.showScreen(dom.osceContainer)); } });
     dom.libraryBtn.addEventListener('click', () => { if (checkPermission('Library')) { ui.renderBooks(); ui.showScreen(dom.libraryContainer); appState.navigationHistory.push(() => ui.showScreen(dom.libraryContainer)); } });
@@ -365,8 +362,6 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.clearLogCancelBtn.addEventListener('click', () => { dom.clearLogModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
     dom.clearLogBtn.addEventListener('click', () => { dom.clearLogModal.classList.remove('hidden'); dom.modalBackdrop.classList.remove('hidden'); });
 
-    // --- Initialize Feature-Specific Listeners ---
-    initializeMatching();
 
     initializeApp();
 });
