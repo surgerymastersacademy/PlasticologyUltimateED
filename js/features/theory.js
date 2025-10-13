@@ -1,238 +1,241 @@
-// ===========================
-// Update Title: FINAL DEFINITIVE FIX for theory.js
-// Date: 13/10/2025
-// Version: v2.2.0
-// Type: إصلاح
-// Description: This is the definitive fix based on the user's original, complete 'theory.js' file. It resolves the final 'SyntaxError' by removing a duplicate function declaration. It also includes all previous fixes for 'formatTime', missing exports, and the infinite recursion loop. This should restore full app functionality.
-// Dependencies Impacted: theory.js, main.js, planner.js
-// ===========================
+// js/features/theory.js (CORRECTED FILE)
 
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
-// [FIX] - ADDED correct import for formatTime
-import { formatTime } from '../utils.js';
+import { logTheoryActivity } from '../api.js';
+import { openNoteModal } from '../main.js';
 
-let sessionTimer;
+// --- MAIN FUNCTIONS ---
 
-export function setupTheoryEventListeners() {
-    if (dom.theoryBackBtn) dom.theoryBackBtn.addEventListener('click', showTheoryMenuScreen);
-    if (dom.theoryFlashcardModeBtn) dom.theoryFlashcardModeBtn.addEventListener('click', () => startTheorySession('flashcard'));
-    if (dom.theoryExamModeBtn) dom.theoryExamModeBtn.addEventListener('click', () => startTheorySession('exam'));
-    if (dom.theoryEndBtn) dom.theoryEndBtn.addEventListener('click', endTheorySessionAndShowMenu);
-    if (dom.theoryShowAnswerBtn) dom.theoryShowAnswerBtn.addEventListener('click', showTheoryAnswer);
-    if (dom.theoryNextBtn) dom.theoryNextBtn.addEventListener('click', showNextTheoryQuestion);
-    if (dom.theoryPrevBtn) dom.theoryPrevBtn.addEventListener('click', showPreviousTheoryQuestion);
-    if (dom.theoryStatusBtn) dom.theoryStatusBtn.addEventListener('click', toggleTheoryQuestionStatus);
-}
-
-// [FIX] - RENAMED from showTheoryScreen and EXPORTED for main.js
+/**
+ * Shows the main menu screen for the Theory Bank feature.
+ */
 export function showTheoryMenuScreen() {
     ui.showScreen(dom.theoryContainer);
-    if (dom.theoryViewer) dom.theoryViewer.classList.add('hidden');
-    if (dom.theoryControls) dom.theoryControls.classList.remove('hidden');
-    endTheorySession(); // This call is now safe.
+    dom.theoryControls.classList.remove('hidden');
+    dom.theoryViewer.classList.add('hidden');
+    appState.navigationHistory.push(showTheoryMenuScreen);
+
+    // Add event listeners for the menu (only once to prevent duplicates)
+    if (!dom.theoryFlashcardModeBtn.dataset.listener) {
+        dom.theoryFlashcardModeBtn.dataset.listener = 'true';
+        dom.theoryFlashcardModeBtn.addEventListener('click', () => launchTheorySession('Flashcard Mode', appState.allTheoryQuestions, false));
+        dom.theoryExamModeBtn.addEventListener('click', () => launchTheorySession('Thinking Exam Mode', appState.allTheoryQuestions, true));
+        dom.theoryBrowseByChapterBtn.addEventListener('click', () => showTheoryListScreen('Chapter'));
+        dom.theoryBrowseBySourceBtn.addEventListener('click', () => showTheoryListScreen('Source'));
+        dom.theorySearchBtn.addEventListener('click', handleTheorySearch);
+    }
 }
 
-function startTheorySession(mode) {
-    const questions = appState.allTheoryQuestions;
-    if (!questions || questions.length === 0) {
-        alert("No theory questions available.");
+/**
+ * --- CORRECTED: Added 'export' keyword ---
+ * Launches a theory study/exam session.
+ * @param {string} title - The title for the session.
+ * @param {Array} questions - The array of theory questions for the session.
+ * @param {boolean} isExamMode - Flag to determine if it's flashcard or exam mode.
+ */
+export function launchTheorySession(title, questions, isExamMode) {
+    if (questions.length === 0) {
+        ui.showConfirmationModal('No Questions', `No questions were found for this category.`, () => {});
         return;
     }
 
-    appState.theorySession = {
-        questions: questions,
+    appState.currentTheorySession = {
+        questions: [...questions].sort(() => Math.random() - 0.5),
         currentIndex: 0,
-        mode: mode, // 'flashcard' or 'exam'
-        startTime: Date.now(),
-        userAnswers: {},
-        timerInterval: null
-    };
-
-    if (dom.theoryControls) dom.theoryControls.classList.add('hidden');
-    if (dom.theoryViewer) dom.theoryViewer.classList.remove('hidden');
-
-    if (mode === 'exam') {
-        startTheoryTimer();
-    } else {
-        if (dom.theoryTimer) dom.theoryTimer.textContent = 'Untimed';
-    }
-
-    displayCurrentTheoryQuestion();
-}
-
-// [FIX] - This function no longer calls showTheoryMenuScreen(), breaking the infinite loop.
-function endTheorySession() {
-    clearInterval(sessionTimer);
-    if(appState.theorySession && appState.theorySession.timerInterval) {
-        clearInterval(appState.theorySession.timerInterval);
-    }
-    appState.theorySession = null;
-}
-
-// New wrapper function for buttons that need to end the session AND show the menu.
-function endTheorySessionAndShowMenu() {
-    endTheorySession();
-    showTheoryMenuScreen();
-}
-
-function displayCurrentTheoryQuestion() {
-    const session = appState.theorySession;
-    if (!session) return;
-
-    const question = session.questions[session.currentIndex];
-    if (!question) return;
-
-    if (dom.theoryTitle) dom.theoryTitle.textContent = `Theory: ${session.mode.charAt(0).toUpperCase() + session.mode.slice(1)}`;
-    if (dom.theoryProgressText) dom.theoryProgressText.textContent = `Question ${session.currentIndex + 1} of ${session.questions.length}`;
-    if (dom.theoryQuestionText) dom.theoryQuestionText.textContent = question.QuestionText;
-    if (dom.theorySourceText) dom.theorySourceText.textContent = `Source: ${question.Source || 'N/A'} | Chapter: ${question.Chapter || 'N/A'}`;
-    
-    if (dom.theoryAnswerContainer) dom.theoryAnswerContainer.classList.add('hidden');
-    if (dom.theoryAnswerText) dom.theoryAnswerText.textContent = question.ModelAnswer;
-    
-    if (dom.theoryShowAnswerBtn) {
-        dom.theoryShowAnswerBtn.textContent = 'Show Answer';
-        dom.theoryShowAnswerBtn.classList.remove('hidden');
-    }
-
-    if(session.mode === 'exam') {
-        if(dom.theoryShowAnswerBtn) dom.theoryShowAnswerBtn.classList.add('hidden');
-    }
-
-    updateTheoryNavButtons();
-    updateStatusIcon();
-}
-
-function showNextTheoryQuestion() {
-    const session = appState.theorySession;
-    if (session && session.currentIndex < session.questions.length - 1) {
-        session.currentIndex++;
-        displayCurrentTheoryQuestion();
-    }
-}
-
-function showPreviousTheoryQuestion() {
-    const session = appState.theorySession;
-    if (session && session.currentIndex > 0) {
-        session.currentIndex--;
-        displayCurrentTheoryQuestion();
-    }
-}
-
-function showTheoryAnswer() {
-    if (dom.theoryAnswerContainer) dom.theoryAnswerContainer.classList.toggle('hidden');
-    if (dom.theoryShowAnswerBtn) {
-        const isHidden = dom.theoryAnswerContainer.classList.contains('hidden');
-        dom.theoryShowAnswerBtn.textContent = isHidden ? 'Show Answer' : 'Hide Answer';
-    }
-}
-
-function startTheoryTimer() {
-    const session = appState.theorySession;
-    if (!session) return;
-
-    const duration = session.questions.length * 5 * 60; // 5 minutes per question
-    let timeLeft = duration;
-
-    clearInterval(session.timerInterval);
-
-    function updateTimer() {
-        if (dom.theoryTimer) {
-             // [FIX] - CORRECTED function call from ui.formatTime to formatTime
-            dom.theoryTimer.textContent = formatTime(timeLeft);
-        }
-        if (timeLeft <= 0) {
-            clearInterval(session.timerInterval);
-            alert("Time's up!");
-            endTheorySessionAndShowMenu();
-        }
-        timeLeft--;
-    }
-
-    updateTimer();
-    session.timerInterval = setInterval(updateTimer, 1000);
-}
-
-
-function updateTheoryNavButtons() {
-    const session = appState.theorySession;
-    if (!session) return;
-    if (dom.theoryPrevBtn) dom.theoryPrevBtn.disabled = session.currentIndex === 0;
-    if (dom.theoryNextBtn) dom.theoryNextBtn.disabled = session.currentIndex === session.questions.length - 1;
-}
-
-function toggleTheoryQuestionStatus() {
-    const session = appState.theorySession;
-    if (!session) return;
-    const questionId = session.questions[session.currentIndex].UniqueID;
-    
-    const logIndex = appState.userTheoryLogs.findIndex(log => log.Question_ID === questionId);
-
-    if (logIndex > -1) {
-        let currentStatus = appState.userTheoryLogs[logIndex].Status;
-        appState.userTheoryLogs[logIndex].Status = (currentStatus === 'Completed') ? 'Not Completed' : 'Completed';
-    } else {
-        appState.userTheoryLogs.push({
-            User_ID: appState.currentUser.UniqueID,
-            Question_ID: questionId,
-            Status: 'Completed',
-            Notes: ''
-        });
-    }
-    updateStatusIcon();
-}
-
-function updateStatusIcon() {
-    const session = appState.theorySession;
-    if (!session || !dom.theoryStatusBtn) return;
-    
-    const questionId = session.questions[session.currentIndex].UniqueID;
-    const log = appState.userTheoryLogs.find(log => log.Question_ID === questionId);
-
-    if (log && log.Status === 'Completed') {
-        dom.theoryStatusBtn.classList.remove('text-slate-500', 'hover:text-green-500');
-        dom.theoryStatusBtn.classList.add('text-green-600');
-        dom.theoryStatusBtn.innerHTML = '<i class="fas fa-check-circle"></i>';
-        dom.theoryStatusBtn.title = 'Mark as Not Completed';
-    } else {
-        dom.theoryStatusBtn.classList.remove('text-green-600');
-        dom.theoryStatusBtn.classList.add('text-slate-500', 'hover:text-green-500');
-        dom.theoryStatusBtn.innerHTML = '<i class="far fa-check-circle"></i>';
-        dom.theoryStatusBtn.title = 'Mark as Completed';
-    }
-}
-
-// [FIX] - ADDED export keyword for planner.js. This is the one and only launchTheorySession function now.
-export function launchTheorySession(chapter, source) {
-    let filteredQuestions = appState.allTheoryQuestions;
-
-    if (chapter && chapter !== 'all') {
-        filteredQuestions = filteredQuestions.filter(q => q.Chapter === chapter);
-    }
-    if (source && source !== 'all') {
-        filteredQuestions = filteredQuestions.filter(q => q.Source === source);
-    }
-
-    if (filteredQuestions.length === 0) {
-        alert('No questions found for the selected filters.');
-        return;
-    }
-
-    appState.theorySession = {
-        questions: filteredQuestions,
-        currentIndex: 0,
-        mode: 'flashcard', // Default mode when launched from planner
-        startTime: Date.now(),
-        userAnswers: {},
+        isExamMode: isExamMode,
+        title: title,
         timerInterval: null
     };
 
     ui.showScreen(dom.theoryContainer);
-    if (dom.theoryControls) dom.theoryControls.classList.add('hidden');
-    if (dom.theoryViewer) dom.theoryViewer.classList.remove('hidden');
-    if (dom.theoryTimer) dom.theoryTimer.textContent = 'Untimed';
+    dom.theoryControls.classList.add('hidden');
+    dom.theoryViewer.classList.remove('hidden');
+    dom.theoryTitle.textContent = title;
+
+    if (isExamMode) {
+        startTheoryTimer(questions.length * 3 * 60); // 3 minutes per question
+    } else {
+        dom.theoryTimer.textContent = 'Study';
+    }
+
+    renderTheoryCard();
+
+    // Setup event listeners for the viewer (only once)
+    if (!dom.theoryEndBtn.dataset.listener) {
+        dom.theoryEndBtn.dataset.listener = 'true';
+        dom.theoryEndBtn.addEventListener('click', () => {
+            clearInterval(appState.currentTheorySession.timerInterval);
+            showTheoryMenuScreen();
+        });
+        dom.theoryNextBtn.addEventListener('click', handleTheoryNext);
+        dom.theoryPrevBtn.addEventListener('click', handleTheoryPrev);
+        dom.theoryShowAnswerBtn.addEventListener('click', () => {
+            dom.theoryAnswerContainer.classList.remove('hidden');
+            dom.theoryShowAnswerBtn.classList.add('hidden');
+        });
+        dom.theoryNoteBtn.addEventListener('click', handleTheoryNote);
+        dom.theoryStatusBtn.addEventListener('click', handleTheoryStatusToggle);
+    }
+}
+
+// --- RENDERING ---
+
+/**
+ * Renders the current theory question card.
+ */
+function renderTheoryCard() {
+    const { questions, currentIndex, isExamMode } = appState.currentTheorySession;
+    const question = questions[currentIndex];
+
+    dom.theoryProgressText.textContent = `Question ${currentIndex + 1} of ${questions.length}`;
+    dom.theorySourceText.textContent = `Source: ${question.Source} | Chapter: ${question.Chapter}`;
+    dom.theoryImgContainer.innerHTML = question.Img_URL ? `<img src="${question.Img_URL}" class="max-h-48 rounded-lg mx-auto mb-4 cursor-pointer" onclick="ui.showImageModal('${question.Img_URL}')">` : '';
+    dom.theoryQuestionText.textContent = question.QuestionText;
+    dom.theoryAnswerText.textContent = question.ModelAnswer;
+
+    // Handle UI state based on mode
+    dom.theoryAnswerContainer.classList.toggle('hidden', isExamMode);
+    dom.theoryShowAnswerBtn.classList.toggle('hidden', !isExamMode);
     
-    displayCurrentTheoryQuestion();
+    // Update button states
+    dom.theoryPrevBtn.disabled = currentIndex === 0;
+    dom.theoryNextBtn.disabled = currentIndex === questions.length - 1;
+
+    // Update Note and Status icons based on user log
+    const userLog = appState.userTheoryLogs.find(log => log.Question_ID === question.UniqueID);
+    dom.theoryNoteBtn.classList.toggle('has-note', userLog && userLog.Notes);
+    dom.theoryStatusBtn.classList.toggle('text-green-500', userLog && userLog.Status === 'Completed');
+}
+
+// --- EVENT HANDLERS ---
+
+function handleTheoryNext() {
+    if (appState.currentTheorySession.currentIndex < appState.currentTheorySession.questions.length - 1) {
+        appState.currentTheorySession.currentIndex++;
+        renderTheoryCard();
+    }
+}
+
+function handleTheoryPrev() {
+    if (appState.currentTheorySession.currentIndex > 0) {
+        appState.currentTheorySession.currentIndex--;
+        renderTheoryCard();
+    }
+}
+
+function handleTheoryNote() {
+    const question = appState.currentTheorySession.questions[appState.currentTheorySession.currentIndex];
+    openNoteModal('theory', question.UniqueID, question.QuestionText);
+}
+
+function handleTheoryStatusToggle() {
+    const question = appState.currentTheorySession.questions[appState.currentTheorySession.currentIndex];
+    const userLog = appState.userTheoryLogs.find(log => log.Question_ID === question.UniqueID);
+    const currentStatus = userLog ? userLog.Status : '';
+    const newStatus = currentStatus === 'Completed' ? '' : 'Completed';
+
+    logTheoryActivity({
+        questionId: question.UniqueID,
+        Status: newStatus
+    });
+    
+    dom.theoryStatusBtn.classList.toggle('text-green-500', newStatus === 'Completed');
+}
+
+function handleTheorySearch() {
+    const searchTerm = dom.theorySearchInput.value.trim().toLowerCase();
+    if (searchTerm.length < 3) {
+        alert('Please enter at least 3 characters to search.');
+        return;
+    }
+    const filteredQuestions = appState.allTheoryQuestions.filter(q => 
+        q.QuestionText.toLowerCase().includes(searchTerm) ||
+        q.ModelAnswer.toLowerCase().includes(searchTerm) ||
+        q.Keywords.toLowerCase().includes(searchTerm)
+    );
+    launchTheorySession(`Search: "${searchTerm}"`, filteredQuestions, false); // Default to flashcard mode for search
+}
+
+// --- BROWSE & LIST VIEW ---
+
+/**
+ * Shows a list screen to browse theory questions by Chapter or Source.
+ * @param {string} browseBy - Either 'Chapter' or 'Source'.
+ */
+function showTheoryListScreen(browseBy) {
+    const isChapter = browseBy === 'Chapter';
+    const title = `Browse by ${browseBy}`;
+    
+    const itemCounts = appState.allTheoryQuestions.reduce((acc, q) => {
+        const item = q[browseBy] || 'Uncategorized';
+        acc[item] = (acc[item] || 0) + 1;
+        return acc;
+    }, {});
+
+    const items = Object.keys(itemCounts).sort();
+    dom.listTitle.textContent = title;
+    dom.listItems.innerHTML = '';
+
+    items.forEach(item => {
+        const button = document.createElement('button');
+        button.className = 'action-btn p-4 bg-white rounded-lg shadow-sm text-center hover:bg-slate-50';
+        button.innerHTML = `<h3 class="font-bold text-slate-800">${item}</h3><p class="text-sm text-slate-500">${itemCounts[item]} Questions</p>`;
+        button.addEventListener('click', () => {
+            const questions = appState.allTheoryQuestions.filter(q => (q[browseBy] || 'Uncategorized') === item);
+            
+            // Ask user for study mode via a confirmation modal
+            ui.showConfirmationModal(
+                `Study "${item}"`,
+                'How would you like to study these questions?',
+                () => launchTheorySession(item, questions, false) // Default confirm is Flashcard
+            );
+            
+            // Customize modal buttons for this specific choice
+            const confirmBtnContainer = dom.modalConfirmBtn.parentElement;
+            confirmBtnContainer.innerHTML = ''; // Clear old buttons
+            
+            const flashcardBtn = document.createElement('button');
+            flashcardBtn.textContent = 'Flashcard Mode';
+            flashcardBtn.className = 'action-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded';
+            flashcardBtn.onclick = () => {
+                launchTheorySession(item, questions, false);
+                dom.modalBackdrop.classList.add('hidden');
+            };
+
+            const examBtn = document.createElement('button');
+            examBtn.textContent = 'Exam Mode';
+            examBtn.className = 'action-btn bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded';
+            examBtn.onclick = () => {
+                launchTheorySession(item, questions, true);
+                dom.modalBackdrop.classList.add('hidden');
+            };
+            
+            confirmBtnContainer.appendChild(dom.modalCancelBtn);
+            confirmBtnContainer.appendChild(examBtn);
+            confirmBtnContainer.appendChild(flashcardBtn);
+
+        });
+        dom.listItems.appendChild(button);
+    });
+
+    ui.showScreen(dom.listContainer);
+    appState.navigationHistory.push(() => showTheoryListScreen(browseBy));
+}
+
+// --- TIMER ---
+function startTheoryTimer(duration) {
+    clearInterval(appState.currentTheorySession.timerInterval);
+    let timeLeft = duration;
+    dom.theoryTimer.textContent = ui.formatTime(timeLeft);
+    appState.currentTheorySession.timerInterval = setInterval(() => {
+        timeLeft--;
+        dom.theoryTimer.textContent = ui.formatTime(timeLeft);
+        if (timeLeft <= 0) {
+            clearInterval(appState.currentTheorySession.timerInterval);
+            alert("Time's up!");
+            showTheoryMenuScreen();
+        }
+    }, 1000);
 }
