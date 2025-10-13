@@ -1,18 +1,16 @@
 // ===========================
-// Update Title: FIX - Incorrect Function Import in Theory Timer
+// Update Title: FIX - Missing Function Export
 // Date: 13/10/2025
-// Version: v1.3.1
+// Version: v1.3.2
 // Type: إصلاح
-// Description: Fixed a TypeError crash in the theory section. The 'formatTime' function was being called from the 'ui' module instead of 'utils', and the import from 'utils.js' was missing.
-// Dependencies Impacted: theory.js
+// Description: Fixed a SyntaxError crash on app load. The 'launchTheorySession' function was not exported from theory.js, preventing planner.js from importing it. The 'export' keyword has been added.
+// Dependencies Impacted: theory.js, planner.js
 // ===========================
 
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
-// [MODIFIED SECTION START] - ADDED
 import { formatTime } from '../utils.js'; 
-// [MODIFIED SECTION END]
 
 export function setupTheoryEventListeners() {
     dom.startTheoryBtn.addEventListener('click', () => {
@@ -41,7 +39,9 @@ export function showTheoryScreen() {
     populateTheoryFilters();
 }
 
-function launchTheorySession(chapter, source) {
+// [MODIFIED SECTION START] - ADDED 'export'
+export function launchTheorySession(chapter, source) {
+// [MODIFIED SECTION END]
     let filteredQuestions = appState.allTheoryQuestions;
 
     if (chapter !== 'all') {
@@ -214,9 +214,7 @@ function startTheoryTimer(duration) {
     dom.theoryTimer.textContent = formatTime(timeLeft);
     appState.theorySession.timerInterval = setInterval(() => {
         timeLeft--;
-        // [MODIFIED SECTION START] - CORRECTED
         dom.theoryTimer.textContent = formatTime(timeLeft);
-        // [MODIFIED SECTION END]
         if (timeLeft <= 0) {
             clearInterval(appState.theorySession.timerInterval);
         }
