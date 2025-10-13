@@ -2,144 +2,144 @@
 
 /* NEW: Theme Variables */
 :root {
-    --bg-color: #eef2f7;
-    --bg-gradient: linear-gradient(to top right, #e0e7ff, #f0f4f8);
-    --card-bg-color: rgba(255, 255, 255, 0.85);
-    --card-border-color: rgba(255, 255, 255, 0.4);
-    --text-color-primary: #1e293b; /* slate-800 */
-    --text-color-secondary: #64748b; /* slate-500 */
-    --input-bg: #ffffff;
-    --input-border: #d1d5db;
-    --main-app-bg: white;
-    --question-text-color: #1e293b; /* Color for question text */
-    --answer-btn-bg: #f3f4f6; /* bg-slate-100 */
-    --answer-btn-text: #374151; /* text-gray-700 */
-    --answer-btn-hover-bg: #e5e7eb; /* hover:bg-slate-200 */
+    --bg-color: #eef2f7;
+    --bg-gradient: linear-gradient(to top right, #e0e7ff, #f0f4f8);
+    --card-bg-color: rgba(255, 255, 255, 0.85);
+    --card-border-color: rgba(255, 255, 255, 0.4);
+    --text-color-primary: #1e293b; /* slate-800 */
+    --text-color-secondary: #64748b; /* slate-500 */
+    --input-bg: #ffffff;
+    --input-border: #d1d5db;
+    --main-app-bg: white;
+    --question-text-color: #1e293b; /* Color for question text */
+    --answer-btn-bg: #f3f4f6; /* bg-slate-100 */
+    --answer-btn-text: #374151; /* text-gray-700 */
+    --answer-btn-hover-bg: #e5e7eb; /* hover:bg-slate-200 */
 }
 
 html.dark {
-    --bg-color: #0d1a2e;
-    --bg-gradient: linear-gradient(to top right, #001f3f, #1e293b);
-    --card-bg-color: rgba(30, 41, 59, 0.85); /* slate-800 */
-    --card-border-color: rgba(71, 85, 105, 0.4); /* slate-600 */
-    --text-color-primary: #f1f5f9; /* slate-100 */
-    --text-color-secondary: #94a3b8; /* slate-400 */
-    --input-bg: #334155; /* slate-700 */
-    --input-border: #475569; /* slate-600 */
-    --main-app-bg: #1e293b; /* slate-800 */
-    --question-text-color: #f1f5f9; /* Color for question text in dark mode */
-    --answer-btn-bg: #334155; /* slate-700 */
-    --answer-btn-text: #f1f5f9; /* slate-100 */
-    --answer-btn-hover-bg: #475569; /* hover:bg-slate-600 */
+    --bg-color: #0d1a2e;
+    --bg-gradient: linear-gradient(to top right, #001f3f, #1e293b);
+    --card-bg-color: rgba(30, 41, 59, 0.85); /* slate-800 */
+    --card-border-color: rgba(71, 85, 105, 0.4); /* slate-600 */
+    --text-color-primary: #f1f5f9; /* slate-100 */
+    --text-color-secondary: #94a3b8; /* slate-400 */
+    --input-bg: #334155; /* slate-700 */
+    --input-border: #475569; /* slate-600 */
+    --main-app-bg: #1e293b; /* slate-800 */
+    --question-text-color: #f1f5f9; /* Color for question text in dark mode */
+    --answer-btn-bg: #334155; /* slate-700 */
+    --answer-btn-text: #f1f5f9; /* slate-100 */
+    --answer-btn-hover-bg: #475569; /* hover:bg-slate-600 */
 }
 
 
 body {
-    font-family: 'Cairo', 'Inter', sans-serif;
-    background-color: var(--bg-color);
-    background-image: var(--bg-gradient);
-    transition: background-color 0.3s ease;
+    font-family: 'Cairo', 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    background-image: var(--bg-gradient);
+    transition: background-color 0.3s ease;
 }
 
 #login-canvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-    transition: opacity 0.5s ease;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    transition: opacity 0.5s ease;
 }
 
 .main-app-container {
-    max-width: 800px;
-    width: 100%;
-    margin: 1rem auto;
-    background: var(--main-app-bg);
-    border-radius: 1rem;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    min-height: calc(100vh - 2rem);
-    position: relative;
-    transition: background-color 0.3s ease;
+    max-width: 800px;
+    width: 100%;
+    margin: 1rem auto;
+    background: var(--main-app-bg);
+    border-radius: 1rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 2rem);
+    position: relative;
+    transition: background-color 0.3s ease;
 }
 
 main {
-    flex-grow: 1;
+    flex-grow: 1;
 }
 
 .action-btn {
-    transition: all 0.2s ease-in-out;
+    transition: all 0.2s ease-in-out;
 }
 
 .action-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .main-menu-btn {
-    transition: all 0.3s ease-in-out;
-    background-size: 200% 100%;
+    transition: all 0.3s ease-in-out;
+    background-size: 200% 100%;
 }
 
 .main-menu-btn:hover {
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    background-position: right center;
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    background-position: right center;
 }
 
 .main-menu-btn.loading {
-    cursor: not-allowed;
-    background-image: none;
-    background-color: #9ca3af;
+    cursor: not-allowed;
+    background-image: none;
+    background-color: #9ca3af;
 }
 
 .loader {
-    border: 5px solid #f3f3f3;
-    border-top: 5px solid #3498db;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    animation: spin 1s linear infinite;
-    margin: 40px auto;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 40px auto;
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* Accordion styles for lectures */
 details summary::-webkit-details-marker {
-    display: none;
+    display: none;
 }
 
 details[open] > summary .fa-chevron-down {
-    transform: rotate(180deg);
+    transform: rotate(180deg);
 }
 
 .lecture-viewed .view-toggle-icon {
-    color: #22c55e; /* Green color for viewed lectures */
+    color: #22c55e; /* Green color for viewed lectures */
 }
 
 .lecture-viewed .lecture-name {
-    color: #555;
-    text-decoration: line-through;
+    color: #555;
+    text-decoration: line-through;
 }
 
 .view-toggle-icon {
-    cursor: pointer;
-    transition: transform 0.2s;
+    cursor: pointer;
+    transition: transform 0.2s;
 }
 
 .view-toggle-icon:hover {
-    transform: scale(1.2);
+    transform: scale(1.2);
 }
 
 .note-icon.has-note {
-    color: #f59e0b; /* Amber color for existing notes */
+    color: #f59e0b; /* Amber color for existing notes */
 }
 
 /* Styles from previous MCQ bank */
@@ -160,48 +160,48 @@ details[open] > summary .fa-chevron-down {
 .custom-exam-options.visible { max-height: 500px; padding-top: 1.5rem; padding-bottom: 1.5rem; }
 .filter-container { max-height: 150px; overflow-y: auto; border: 1px solid #e5e7eb; padding: 0.75rem; border-radius: 0.5rem; }
 .filter-btn.active {
-    background-color: #3b82f6;
-    color: white;
+    background-color: #3b82f6;
+    color: white;
 }
 
 /* Watermark Styles */
 #watermark-overlay {
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
-    opacity: 0.25;
-    pointer-events: none;
-    z-index: 1000;
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    opacity: 0.25;
+    pointer-events: none;
+    z-index: 1000;
 }
 
 #radio-banner-container.open {
-    max-height: 320px;
+    max-height: 320px;
 }
 
 /* Learning Mode Styles */
 .learning-answer-btn {
-    background-color: #f3f4f6;
-    border: 1px solid #d1d5db;
+    background-color: #f3f4f6;
+    border: 1px solid #d1d5db;
 }
 
 .learning-answer-btn.correct {
-    background-color: #d1fae5;
-    border-color: #10b981;
+    background-color: #d1fae5;
+    border-color: #10b981;
 }
 
 .learning-rationale {
-    margin-top: 0.5rem;
-    padding: 0.75rem;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    color: #065f46;
-    background-color: #d1fae5;
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    color: #065f46;
+    background-color: #d1fae5;
 }
 
 /* User Card Styles */
 #user-card-modal {
-    max-width: 400px;
-    width: 100%;
+    max-width: 400px;
+    width: 100%;
 }
 #user-card-modal h3 { font-size: 1.5rem; }
 #user-card-modal img { border-radius: 50%; }
@@ -212,50 +212,50 @@ details[open] > summary .fa-chevron-down {
 
 /* --- NEW: Modern Login Page & Settings Enhancements --- */
 #settings-container {
-    position: fixed;
-    top: 1rem;
-    right: 1rem;
-    display: flex;
-    gap: 0.5rem;
-    background-color: var(--card-bg-color);
-    padding: 0.5rem;
-    border-radius: 9999px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    border: 1px solid var(--card-border-color);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    z-index: 100;
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    background-color: var(--card-bg-color);
+    padding: 0.5rem;
+    border-radius: 9999px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border: 1px solid var(--card-border-color);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 100;
 }
 
 /* Mobile view fix for settings container */
 @media (max-width: 640px) {
-    #settings-container {
-        top: auto;
-        bottom: 1rem;
-        right: 1rem;
-        left: auto;
-    }
+    #settings-container {
+        top: auto;
+        bottom: 1rem;
+        right: 1rem;
+        left: auto;
+    }
 }
 
 
 #settings-container button {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    color: var(--text-color-secondary);
-    background-color: transparent;
-    border: none;
-    cursor: pointer;
-    transition: color 0.2s ease, background-color 0.2s ease;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: var(--text-color-secondary);
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 #settings-container button:hover {
-    color: var(--text-color-primary);
-    background-color: rgba(128, 128, 128, 0.1);
+    color: var(--text-color-primary);
+    background-color: rgba(128, 128, 128, 0.1);
 }
 
 /* Corrected icon visibility */
@@ -271,103 +271,155 @@ html.animation-off .animation-off-icon { display: none; }
 
 
 .login-card {
-    background-color: var(--card-bg-color);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--card-border-color);
-    animation: fadeIn 0.5s ease-in-out;
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+    background-color: var(--card-bg-color);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border-color);
+    animation: fadeIn 0.5s ease-in-out;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .login-card h1 { color: var(--text-color-primary); transition: color 0.3s ease; }
 .login-card p { color: var(--text-color-secondary); transition: color 0.3s ease; }
-.login-card .input-with-icon { 
-    background-color: var(--input-bg);
-    border-color: var(--input-border);
-    color: var(--text-color-primary);
-    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+.login-card .input-with-icon { 
+    background-color: var(--input-bg);
+    border-color: var(--input-border);
+    color: var(--text-color-primary);
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 .login-card .input-with-icon::placeholder {
-    color: var(--text-color-secondary);
-    transition: color 0.3s ease;
+    color: var(--text-color-secondary);
+    transition: color 0.3s ease;
 }
 
 /* Dark Mode Quiz Question Fix */
 #question-text {
-    color: var(--question-text-color);
+    color: var(--question-text-color);
 }
 .answer-btn {
-    background-color: var(--answer-btn-bg);
-    color: var(--answer-btn-text);
+    background-color: var(--answer-btn-bg);
+    color: var(--answer-btn-text);
 }
 .answer-btn:hover {
-    background-color: var(--answer-btn-hover-bg);
+    background-color: var(--answer-btn-hover-bg);
 }
 
 /* Performance Insights Accordion */
 .insights-details {
-    border-radius: 0.5rem;
-    border: 1px solid #e2e8f0; /* slate-200 */
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0; /* slate-200 */
 }
 .insights-summary {
-    padding: 1rem;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: bold;
-    color: #334155; /* slate-700 */
+    padding: 1rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    color: #334155; /* slate-700 */
 }
 .insights-summary::-webkit-details-marker {
-    display: none;
+    display: none;
 }
 .insights-summary .fa-chevron-down {
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease;
 }
 .insights-details[open] > .insights-summary .fa-chevron-down {
-    transform: rotate(180deg);
+    transform: rotate(180deg);
 }
 .insights-content {
-    padding: 0 1rem 1rem 1rem;
-    border-top: 1px solid #e2e8f0;
+    padding: 0 1rem 1rem 1rem;
+    border-top: 1px solid #e2e8f0;
 }
 
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .input-with-icon-container {
-    position: relative;
+    position: relative;
 }
 
 .input-with-icon-container .input-icon {
-    position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #9ca3af;
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
 }
 
 .input-with-icon {
-    padding-left: 2.5rem;
+    padding-left: 2.5rem;
 }
 
 /* Styles for Q-Bank Tabs */
 .tab-btn {
-    color: #64748b; /* slate-500 */
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s ease-in-out;
+    color: #64748b; /* slate-500 */
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease-in-out;
 }
 
 .tab-btn:hover {
-    color: #334155; /* slate-700 */
-    border-bottom-color: #e2e8f0; /* slate-200 */
+    color: #334155; /* slate-700 */
+    border-bottom-color: #e2e8f0; /* slate-200 */
 }
 
 .tab-btn.active {
-    color: #4f46e5; /* indigo-600 */
-    border-bottom-color: #4f46e5; /* indigo-600 */
-    font-weight: 600;
+    color: #4f46e5; /* indigo-600 */
+    border-bottom-color: #4f46e5; /* indigo-600 */
+    font-weight: 600;
+}
+
+/* ===========================
+// Update Title: Styles for Multiple Correct Answers Feature
+// Date: 13/10/2025
+// Version: v1.2
+// Type: إضافة
+// Description: Styles for new radio/checkbox answers. Ensures they use theme variables for dark mode compatibility and match the existing UI.
+// Dependencies Impacted: quiz.js now relies on these classes for styling.
+// =========================== */
+
+/* Ensure labels with the .answer-btn class behave like flex containers */
+label.answer-btn {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    text-align: left;
+    padding: 1rem; /* p-4 */
+    border-radius: 0.5rem; /* rounded-lg */
+    border-width: 2px;
+    border-color: transparent;
+}
+
+/* Style the actual radio/checkbox inputs */
+.answer-btn input[type="radio"],
+.answer-btn input[type="checkbox"] {
+    accent-color: #4f46e5; /* Default color: indigo-600 */
+    width: 1.25em;
+    height: 1.25em;
+    margin-right: 0.75rem;
+}
+
+/* Change accent color based on correctness */
+.answer-btn.correct input[type="radio"],
+.answer-btn.correct input[type="checkbox"] {
+    accent-color: #10b981; /* green-500 */
+}
+
+.answer-btn.incorrect input[type="radio"],
+.answer-btn.incorrect input[type="checkbox"] {
+    accent-color: #ef4444; /* red-500 */
+}
+
+/* NEW: Style for selected answers during simulation mode */
+.answer-btn.simulation-selected {
+    border-color: #60a5fa; /* A neutral blue for selection */
+    background-color: #eff6ff;
+}
+
+html.dark .answer-btn.simulation-selected {
+    border-color: #3b82f6;
+    background-color: #374151; /* A dark slate from theme */
 }
