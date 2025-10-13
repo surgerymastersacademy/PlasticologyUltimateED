@@ -281,7 +281,7 @@ html.animation-off .animation-off-icon { display: none; }
 
 .login-card h1 { color: var(--text-color-primary); transition: color 0.3s ease; }
 .login-card p { color: var(--text-color-secondary); transition: color 0.3s ease; }
-.login-card .input-with-icon { 
+.login-card .input-with-icon { 
     background-color: var(--input-bg);
     border-color: var(--input-border);
     color: var(--text-color-primary);
@@ -373,33 +373,32 @@ html.animation-off .animation-off-icon { display: none; }
 }
 
 /* ===========================
-// Update Title: Styles for Multiple Correct Answers Feature
+// Update Title: FIX - RTL Support & Theme Variables for Multiple Answer Styles
 // Date: 13/10/2025
-// Version: v1.2
-// Type: إضافة
-// Description: Styles for new radio/checkbox answers. Ensures they use theme variables for dark mode compatibility and match the existing UI.
-// Dependencies Impacted: quiz.js now relies on these classes for styling.
+// Version: v1.2.2
+// Type: إصلاح
+// Description: Corrected styles for the new answer format to support RTL and use theme variables for dark mode. Replaced 'text-align: left' with 'text-align: start' and 'margin-right' with 'margin-inline-end'.
 // =========================== */
 
-/* Ensure labels with the .answer-btn class behave like flex containers */
+/* Ensure labels with the .answer-btn class have the correct layout properties */
 label.answer-btn {
     display: flex;
     align-items: center;
     cursor: pointer;
-    text-align: left;
-    padding: 1rem; /* p-4 */
-    border-radius: 0.5rem; /* rounded-lg */
+    text-align: start; /* CORRECTED for RTL */
+    padding: 1rem;
+    border-radius: 0.5rem;
     border-width: 2px;
     border-color: transparent;
 }
 
-/* Style the actual radio/checkbox inputs */
+/* Style the radio/checkbox inputs themselves */
 .answer-btn input[type="radio"],
 .answer-btn input[type="checkbox"] {
-    accent-color: #4f46e5; /* Default color: indigo-600 */
+    accent-color: #4f46e5; /* Default: indigo-600 */
     width: 1.25em;
     height: 1.25em;
-    margin-right: 0.75rem;
+    margin-inline-end: 0.75rem; /* CORRECTED for RTL */
 }
 
 /* Change accent color based on correctness */
@@ -413,13 +412,13 @@ label.answer-btn {
     accent-color: #ef4444; /* red-500 */
 }
 
-/* NEW: Style for selected answers during simulation mode */
+/* Style for selected answers during simulation mode */
 .answer-btn.simulation-selected {
     border-color: #60a5fa; /* A neutral blue for selection */
-    background-color: #eff6ff;
+    background-color: #eff6ff; /* Very light blue */
 }
 
 html.dark .answer-btn.simulation-selected {
     border-color: #3b82f6;
-    background-color: #374151; /* A dark slate from theme */
+    background-color: var(--answer-btn-hover-bg); /* Use theme variable for dark background */
 }
