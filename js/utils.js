@@ -1,80 +1,77 @@
-// js/utils.js
+// js/utils.js (FINAL & STABLE VERSION v1.3)
 
 // This file contains utility and helper functions that can be used across the application.
 
 // ===========================
-// Update Title: Support Multiple Correct Answers Parsing (Backward Compatible)
+// Update Title: FIX - Rationale Parsing for Multiple-Choice Questions
 // Date: 13/10/2025
-// Version: v1.2
-// Type: تحسين
-// Description: Upgraded parseQuestions to handle the new multiple-answer format (using QuestionType and '||' delimiter) while retaining full backward compatibility with the old format (CorrectAnswer, IncorrectAnswer1, etc.).
-// Dependencies Impacted: None. This change is self-contained.
+// Version: v1.3
+// Type: إصلاح
+// Description: Fixed the logic in parseQuestions to correctly parse and assign rationales for multiple-choice questions. The previous version was ignoring rationales for this question type.
+// Dependencies Impacted: None.
 // ===========================
 /**
  * Parses raw question data from the backend into a structured format.
+ * This version is backward-compatible and correctly handles rationales for all question types.
  * @param {Array} data - Array of question objects from Google Sheets.
  * @returns {Array} - Array of formatted question objects.
  */
 export function parseQuestions(data) {
     if (!data) return [];
     return data.filter(row => row.Question && String(row.Question).trim()).map(row => {
-        // [Modified Section Start]
-        // This new logic handles both the new format (with QuestionType) and the old format.
         const answerOptions = [];
         const questionType = row.QuestionType?.toLowerCase() || 'single';
 
-        // Check if the question uses the new format (which might have 'Option A', 'Option B', etc. from GS Code)
-        // This is a future-proofing check, but the main driver is QuestionType.
-        // For now, we will assume the new format is identified by QuestionType === 'multiple'.
-        // Let's stick to the prompt's data structure which is different from the file.
-        // The most compatible way is to detect the columns. If `IncorrectAnswer1` exists, it's the old format.
-        
-        if (row.QuestionType === 'multiple') {
-            // New logic for multiple-correct-answers questions
+        // [Modified Section Start]
+        // This unified logic now correctly handles rationales for BOTH single and multiple types.
+        if (questionType === 'multiple') {
             const correctAnswers = (row.CorrectAnswer || '').split('||').map(a => a.trim());
-            
-            // This assumes the options are in columns like 'Option A', 'Option B', etc. in the sheet,
-            // which the dynamic GS Code will pick up. We check for common option names.
-            const potentialOptionColumns = ['Option A', 'Option B', 'Option C', 'Option D', 'Option E', 'Option F', 'Option G', 'CorrectAnswer', 'IncorrectAnswer1', 'IncorrectAnswer2', 'IncorrectAnswer3', 'IncorrectAnswer4'];
-            const presentOptions = new Set();
 
-            potentialOptionColumns.forEach(col => {
-                if (row[col] && String(row[col]).trim() !== '') {
-                    // Split in case the CorrectAnswer field also contains an option text
-                    String(row[col]).split('||').forEach(optText => {
-                        presentOptions.add(optText.trim());
+            // Add all correct answers found in the CorrectAnswer field
+            correctAnswers.forEach(answerText => {
+                if (answerText) {
+                    answerOptions.push({ 
+                        text: answerText, 
+                        isCorrect: true, 
+                        rationale: row.CorrectRationale || '' 
                     });
                 }
             });
 
-            presentOptions.forEach(optionText => {
-                 answerOptions.push({
-                    text: optionText,
-                    isCorrect: correctAnswers.includes(optionText),
-                    rationale: '' // Rationale needs a new structure in the sheet for this to work.
+        } else { // For 'single' type questions
+            if (row.CorrectAnswer && String(row.CorrectAnswer).trim() !== '') {
+                answerOptions.push({ 
+                    text: String(row.CorrectAnswer), 
+                    isCorrect: true, 
+                    rationale: row.CorrectRationale || '' 
                 });
-            });
+            }
+        }
 
-        } else {
-            // Original logic for backward compatibility with single-answer questions
-            if (row.CorrectAnswer && String(row.CorrectAnswer).trim() !== '') answerOptions.push({ text: String(row.CorrectAnswer), isCorrect: true, rationale: row.CorrectRationale || '' });
-            if (row.IncorrectAnswer1 && String(row.IncorrectAnswer1).trim() !== '') answerOptions.push({ text: String(row.IncorrectAnswer1), isCorrect: false, rationale: row.IncorrectRationale1 || '' });
-            if (row.IncorrectAnswer2 && String(row.IncorrectAnswer2).trim() !== '') answerOptions.push({ text: String(row.IncorrectAnswer2), isCorrect: false, rationale: row.IncorrectRationale2 || '' });
-            if (row.IncorrectAnswer3 && String(row.IncorrectAnswer3).trim() !== '') answerOptions.push({ text: String(row.IncorrectAnswer3), isCorrect: false, rationale: row.IncorrectRationale3 || '' });
-            if (row.IncorrectAnswer4 && String(row.IncorrectAnswer4).trim() !== '') answerOptions.push({ text: String(row.IncorrectAnswer4), isCorrect: false, rationale: row.IncorrectRationale4 || '' });
+        // Add all incorrect answers for both single and multiple types
+        for (let i = 1; i <= 4; i++) {
+            const incorrectAnswerKey = `IncorrectAnswer${i}`;
+            const incorrectRationaleKey = `IncorrectRationale${i}`;
+            if (row[incorrectAnswerKey] && String(row[incorrectAnswerKey]).trim() !== '') {
+                answerOptions.push({ 
+                    text: String(row[incorrectAnswerKey]), 
+                    isCorrect: false, 
+                    rationale: row[incorrectRationaleKey] || '' 
+                });
+            }
         }
         // [Modified Section End]
         
         return {
             UniqueID: row.UniqueID,
-            QuestionType: row.QuestionType || 'single', // Pass through the QuestionType
+            QuestionType: row.QuestionType || 'single',
             chapter: (row.Chapter && String(row.Chapter).trim()) ? row.Chapter : 'Uncategorized',
             question: row.Question,
             hint: row.Hint || '',
             source: row.Source || '',
             ImageURL: row.ImageURL || '',
             answerOptions: answerOptions,
-            CorrectAnswer: row.CorrectAnswer // Pass the original correct answer string for logic in quiz.js
+            CorrectAnswer: row.CorrectAnswer
         };
     });
 }
