@@ -1,4 +1,12 @@
-// js/features/quiz.js (FINAL VERSION - With Simulation Review Mode)
+// ===========================
+// Update Title: Support Multiple Correct Answers
+// Date: 13/10/2025
+// Version: v1.1
+// Type: إضافة
+// Description: Extending the quiz feature to support questions with multiple correct answers ("multiple" QuestionType) while maintaining full backward compatibility with single-answer questions.
+// Dependencies Impacted: Requires a new "QuestionType" column in the "MCQ Bank" Google Sheet.
+// ===========================
+// js/features/quiz.js (FINAL VERSION - With Simulation Review Mode & Multiple Answers)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -227,6 +235,25 @@ function showQuestion() {
     resetQuizState();
     const quizState = appState.currentQuiz;
     const currentQuestion = quizState.questions[quizState.currentQuestionIndex];
+    
+    // ===========================
+    // Update Title: Support Multiple Correct Answers
+    // Date: 13/10/2025
+    // Version: v1.1
+    // Type: تحسين
+    // Description: Logic to handle UI for multiple-answer questions. Renders checkboxes and a notice.
+    // Dependencies Impacted: None
+    // ===========================
+    const isMultipleChoice = currentQuestion.QuestionType?.toLowerCase() === 'multiple';
+
+    if (isMultipleChoice) {
+        const notice = document.createElement('p');
+        notice.id = 'multiple-choice-notice';
+        notice.className = 'text-sm text-blue-600 font-semibold text-center mb-2';
+        notice.textContent = '(This question may have more than one correct answer)';
+        dom.questionText.parentNode.insertBefore(notice, dom.questionText.nextSibling);
+    }
+    // [Modified Section End]
 
     dom.hintBtn.style.display = (quizState.isSimulationMode || quizState.isSimulationReview) ? 'none' : 'block';
 
@@ -244,7 +271,23 @@ function showQuestion() {
     dom.previousBtn.disabled = quizState.currentQuestionIndex === 0;
 
     const isLastQuestion = quizState.currentQuestionIndex === quizState.questions.length - 1;
-    dom.nextSkipBtn.textContent = (isLastQuestion && !quizState.isReviewMode) ? 'Finish' : 'Next';
+    // [Modified Section Start]
+    // ===========================
+    // Update Title: Support Multiple Correct Answers
+    // Date: 13/10/2025
+    // Version: v1.1
+    // Type: تحسين
+    // Description: Changes 'Next' button text to 'Submit Answer' for unanswered multiple-choice questions.
+    // Dependencies Impacted: None
+    // ===========================
+    const isAnswered = quizState.userAnswers[quizState.currentQuestionIndex] !== null;
+    if (isMultipleChoice && !isAnswered && !quizState.isReviewMode) {
+        dom.nextSkipBtn.textContent = 'Submit Answer';
+    } else {
+        dom.nextSkipBtn.textContent = (isLastQuestion && !quizState.isReviewMode) ? 'Finish' : 'Next';
+    }
+    // [Modified Section End]
+
 
     dom.flagBtn.classList.toggle('flagged', quizState.flaggedIndices.has(quizState.currentQuestionIndex));
     dom.bookmarkBtn.classList.toggle('bookmarked', appState.bookmarkedQuestions.has(currentQuestion.UniqueID));
@@ -253,29 +296,72 @@ function showQuestion() {
 
     const shuffledAnswers = (quizState.isReviewMode || quizState.isSimulationMode) ? [...currentQuestion.answerOptions] : [...currentQuestion.answerOptions].sort(() => Math.random() - 0.5);
 
+    // [Modified Section Start]
+    // ===========================
+    // Update Title: Support Multiple Correct Answers
+    // Date: 13/10/2025
+    // Version: v1.1
+    // Type: تحسين
+    // Description: Renders answer options as checkboxes for multiple-choice questions or radios for single-choice.
+    // Dependencies Impacted: None
+    // ===========================
     shuffledAnswers.forEach(answer => {
-        const button = document.createElement('button');
-        button.innerHTML = answer.text;
-        button.className = 'answer-btn w-full text-left p-4 rounded-lg bg-slate-100 hover:bg-slate-200 border-2 border-transparent';
-        button.dataset.correct = answer.isCorrect;
-        button.dataset.text = answer.text;
-        button.addEventListener('click', (e) => selectAnswer(e, answer));
+        const inputType = isMultipleChoice ? 'checkbox' : 'radio';
+        const container = document.createElement('div');
+        const label = document.createElement('label');
+        label.className = 'answer-label-btn w-full text-left p-4 rounded-lg bg-slate-100 hover:bg-slate-200 border-2 border-transparent flex items-center cursor-pointer';
+        label.dataset.correct = answer.isCorrect;
+        label.dataset.text = answer.text;
+
+        const input = document.createElement('input');
+        input.type = inputType;
+        input.name = 'answer-option';
+        input.value = answer.text;
+        input.className = 'mr-3 h-5 w-5';
+
+        if (!isMultipleChoice) {
+            input.addEventListener('click', (e) => selectAnswer(e, answer));
+        }
+        
+        const answerText = document.createElement('span');
+        answerText.innerHTML = answer.text;
+
+        label.appendChild(input);
+        label.appendChild(answerText);
+        
         const rationale = document.createElement('p');
         rationale.className = 'rationale text-sm mt-2 p-2 rounded-md';
         rationale.textContent = answer.rationale;
-        const container = document.createElement('div');
-        container.appendChild(button);
+
+        container.appendChild(label);
         container.appendChild(rationale);
         dom.answerButtons.appendChild(container);
     });
+    // [Modified Section End]
+
 
     const userAnswer = quizState.userAnswers[quizState.currentQuestionIndex];
     if (userAnswer !== null) {
         if (quizState.isSimulationReview) {
-            showSimulationReviewResult(); // NEW: Show full review result
+            showSimulationReviewResult();
         } else if (quizState.isSimulationMode) {
-            const selectedButton = Array.from(dom.answerButtons.querySelectorAll('button')).find(btn => btn.dataset.text === userAnswer.answer);
-            if (selectedButton) selectedButton.classList.add('bg-blue-200', 'border-blue-400');
+            // [Modified Section Start]
+            // ===========================
+            // Update Title: Support Multiple Correct Answers
+            // Date: 13/10/2025
+            // Version: v1.1
+            // Type: تحسين
+            // Description: Highlights selected checkboxes or radio button in simulation mode.
+            // ===========================
+            const selectedAnswers = isMultipleChoice ? userAnswer.answer : [userAnswer.answer];
+            Array.from(dom.answerButtons.querySelectorAll('label')).forEach(label => {
+                const input = label.querySelector('input');
+                if (selectedAnswers.includes(input.value)) {
+                    label.classList.add('bg-blue-200', 'border-blue-400');
+                    if (isMultipleChoice) input.checked = true;
+                }
+            });
+            // [Modified Section End]
         } else {
             showAnswerResult();
         }
@@ -292,30 +378,53 @@ function showQuestion() {
 }
 
 function selectAnswer(e, selectedAnswer) {
-    if (appState.currentQuiz.isReviewMode) return; // Disable selection in any review mode
+    const quizState = appState.currentQuiz;
+    const currentQuestionIndex = quizState.currentQuestionIndex;
+    const currentQuestion = quizState.questions[currentQuestionIndex];
 
-    const currentQuestionIndex = appState.currentQuiz.currentQuestionIndex;
-    const currentQuestion = appState.currentQuiz.questions[currentQuestionIndex];
-    const isCorrect = selectedAnswer.isCorrect;
+    // ===========================
+    // Update Title: Support Multiple Correct Answers
+    // Date: 13/10/2025
+    // Version: v1.1
+    // Type: تحسين
+    // Description: Guard clause to ensure this function only handles single-choice questions.
+    // ===========================
+    if (currentQuestion.QuestionType?.toLowerCase() === 'multiple') {
+        // For simulation mode with multiple answers, we just record the choice.
+        if (quizState.isSimulationMode) {
+            const selectedCheckboxes = Array.from(dom.answerButtons.querySelectorAll('input[type="checkbox"]:checked'));
+            const selectedAnswersText = selectedCheckboxes.map(cb => cb.value);
+            // In simulation, we store the text array. Correctness is determined at the end.
+            quizState.userAnswers[currentQuestionIndex] = { answer: selectedAnswersText, isCorrect: null };
+            
+            dom.answerButtons.querySelectorAll('label').forEach(lbl => lbl.classList.remove('bg-blue-200', 'border-blue-400'));
+            selectedCheckboxes.forEach(cb => cb.closest('label').classList.add('bg-blue-200', 'border-blue-400'));
+            updateScoreBar();
+        }
+        return; 
+    }
+    
+    if (quizState.isReviewMode) return;
 
-    if (appState.currentQuiz.isSimulationMode) {
-        appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: isCorrect };
+    if (quizState.isSimulationMode) {
+        quizState.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: selectedAnswer.isCorrect };
         
-        dom.answerButtons.querySelectorAll('button').forEach(btn => btn.classList.remove('bg-blue-200', 'border-blue-400'));
-        e.target.classList.add('bg-blue-200', 'border-blue-400');
+        dom.answerButtons.querySelectorAll('label').forEach(lbl => lbl.classList.remove('bg-blue-200', 'border-blue-400'));
+        e.target.closest('label').classList.add('bg-blue-200', 'border-blue-400');
         updateScoreBar();
         return;
     }
 
-    if (appState.currentQuiz.userAnswers[currentQuestionIndex] !== null) return;
+    if (quizState.userAnswers[currentQuestionIndex] !== null) return;
 
-    appState.currentQuiz.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: isCorrect };
-    clearInterval(appState.currentQuiz.timerInterval);
+    const isCorrect = selectedAnswer.isCorrect;
+    quizState.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: isCorrect };
+    clearInterval(quizState.timerInterval);
 
     if (isCorrect) {
-        appState.currentQuiz.score++;
-        if(appState.currentQuiz.isPracticingMistakes) logCorrectedMistake(currentQuestion.UniqueID);
-    } else if (!appState.currentQuiz.isPracticingMistakes) {
+        quizState.score++;
+        if(quizState.isPracticingMistakes) logCorrectedMistake(currentQuestion.UniqueID);
+    } else if (!quizState.isPracticingMistakes) {
         logIncorrectAnswer(currentQuestion.UniqueID, selectedAnswer.text);
     }
     
@@ -337,16 +446,40 @@ function showResults() {
 
     if (appState.currentQuiz.isSimulationMode) {
         finalScore = 0;
-        appState.currentQuiz.originalUserAnswers.forEach(answer => {
-            if (answer && answer.isCorrect) finalScore++;
+        // [Modified Section Start]
+        // ===========================
+        // Update Title: Support Multiple Correct Answers
+        // Date: 13/10/2025
+        // Version: v1.1
+        // Type: تحسين
+        // Description: Updated scoring logic for simulation mode to handle both single and multiple answer types.
+        // ===========================
+        appState.currentQuiz.originalQuestions.forEach((q, index) => {
+            const userAnswer = appState.currentQuiz.originalUserAnswers[index];
+            if (!userAnswer) return;
+
+            const isMultiple = q.QuestionType?.toLowerCase() === 'multiple';
+            const correctAnswers = (q.CorrectAnswer || '').split('||').map(a => a.trim());
+            
+            let isCorrect = false;
+            if (isMultiple) {
+                const selected = userAnswer.answer || [];
+                isCorrect = correctAnswers.length === selected.length && correctAnswers.every(a => selected.includes(a));
+            } else {
+                isCorrect = userAnswer.answer === correctAnswers[0];
+            }
+            
+            if(isCorrect) finalScore++;
+            // Update the answer object with the final correct status
+            userAnswer.isCorrect = isCorrect;
         });
+        // [Modified Section End]
         appState.currentQuiz.score = finalScore;
     }
 
     dom.resultsTitle.textContent = appState.currentQuiz.isSimulationMode ? "Simulation Complete!" : "Quiz Complete!";
     dom.resultsScoreText.innerHTML = `Your score is <span class="font-bold">${finalScore}</span> out of <span class="font-bold">${totalQuestions}</span>.`;
-
-    // UPDATED: Logic to show the correct review button
+    
     const incorrectCount = appState.currentQuiz.originalUserAnswers.filter(a => a && !a.isCorrect).length;
     const isSimulation = appState.currentQuiz.isSimulationMode;
     const reviewSimulationBtn = document.getElementById('review-simulation-btn');
@@ -373,20 +506,85 @@ function showResults() {
             appState.currentQuiz.originalQuestions.forEach((q, index) => {
                 const answer = appState.currentQuiz.originalUserAnswers[index];
                 if (answer && !answer.isCorrect) {
-                    logIncorrectAnswer(q.UniqueID, answer.answer);
+                    const answerText = Array.isArray(answer.answer) ? answer.answer.join('||') : answer.answer;
+                    logIncorrectAnswer(q.UniqueID, answerText);
                 }
             });
         }
     }
 }
 
+// ===========================
+// Update Title: Support Multiple Correct Answers
+// Date: 13/10/2025
+// Version: v1.1
+// Type: إضافة
+// Description: New function to validate multiple-choice answers.
+// ===========================
+function checkMultipleAnswers() {
+    const quizState = appState.currentQuiz;
+    const currentQuestionIndex = quizState.currentQuestionIndex;
+    const currentQuestion = quizState.questions[currentQuestionIndex];
+    
+    if (quizState.userAnswers[currentQuestionIndex] !== null) return; // Already answered
+
+    const selectedCheckboxes = Array.from(dom.answerButtons.querySelectorAll('input[type="checkbox"]:checked'));
+    if (selectedCheckboxes.length === 0 && !quizState.isReviewMode) {
+        ui.showConfirmationModal('No Answer Selected', 'Please select at least one answer before submitting.', () => dom.modalBackdrop.classList.add('hidden'));
+        return false;
+    }
+
+    const selectedAnswers = selectedCheckboxes.map(cb => cb.value.trim());
+    const correctAnswers = (currentQuestion.CorrectAnswer || '').split('||').map(a => a.trim());
+
+    const allCorrectSelected = selectedAnswers.every(sa => correctAnswers.includes(sa));
+    const allCorrectAvailable = correctAnswers.every(ca => selectedAnswers.includes(ca));
+    const isCorrect = allCorrectSelected && allCorrectAvailable;
+
+    quizState.userAnswers[currentQuestionIndex] = { answer: selectedAnswers, isCorrect: isCorrect };
+    clearInterval(quizState.timerInterval);
+
+    if (isCorrect) {
+        quizState.score++;
+        if (quizState.isPracticingMistakes) logCorrectedMistake(currentQuestion.UniqueID);
+    } else if (!quizState.isPracticingMistakes) {
+        logIncorrectAnswer(currentQuestion.UniqueID, selectedAnswers.join('||'));
+    }
+    
+    showAnswerResult();
+    updateScoreBar();
+    return true; // Indicates submission was successful
+}
+
 
 export function handleNextQuestion() {
+    // [Modified Section Start]
+    // ===========================
+    // Update Title: Support Multiple Correct Answers
+    // Date: 13/10/2025
+    // Version: v1.1
+    // Type: تحسين
+    // Description: Intercepts 'Next' click for multiple-choice questions to validate the answer first.
+    // ===========================
+    const quizState = appState.currentQuiz;
+    const currentQuestion = quizState.questions[quizState.currentQuestionIndex];
+    const isMultipleChoice = currentQuestion.QuestionType?.toLowerCase() === 'multiple';
+    const isAnswered = quizState.userAnswers[quizState.currentQuestionIndex] !== null;
+
+    if (isMultipleChoice && !isAnswered && !quizState.isReviewMode && !quizState.isSimulationMode) {
+        const submissionSuccessful = checkMultipleAnswers();
+        if (!submissionSuccessful) return; // Stop if validation fails (e.g., no answer selected)
+        // After successful submission, the button text is already updated by showQuestion, but we wait for another click to proceed.
+        dom.nextSkipBtn.textContent = (quizState.currentQuestionIndex === quizState.questions.length - 1) ? 'Finish' : 'Next';
+        return;
+    }
+    // [Modified Section End]
+
     if (appState.currentQuiz.currentQuestionIndex < appState.currentQuiz.questions.length - 1) {
         appState.currentQuiz.currentQuestionIndex++;
         showQuestion();
     } else {
-        triggerEndQuiz(); // MODIFIED: Call triggerEndQuiz instead of showResults directly
+        triggerEndQuiz();
     }
 }
 
@@ -429,7 +627,11 @@ function startSimulationTimer(durationInSeconds) {
 }
 
 function handleTimeUp() {
-    appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex] = { answer: 'No Answer', isCorrect: false };
+    const currentQuestion = appState.currentQuiz.questions[appState.currentQuiz.currentQuestionIndex];
+    const isMultipleChoice = currentQuestion.QuestionType?.toLowerCase() === 'multiple';
+    const noAnswer = isMultipleChoice ? { answer: [], isCorrect: false } : { answer: 'No Answer', isCorrect: false };
+    
+    appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex] = noAnswer;
     showAnswerResult();
     updateScoreBar();
 }
@@ -461,55 +663,93 @@ function resetQuizState() {
     dom.answerButtons.innerHTML = '';
     dom.questionImageContainer.innerHTML = '';
     dom.hintText.classList.add('hidden');
+    const notice = document.getElementById('multiple-choice-notice');
+    if(notice) notice.remove();
 }
 
 function showAnswerResult() {
-    Array.from(dom.answerButtons.children).forEach(container => {
-        const button = container.querySelector('button');
-        const rationale = container.querySelector('.rationale');
-        button.disabled = true;
+    // [Modified Section Start]
+    // ===========================
+    // Update Title: Support Multiple Correct Answers
+    // Date: 13/10/2025
+    // Version: v1.1
+    // Type: تحسين
+    // Description: Updates feedback logic to correctly display results for both single and multiple answer questions.
+    // ===========================
+    const quizState = appState.currentQuiz;
+    const currentQuestion = quizState.questions[quizState.currentQuestionIndex];
+    const userAnswer = quizState.userAnswers[quizState.currentQuestionIndex];
+    const isMultipleChoice = currentQuestion.QuestionType?.toLowerCase() === 'multiple';
 
-        const isCorrect = button.dataset.correct === 'true';
-        const userAnswer = appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex];
+    Array.from(dom.answerButtons.children).forEach(container => {
+        const label = container.querySelector('label');
+        const input = container.querySelector('input');
+        const rationale = container.querySelector('.rationale');
+        input.disabled = true;
+
+        const isCorrectOption = label.dataset.correct === 'true';
         
-        if (isCorrect) {
-            button.classList.add('correct');
+        if (isCorrectOption) {
+            label.classList.add('correct');
             rationale.classList.add('bg-green-100', 'visible');
         } else {
-            if (userAnswer && button.dataset.text === userAnswer.answer) {
-                button.classList.add('incorrect', 'user-choice');
-            }
             rationale.classList.add('bg-red-100', 'visible');
         }
+
+        if (userAnswer) {
+            const userSelections = isMultipleChoice ? userAnswer.answer : [userAnswer.answer];
+            if (userSelections.includes(input.value)) {
+                if (!isCorrectOption) {
+                    label.classList.add('incorrect', 'user-choice');
+                }
+                if (isMultipleChoice) input.checked = true;
+            }
+        }
     });
+    // [Modified Section End]
 }
 
-/**
- * NEW: Special result display for the full simulation review mode.
- */
+
 function showSimulationReviewResult() {
-    const userAnswer = appState.currentQuiz.userAnswers[appState.currentQuiz.currentQuestionIndex];
+    // [Modified Section Start]
+    // ===========================
+    // Update Title: Support Multiple Correct Answers
+    // Date: 13/10/2025
+    // Version: v1.1
+    // Type: تحسين
+    // Description: Updates simulation review feedback for multiple answer questions.
+    // ===========================
+    const quizState = appState.currentQuiz;
+    const currentQuestion = quizState.questions[quizState.currentQuestionIndex];
+    const userAnswer = quizState.userAnswers[quizState.currentQuestionIndex];
+    const isMultipleChoice = currentQuestion.QuestionType?.toLowerCase() === 'multiple';
+    
     Array.from(dom.answerButtons.children).forEach(container => {
-        const button = container.querySelector('button');
+        const label = container.querySelector('label');
+        const input = container.querySelector('input');
         const rationale = container.querySelector('.rationale');
-        button.disabled = true;
-        const isCorrect = button.dataset.correct === 'true';
+        input.disabled = true;
+        const isCorrectOption = label.dataset.correct === 'true';
 
-        // Always show all rationales
         rationale.classList.add('visible');
-        rationale.classList.toggle('bg-green-100', isCorrect);
-        rationale.classList.toggle('bg-red-100', !isCorrect);
+        rationale.classList.toggle('bg-green-100', isCorrectOption);
+        rationale.classList.toggle('bg-red-100', !isCorrectOption);
 
-        // Mark the correct answer
-        if (isCorrect) {
-            button.classList.add('correct');
+        if (isCorrectOption) {
+            label.classList.add('correct');
         }
 
-        // Mark the user's incorrect answer
-        if (userAnswer && button.dataset.text === userAnswer.answer && !userAnswer.isCorrect) {
-             button.classList.add('incorrect', 'user-choice');
+        if (userAnswer) {
+            const userSelections = isMultipleChoice ? userAnswer.answer : [userAnswer.answer];
+            if (userSelections.includes(input.value)) {
+                if (!userAnswer.isCorrect && !isCorrectOption) {
+                    label.classList.add('incorrect', 'user-choice');
+                }
+                input.checked = true;
+            }
         }
     });
+    // [Modified Section End]
 }
 
 
