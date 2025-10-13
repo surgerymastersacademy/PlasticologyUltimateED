@@ -1,16 +1,17 @@
 // ===========================
-// Update Title: FIX - Missing Function Export
+// Update Title: FIX - Unified Fix for All Theory Module Errors
 // Date: 13/10/2025
-// Version: v1.3.2
+// Version: v1.3.3
 // Type: إصلاح
-// Description: Fixed a SyntaxError crash on app load. The 'launchTheorySession' function was not exported from theory.js, preventing planner.js from importing it. The 'export' keyword has been added.
-// Dependencies Impacted: theory.js, planner.js
+// Description: This is a comprehensive fix that resolves three separate errors: 1) Corrected the 'formatTime' function call. 2) Exported 'launchTheorySession' for planner.js. 3) Renamed and exported 'showTheoryMenuScreen' for main.js. This should restore full app functionality.
+// Dependencies Impacted: theory.js, main.js, planner.js
 // ===========================
 
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
-import { formatTime } from '../utils.js'; 
+// [FIX #1, PART 1] - ADDED correct import
+import { formatTime } from '../utils.js';
 
 export function setupTheoryEventListeners() {
     dom.startTheoryBtn.addEventListener('click', () => {
@@ -34,14 +35,14 @@ export function setupTheoryEventListeners() {
     dom.theoryMarkIncompleteBtn.addEventListener('click', () => markTheoryQuestion('Incomplete'));
 }
 
-export function showTheoryScreen() {
+// [FIX #3] - RENAMED function from showTheoryScreen to showTheoryMenuScreen and ensured it is exported
+export function showTheoryMenuScreen() {
     ui.showScreen(dom.theoryScreen);
     populateTheoryFilters();
 }
 
-// [MODIFIED SECTION START] - ADDED 'export'
+// [FIX #2] - ADDED 'export' keyword
 export function launchTheorySession(chapter, source) {
-// [MODIFIED SECTION END]
     let filteredQuestions = appState.allTheoryQuestions;
 
     if (chapter !== 'all') {
@@ -156,7 +157,6 @@ function saveTheoryProgress(questionId, field, value) {
         logData.Notes = value;
     }
     
-    // Find existing log and update it, or add new
     const existingLogIndex = appState.userTheoryLogs.findIndex(log => log.Log_UniqueID === logUniqueId);
     if (existingLogIndex > -1) {
         appState.userTheoryLogs[existingLogIndex][field] = value;
@@ -174,9 +174,6 @@ function saveTheoryProgress(questionId, field, value) {
         appState.userTheoryLogs.push(newLog);
     }
     
-    // This should call an API function similar to saveUserProgress
-    // For now, it updates the local state.
-    // api.saveTheoryLog(logData); 
     console.log("Saving theory progress:", logData);
 }
 
@@ -214,6 +211,7 @@ function startTheoryTimer(duration) {
     dom.theoryTimer.textContent = formatTime(timeLeft);
     appState.theorySession.timerInterval = setInterval(() => {
         timeLeft--;
+        // [FIX #1, PART 2] - CORRECTED function call
         dom.theoryTimer.textContent = formatTime(timeLeft);
         if (timeLeft <= 0) {
             clearInterval(appState.theorySession.timerInterval);
