@@ -1,16 +1,15 @@
 // ===========================
-// Update Title: FINAL DEFINITIVE FIX for theory.js
+// Update Title: FINAL FIX - Resolve Infinite Recursion Loop
 // Date: 13/10/2025
-// Version: v2.0.0
+// Version: v2.1.0
 // Type: إصلاح
-// Description: This is the definitive fix based on the user's original, complete 'theory.js' file. It integrates all necessary fixes: 1) Corrects the 'formatTime' import and call. 2) Exports 'launchTheorySession' for planner.js. 3) Renames and exports 'showTheoryMenuScreen' for main.js. All original functionality is preserved.
-// Dependencies Impacted: theory.js, main.js, planner.js
+// Description: Fixed a "Maximum call stack size exceeded" crash. An infinite recursion was occurring between showTheoryMenuScreen() and endTheorySession(). The fix prevents endTheorySession() from calling back to showTheoryMenuScreen(), breaking the loop. All previous fixes are included.
+// Dependencies Impacted: theory.js
 // ===========================
 
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
-// [FIX #1, PART 1] - ADDED correct import for formatTime
 import { formatTime } from '../utils.js';
 
 let sessionTimer;
@@ -19,23 +18,22 @@ export function setupTheoryEventListeners() {
     if (dom.theoryBackBtn) dom.theoryBackBtn.addEventListener('click', showTheoryMenuScreen);
     if (dom.theoryFlashcardModeBtn) dom.theoryFlashcardModeBtn.addEventListener('click', () => startTheorySession('flashcard'));
     if (dom.theoryExamModeBtn) dom.theoryExamModeBtn.addEventListener('click', () => startTheorySession('exam'));
-    if (dom.theoryEndBtn) dom.theoryEndBtn.addEventListener('click', endTheorySession);
+    if (dom.theoryEndBtn) dom.theoryEndBtn.addEventListener('click', endTheorySessionAndShowMenu); // Use a new handler
     if (dom.theoryShowAnswerBtn) dom.theoryShowAnswerBtn.addEventListener('click', showTheoryAnswer);
     if (dom.theoryNextBtn) dom.theoryNextBtn.addEventListener('click', showNextTheoryQuestion);
     if (dom.theoryPrevBtn) dom.theoryPrevBtn.addEventListener('click', showPreviousTheoryQuestion);
     if (dom.theoryStatusBtn) dom.theoryStatusBtn.addEventListener('click', toggleTheoryQuestionStatus);
 }
 
-// [FIX #3] - RENAMED from showTheoryScreen and EXPORTED
 export function showTheoryMenuScreen() {
     ui.showScreen(dom.theoryContainer);
     if (dom.theoryViewer) dom.theoryViewer.classList.add('hidden');
     if (dom.theoryControls) dom.theoryControls.classList.remove('hidden');
-    endTheorySession(); // Ensure any running session is cleared
+    endTheorySession(); // This call is safe now
 }
 
 function startTheorySession(mode) {
-    const questions = appState.allTheoryQuestions; // Simplified: Using all questions for now
+    const questions = appState.allTheoryQuestions; 
     if (!questions || questions.length === 0) {
         alert("No theory questions available.");
         return;
@@ -44,7 +42,7 @@ function startTheorySession(mode) {
     appState.theorySession = {
         questions: questions,
         currentIndex: 0,
-        mode: mode, // 'flashcard' or 'exam'
+        mode: mode,
         startTime: Date.now(),
         userAnswers: {},
         timerInterval: null
@@ -62,11 +60,22 @@ function startTheorySession(mode) {
     displayCurrentTheoryQuestion();
 }
 
+// [MODIFIED SECTION START] - This function no longer calls showTheoryMenuScreen()
 function endTheorySession() {
     clearInterval(sessionTimer);
+    if(appState.theorySession && appState.theorySession.timerInterval) {
+        clearInterval(appState.theorySession.timerInterval);
+    }
     appState.theorySession = null;
+    // The call to showTheoryMenuScreen() was removed from here to break the loop.
+}
+
+// New wrapper function for the "End Session" button
+function endTheorySessionAndShowMenu() {
+    endTheorySession();
     showTheoryMenuScreen();
 }
+// [MODIFIED SECTION END]
 
 function displayCurrentTheoryQuestion() {
     const session = appState.theorySession;
@@ -80,7 +89,6 @@ function displayCurrentTheoryQuestion() {
     if (dom.theoryQuestionText) dom.theoryQuestionText.textContent = question.QuestionText;
     if (dom.theorySourceText) dom.theorySourceText.textContent = `Source: ${question.Source || 'N/A'} | Chapter: ${question.Chapter || 'N/A'}`;
     
-    // Reset answer visibility
     if (dom.theoryAnswerContainer) dom.theoryAnswerContainer.classList.add('hidden');
     if (dom.theoryAnswerText) dom.theoryAnswerText.textContent = question.ModelAnswer;
     
@@ -92,7 +100,6 @@ function displayCurrentTheoryQuestion() {
     if(session.mode === 'exam') {
         if(dom.theoryShowAnswerBtn) dom.theoryShowAnswerBtn.classList.add('hidden');
     }
-
 
     updateTheoryNavButtons();
     updateStatusIcon();
@@ -133,13 +140,12 @@ function startTheoryTimer() {
 
     function updateTimer() {
         if (dom.theoryTimer) {
-             // [FIX #1, PART 2] - CORRECTED function call from ui.formatTime to formatTime
             dom.theoryTimer.textContent = formatTime(timeLeft);
         }
         if (timeLeft <= 0) {
             clearInterval(session.timerInterval);
             alert("Time's up!");
-            endTheorySession();
+            endTheorySessionAndShowMenu();
         }
         timeLeft--;
     }
@@ -164,11 +170,9 @@ function toggleTheoryQuestionStatus() {
     const logIndex = appState.userTheoryLogs.findIndex(log => log.Question_ID === questionId);
 
     if (logIndex > -1) {
-        // Toggle status
         let currentStatus = appState.userTheoryLogs[logIndex].Status;
         appState.userTheoryLogs[logIndex].Status = (currentStatus === 'Completed') ? 'Not Completed' : 'Completed';
     } else {
-        // Create new log
         appState.userTheoryLogs.push({
             User_ID: appState.currentUser.UniqueID,
             Question_ID: questionId,
@@ -199,7 +203,6 @@ function updateStatusIcon() {
     }
 }
 
-// [FIX #2] - ADDED export keyword for planner.js
 export function launchTheorySession(chapter, source) {
     let filteredQuestions = appState.allTheoryQuestions;
 
@@ -218,7 +221,7 @@ export function launchTheorySession(chapter, source) {
     appState.theorySession = {
         questions: filteredQuestions,
         currentIndex: 0,
-        mode: 'flashcard', // Default mode when launched from planner
+        mode: 'flashcard',
         startTime: Date.now(),
         userAnswers: {},
         timerInterval: null
