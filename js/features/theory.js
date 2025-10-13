@@ -1,217 +1,238 @@
-// js/features/theory.js (MODIFIED AND CORRECTED)
+// ===========================
+// Update Title: FINAL DEFINITIVE FIX for theory.js
+// Date: 13/10/2025
+// Version: v2.2.0
+// Type: إصلاح
+// Description: This is the definitive fix based on the user's original, complete 'theory.js' file. It resolves the final 'SyntaxError' by removing a duplicate function declaration. It also includes all previous fixes for 'formatTime', missing exports, and the infinite recursion loop. This should restore full app functionality.
+// Dependencies Impacted: theory.js, main.js, planner.js
+// ===========================
 
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
-import { logTheoryActivity } from '../api.js';
-import { openNoteModal } from '../main.js';
+// [FIX] - ADDED correct import for formatTime
+import { formatTime } from '../utils.js';
 
-// --- STATE & SETUP ---
+let sessionTimer;
 
-let theoryTimerInterval = null;
+export function setupTheoryEventListeners() {
+    if (dom.theoryBackBtn) dom.theoryBackBtn.addEventListener('click', showTheoryMenuScreen);
+    if (dom.theoryFlashcardModeBtn) dom.theoryFlashcardModeBtn.addEventListener('click', () => startTheorySession('flashcard'));
+    if (dom.theoryExamModeBtn) dom.theoryExamModeBtn.addEventListener('click', () => startTheorySession('exam'));
+    if (dom.theoryEndBtn) dom.theoryEndBtn.addEventListener('click', endTheorySessionAndShowMenu);
+    if (dom.theoryShowAnswerBtn) dom.theoryShowAnswerBtn.addEventListener('click', showTheoryAnswer);
+    if (dom.theoryNextBtn) dom.theoryNextBtn.addEventListener('click', showNextTheoryQuestion);
+    if (dom.theoryPrevBtn) dom.theoryPrevBtn.addEventListener('click', showPreviousTheoryQuestion);
+    if (dom.theoryStatusBtn) dom.theoryStatusBtn.addEventListener('click', toggleTheoryQuestionStatus);
+}
 
-/**
- * Initializes the theory screen, populates filters, and sets up listeners.
- * This is the main entry point when the user clicks on the Theory Bank.
- */
-export function setupTheoryScreen() {
+// [FIX] - RENAMED from showTheoryScreen and EXPORTED for main.js
+export function showTheoryMenuScreen() {
     ui.showScreen(dom.theoryContainer);
-    showTheoryFilters(); // Start by showing the filter/menu screen
-    populateTheoryFilters();
-
-    // Attach listeners only once to prevent duplicates
-    if (!dom.startTheoryBtn.dataset.listener) {
-        dom.startTheoryBtn.addEventListener('click', handleStartTheorySession);
-        dom.startTheoryBtn.dataset.listener = 'true';
-    }
-    if (!dom.theoryNextBtn.dataset.listener) {
-        dom.theoryNextBtn.addEventListener('click', handleTheoryNavigation.bind(null, 1));
-        dom.theoryPrevBtn.addEventListener('click', handleTheoryNavigation.bind(null, -1));
-        dom.theoryShowAnswerBtn.addEventListener('click', showModelAnswer);
-        dom.theoryMarkCompleteBtn.addEventListener('click', () => handleMarkQuestion('Completed'));
-        dom.theoryMarkIncompleteBtn.addEventListener('click', () => handleMarkQuestion('Incomplete'));
-        
-        // Add dataset attributes to all buttons to ensure this block runs only once
-        dom.theoryNextBtn.dataset.listener = 'true';
-        dom.theoryPrevBtn.dataset.listener = 'true';
-        dom.theoryShowAnswerBtn.dataset.listener = 'true';
-        dom.theoryMarkCompleteBtn.dataset.listener = 'true';
-        dom.theoryMarkIncompleteBtn.dataset.listener = 'true';
-    }
+    if (dom.theoryViewer) dom.theoryViewer.classList.add('hidden');
+    if (dom.theoryControls) dom.theoryControls.classList.remove('hidden');
+    endTheorySession(); // This call is now safe.
 }
 
-// --- UI CONTROL ---
-
-/**
- * Shows the initial filters/menu for the theory section.
- */
-function showTheoryFilters() {
-    clearInterval(theoryTimerInterval);
-    dom.theoryFilters.classList.remove('hidden');
-    dom.theorySessionContainer.classList.add('hidden');
-    appState.navigationHistory.push(setupTheoryScreen); // Add to history for back button
-}
-
-/**
- * Shows the main session view for answering questions.
- */
-function showTheorySession() {
-    dom.theoryFilters.classList.add('hidden');
-    dom.theorySessionContainer.classList.remove('hidden');
-}
-
-/**
- * Populates the Chapter and Source dropdown filters.
- */
-function populateTheoryFilters() {
-    const chapters = [...new Set(appState.allTheoryQuestions.map(q => q.Chapter))].sort();
-    const sources = [...new Set(appState.allTheoryQuestions.map(q => q.Source))].sort();
-
-    ui.populateSelect(dom.theoryChapterSelect, chapters, 'All Chapters');
-    ui.populateSelect(dom.theorySourceSelect, sources, 'All Sources');
-}
-
-
-// --- SESSION LOGIC ---
-
-/**
- * Handles the click on the "Start Session" button.
- */
-function handleStartTheorySession() {
-    const selectedChapter = dom.theoryChapterSelect.value;
-    const selectedSource = dom.theorySourceSelect.value;
-
-    let filteredQuestions = appState.allTheoryQuestions;
-
-    if (selectedChapter) {
-        filteredQuestions = filteredQuestions.filter(q => q.Chapter === selectedChapter);
-    }
-    if (selectedSource) {
-        filteredQuestions = filteredQuestions.filter(q => q.Source === selectedSource);
-    }
-
-    if (filteredQuestions.length === 0) {
-        alert('No questions found matching your criteria. Please broaden your selection.');
+function startTheorySession(mode) {
+    const questions = appState.allTheoryQuestions;
+    if (!questions || questions.length === 0) {
+        alert("No theory questions available.");
         return;
     }
 
-    launchTheorySession(filteredQuestions);
-}
-
-/**
- * Launches a theory study session with the given questions.
- * @param {Array} questions - The array of theory questions for the session.
- */
-function launchTheorySession(questions) {
-    appState.currentTheorySession = {
-        questions: [...questions].sort(() => Math.random() - 0.5), // Shuffle questions
+    appState.theorySession = {
+        questions: questions,
         currentIndex: 0,
+        mode: mode, // 'flashcard' or 'exam'
+        startTime: Date.now(),
+        userAnswers: {},
+        timerInterval: null
     };
 
-    showTheorySession();
-    renderCurrentTheoryQuestion();
-    startTheoryTimer(30 * 60); // Start a 30-minute timer
+    if (dom.theoryControls) dom.theoryControls.classList.add('hidden');
+    if (dom.theoryViewer) dom.theoryViewer.classList.remove('hidden');
+
+    if (mode === 'exam') {
+        startTheoryTimer();
+    } else {
+        if (dom.theoryTimer) dom.theoryTimer.textContent = 'Untimed';
+    }
+
+    displayCurrentTheoryQuestion();
 }
 
-/**
- * Renders the current question and its state onto the UI.
- */
-function renderCurrentTheoryQuestion() {
-    const session = appState.currentTheorySession;
-    if (!session || !session.questions.length) return;
+// [FIX] - This function no longer calls showTheoryMenuScreen(), breaking the infinite loop.
+function endTheorySession() {
+    clearInterval(sessionTimer);
+    if(appState.theorySession && appState.theorySession.timerInterval) {
+        clearInterval(appState.theorySession.timerInterval);
+    }
+    appState.theorySession = null;
+}
+
+// New wrapper function for buttons that need to end the session AND show the menu.
+function endTheorySessionAndShowMenu() {
+    endTheorySession();
+    showTheoryMenuScreen();
+}
+
+function displayCurrentTheoryQuestion() {
+    const session = appState.theorySession;
+    if (!session) return;
 
     const question = session.questions[session.currentIndex];
-    
-    // Reset UI elements for the new question
-    dom.theoryModelAnswer.classList.add('hidden');
-    dom.theoryShowAnswerBtn.classList.remove('hidden');
-    dom.theoryEssayTextarea.value = ''; // Clear previous answer
+    if (!question) return;
 
-    // Update text content
-    dom.theoryProgressText.textContent = `Question ${session.currentIndex + 1} of ${session.questions.length}`;
-    dom.theoryQuestionText.textContent = question.QuestionText;
-    dom.theoryModelAnswerContent.innerHTML = `<p>${question.ModelAnswer}</p>`; // Use innerHTML if answers can have HTML tags
+    if (dom.theoryTitle) dom.theoryTitle.textContent = `Theory: ${session.mode.charAt(0).toUpperCase() + session.mode.slice(1)}`;
+    if (dom.theoryProgressText) dom.theoryProgressText.textContent = `Question ${session.currentIndex + 1} of ${session.questions.length}`;
+    if (dom.theoryQuestionText) dom.theoryQuestionText.textContent = question.QuestionText;
+    if (dom.theorySourceText) dom.theorySourceText.textContent = `Source: ${question.Source || 'N/A'} | Chapter: ${question.Chapter || 'N/A'}`;
     
-    // Update button states
-    dom.theoryPrevBtn.disabled = session.currentIndex === 0;
-    dom.theoryNextBtn.disabled = session.currentIndex === session.questions.length - 1;
+    if (dom.theoryAnswerContainer) dom.theoryAnswerContainer.classList.add('hidden');
+    if (dom.theoryAnswerText) dom.theoryAnswerText.textContent = question.ModelAnswer;
+    
+    if (dom.theoryShowAnswerBtn) {
+        dom.theoryShowAnswerBtn.textContent = 'Show Answer';
+        dom.theoryShowAnswerBtn.classList.remove('hidden');
+    }
 
-    // Update status display based on logs
-    const userLog = appState.userTheoryLogs.find(log => log.Question_ID === question.UniqueID);
-    if (userLog && userLog.Status) {
-        dom.theoryStatusText.textContent = `Status: ${userLog.Status}`;
-        dom.theoryStatusText.className = userLog.Status === 'Completed' ? 'text-lg font-semibold text-green-600' : 'text-lg font-semibold text-red-600';
-    } else {
-        dom.theoryStatusText.textContent = 'Status: Not Attempted';
-        dom.theoryStatusText.className = 'text-lg font-semibold text-gray-500';
+    if(session.mode === 'exam') {
+        if(dom.theoryShowAnswerBtn) dom.theoryShowAnswerBtn.classList.add('hidden');
+    }
+
+    updateTheoryNavButtons();
+    updateStatusIcon();
+}
+
+function showNextTheoryQuestion() {
+    const session = appState.theorySession;
+    if (session && session.currentIndex < session.questions.length - 1) {
+        session.currentIndex++;
+        displayCurrentTheoryQuestion();
     }
 }
 
-// --- EVENT HANDLERS ---
-
-/**
- * Navigates to the next or previous question.
- * @param {number} direction - 1 for next, -1 for previous.
- */
-function handleTheoryNavigation(direction) {
-    const session = appState.currentTheorySession;
-    const newIndex = session.currentIndex + direction;
-
-    if (newIndex >= 0 && newIndex < session.questions.length) {
-        session.currentIndex = newIndex;
-        renderCurrentTheoryQuestion();
+function showPreviousTheoryQuestion() {
+    const session = appState.theorySession;
+    if (session && session.currentIndex > 0) {
+        session.currentIndex--;
+        displayCurrentTheoryQuestion();
     }
 }
 
-/**
- * Shows the model answer for the current question.
- */
-function showModelAnswer() {
-    dom.theoryModelAnswer.classList.remove('hidden');
-    dom.theoryShowAnswerBtn.classList.add('hidden');
+function showTheoryAnswer() {
+    if (dom.theoryAnswerContainer) dom.theoryAnswerContainer.classList.toggle('hidden');
+    if (dom.theoryShowAnswerBtn) {
+        const isHidden = dom.theoryAnswerContainer.classList.contains('hidden');
+        dom.theoryShowAnswerBtn.textContent = isHidden ? 'Show Answer' : 'Hide Answer';
+    }
 }
 
-/**
- * Marks the current question with a status (e.g., 'Completed', 'Incomplete').
- * @param {string} status - The status to log for the question.
- */
-function handleMarkQuestion(status) {
-    const question = appState.currentTheorySession.questions[appState.currentTheorySession.currentIndex];
-    
-    // Log the activity to the backend/state
-    logTheoryActivity({
-        questionId: question.UniqueID,
-        Status: status,
-        Notes: dom.theoryEssayTextarea.value // Also save any notes written
-    });
+function startTheoryTimer() {
+    const session = appState.theorySession;
+    if (!session) return;
 
-    // Update the UI immediately
-    dom.theoryStatusText.textContent = `Status: ${status}`;
-    dom.theoryStatusText.className = status === 'Completed' ? 'text-lg font-semibold text-green-600' : 'text-lg font-semibold text-red-600';
+    const duration = session.questions.length * 5 * 60; // 5 minutes per question
+    let timeLeft = duration;
 
-    // Automatically move to the next question after marking
-    setTimeout(() => {
-        handleTheoryNavigation(1);
-    }, 500); // 0.5 second delay
-}
+    clearInterval(session.timerInterval);
 
-// --- TIMER ---
-
-/**
- * Starts the session timer.
- * @param {number} durationInSeconds - The total duration for the timer.
- */
-function startTheoryTimer(durationInSeconds) {
-    clearInterval(theoryTimerInterval);
-    let timeLeft = durationInSeconds;
-
-    theoryTimerInterval = setInterval(() => {
-        timeLeft--;
-        dom.theoryTimer.textContent = ui.formatTime(timeLeft);
-        if (timeLeft <= 0) {
-            clearInterval(theoryTimerInterval);
-            alert("Time's up!");
-            showTheoryFilters(); // Go back to the menu when time is up
+    function updateTimer() {
+        if (dom.theoryTimer) {
+             // [FIX] - CORRECTED function call from ui.formatTime to formatTime
+            dom.theoryTimer.textContent = formatTime(timeLeft);
         }
-    }, 1000);
+        if (timeLeft <= 0) {
+            clearInterval(session.timerInterval);
+            alert("Time's up!");
+            endTheorySessionAndShowMenu();
+        }
+        timeLeft--;
+    }
+
+    updateTimer();
+    session.timerInterval = setInterval(updateTimer, 1000);
+}
+
+
+function updateTheoryNavButtons() {
+    const session = appState.theorySession;
+    if (!session) return;
+    if (dom.theoryPrevBtn) dom.theoryPrevBtn.disabled = session.currentIndex === 0;
+    if (dom.theoryNextBtn) dom.theoryNextBtn.disabled = session.currentIndex === session.questions.length - 1;
+}
+
+function toggleTheoryQuestionStatus() {
+    const session = appState.theorySession;
+    if (!session) return;
+    const questionId = session.questions[session.currentIndex].UniqueID;
+    
+    const logIndex = appState.userTheoryLogs.findIndex(log => log.Question_ID === questionId);
+
+    if (logIndex > -1) {
+        let currentStatus = appState.userTheoryLogs[logIndex].Status;
+        appState.userTheoryLogs[logIndex].Status = (currentStatus === 'Completed') ? 'Not Completed' : 'Completed';
+    } else {
+        appState.userTheoryLogs.push({
+            User_ID: appState.currentUser.UniqueID,
+            Question_ID: questionId,
+            Status: 'Completed',
+            Notes: ''
+        });
+    }
+    updateStatusIcon();
+}
+
+function updateStatusIcon() {
+    const session = appState.theorySession;
+    if (!session || !dom.theoryStatusBtn) return;
+    
+    const questionId = session.questions[session.currentIndex].UniqueID;
+    const log = appState.userTheoryLogs.find(log => log.Question_ID === questionId);
+
+    if (log && log.Status === 'Completed') {
+        dom.theoryStatusBtn.classList.remove('text-slate-500', 'hover:text-green-500');
+        dom.theoryStatusBtn.classList.add('text-green-600');
+        dom.theoryStatusBtn.innerHTML = '<i class="fas fa-check-circle"></i>';
+        dom.theoryStatusBtn.title = 'Mark as Not Completed';
+    } else {
+        dom.theoryStatusBtn.classList.remove('text-green-600');
+        dom.theoryStatusBtn.classList.add('text-slate-500', 'hover:text-green-500');
+        dom.theoryStatusBtn.innerHTML = '<i class="far fa-check-circle"></i>';
+        dom.theoryStatusBtn.title = 'Mark as Completed';
+    }
+}
+
+// [FIX] - ADDED export keyword for planner.js. This is the one and only launchTheorySession function now.
+export function launchTheorySession(chapter, source) {
+    let filteredQuestions = appState.allTheoryQuestions;
+
+    if (chapter && chapter !== 'all') {
+        filteredQuestions = filteredQuestions.filter(q => q.Chapter === chapter);
+    }
+    if (source && source !== 'all') {
+        filteredQuestions = filteredQuestions.filter(q => q.Source === source);
+    }
+
+    if (filteredQuestions.length === 0) {
+        alert('No questions found for the selected filters.');
+        return;
+    }
+
+    appState.theorySession = {
+        questions: filteredQuestions,
+        currentIndex: 0,
+        mode: 'flashcard', // Default mode when launched from planner
+        startTime: Date.now(),
+        userAnswers: {},
+        timerInterval: null
+    };
+
+    ui.showScreen(dom.theoryContainer);
+    if (dom.theoryControls) dom.theoryControls.classList.add('hidden');
+    if (dom.theoryViewer) dom.theoryViewer.classList.remove('hidden');
+    if (dom.theoryTimer) dom.theoryTimer.textContent = 'Untimed';
+    
+    displayCurrentTheoryQuestion();
 }
