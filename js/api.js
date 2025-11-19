@@ -1,4 +1,4 @@
-// js/api.js (FINAL COMPLETE VERSION)
+// js/api.js (FINAL COMPLETE VERSION - INCLUDES PLANNER & CORS FIXES)
 
 import { API_URL, appState } from './state.js';
 
