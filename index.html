@@ -39,8 +39,7 @@
 
         <header id="global-header" class="p-4 md:p-6 bg-slate-800 text-white flex justify-between items-center hidden">
             <a href="https://www.surgerymastersacademy.com" target="_blank" title="Back to Main Website">
-                <img id="header-logo" 
- src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-10">
+                <img id="header-logo" src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-10">
             </a>
             <div class="flex items-center gap-4">
                 <button id="user-profile-header-btn" class="flex items-center gap-2 text-white hover:text-slate-300 transition-colors" title="My Profile" aria-label="My Profile">
@@ -93,6 +92,17 @@
                         <h1 class="text-2xl font-bold text-slate-800">Welcome To Plasticology</h1>
                         <p class="text-slate-500 mt-1">Please log in to your account.</p>
                     </div>
+
+                    <div id="pwa-install-banner" class="hidden mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-center shadow-sm">
+                        <div class="flex justify-center mb-2 text-indigo-600 text-3xl">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <h3 class="font-bold text-indigo-900 text-sm">Get the Best Experience</h3>
+                        <p class="text-xs text-indigo-700 mb-3">Install the App for fullscreen & offline access.</p>
+                        <button id="pwa-install-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm shadow-md">
+                            Install App
+                        </button>
+                    </div>
                     <div id="login-loader" class="loader hidden"></div>
                     <p id="login-loading-text" class="text-center text-slate-500 hidden">Loading data for guests...</p>
                     <form id="login-form" class="space-y-6">
@@ -141,7 +151,6 @@
 </div>
                 </div>
             </div>
-            
             <div id="main-menu-container" class="w-full hidden">
                 <div class="p-6 md:p-8">
                     <div id="announcement-banner" class="hidden"></div>
@@ -196,7 +205,6 @@
                     </div>
                 </div>
             </div>
-
             <div id="library-container" class="w-full hidden">
                 <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
                     <button id="library-back-btn" class="text-slate-700 hover:text-blue-600 transition-colors" title="Back"><i class="fas fa-arrow-left"></i> Back</button>
@@ -208,7 +216,6 @@
                     </div>
                 </div>
             </div>
-
             <div id="leaderboard-container" class="w-full hidden">
                 <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
                     <button id="leaderboard-back-btn" class="text-slate-700 hover:text-blue-600 transition-colors" title="Back"><i class="fas fa-arrow-left"></i> Back</button>
@@ -221,7 +228,6 @@
                     </div>
                 </div>
             </div>
-
             <div id="lectures-container" class="w-full hidden">
                 <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
                     <button id="lectures-back-btn" class="text-slate-700 hover:text-blue-600 transition-colors" title="Back"><i class="fas fa-arrow-left"></i> Back</button>
@@ -237,7 +243,6 @@
                     </div>
                 </div>
             </div>
-
             <div id="qbank-container" class="w-full hidden">
                 <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
                     <button id="qbank-back-btn" class="text-slate-700 hover:text-blue-600 transition-colors" title="Back"><i class="fas fa-arrow-left"></i> Back</button>
@@ -245,7 +250,6 @@
                     <div class="w-16"></div> 
                 </div>
                 <div class="p-4 md:p-8">
-
                     <div class="mb-6">
                         <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-search text-indigo-500 mr-3"></i>Search for a Topic</h3>
                         <div class="flex flex-col sm:flex-row items-center gap-4">
@@ -256,7 +260,6 @@
                         </div>
                         <p id="qbank-search-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
                     </div>
-
                     <div class="mb-6 p-4 bg-slate-50 border rounded-lg">
                          <h4 class="text-slate-700 text-sm font-bold mb-2">Question Scope</h4>
                          <div class="flex gap-4">
@@ -270,7 +273,6 @@
                              </div>
                          </div>
                     </div>
-                    
                     <div id="qbank-search-results-container" class="mt-6 hidden bg-white rounded-lg shadow-md p-6">
                         <button id="qbank-clear-search-btn" class="mb-4 text-sm text-blue-600 hover:underline">← Back to All Options</button>
                         <p id="qbank-search-results-info" class="mb-4"></p>
@@ -281,8 +283,6 @@
                             </button>
                         </div>
                     </div>
-
-
                     <div id="qbank-main-content">
                         <div class="border-b border-gray-200 mb-4">
                             <nav class="flex space-x-4" aria-label="Tabs">
@@ -297,10 +297,8 @@
                                 </button>
                             </nav>
                         </div>
-
                         <div id="qbank-panel-create" class="qbank-panel">
                              <div class="space-y-4">
-        
                                 <details class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
                                     <summary class="p-4 cursor-pointer hover:bg-slate-50 flex justify-between items-center">
                                         <h3 class="text-xl font-bold text-slate-800 flex items-center"><i class="fas fa-tasks text-emerald-500 mr-3"></i>Create a Mock Exam</h3>
@@ -352,7 +350,6 @@
                                         <p id="mock-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
                                     </div>
                                 </details>
-
                                 <details class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
                                     <summary class="p-4 cursor-pointer hover:bg-slate-50 flex justify-between items-center">
                                         <h3 class="text-xl font-bold text-slate-800 flex items-center"><i class="fas fa-flag-checkered text-rose-500 mr-3"></i>Exam Simulation Mode</h3>
@@ -368,7 +365,6 @@
                                 </details>
                             </div>
                         </div>
-
                         <div id="qbank-panel-practice" class="qbank-panel hidden">
                            <div class="bg-white rounded-lg shadow-md p-6">
                                 <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-book-open-reader text-purple-500 mr-3"></i>Practice & Review</h3>
@@ -378,7 +374,6 @@
                                 </div>
                             </div>
                         </div>
-
                         <div id="qbank-panel-browse" class="qbank-panel hidden">
                            <div class="bg-white rounded-lg shadow-md p-6">
                                 <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-stream text-cyan-500 mr-3"></i>Browse Questions</h3>
@@ -390,7 +385,7 @@
                         </div>
                     </div>
                 </div>
-                </div>
+            </div>
             
             <div id="osce-container" class="w-full hidden">
                 <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
@@ -445,7 +440,6 @@
                     </div>
                 </div>
             </div>
-
             <div id="osce-quiz-container" class="w-full hidden flex flex-col h-full">
                 <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center flex-shrink-0">
                     <div class="flex items-center gap-4">
@@ -480,7 +474,6 @@
                     </div>
                 </div>
             </div>
-
             <div id="list-container" class="w-full hidden">
                 <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
                     <button id="list-back-btn" class="text-slate-700 hover:text-blue-600 transition-colors" title="Back"><i class="fas fa-arrow-left"></i> Back</button>
@@ -488,7 +481,6 @@
                     <div class="w-16"></div> </div>
                 <div id="list-items" class="p-4 md:p-6 grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4"></div>
             </div>
-            
             <div id="notes-container" class="w-full hidden">
                 <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
                     <button id="notes-back-btn" class="text-slate-700 hover:text-blue-600 transition-colors" title="Back"><i class="fas fa-arrow-left"></i> Back</button>
@@ -504,7 +496,6 @@
                     </div>
                 </div>
             </div>
-
             <div id="activity-log-container" class="w-full hidden">
                 <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
                     <button id="activity-back-btn" class="text-slate-700 hover:text-blue-600 transition-colors" title="Back"><i class="fas fa-arrow-left"></i> Back</button>
@@ -558,7 +549,6 @@
                     </div>
                 </div>
             </div>
-
             <div id="quiz-container" class="w-full hidden">
                 <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
                     <div class="flex items-center gap-4">
@@ -614,7 +604,6 @@
                     </div>
                 </div>
             </div>
-
             <div id="learning-mode-container" class="w-full hidden">
                 <div id="learning-mode-controls">
                     <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
@@ -666,7 +655,6 @@
                     </div>
                 </div>
             </div>
-
             <div id="theory-container" class="w-full hidden">
                 <div id="theory-controls" class="">
                     <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
@@ -725,8 +713,6 @@
                     </div>
                 </div>
             </div>
-
-
             <div id="study-planner-container" class="w-full hidden">
                 <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
                     <button id="study-planner-back-btn" class="text-slate-700 hover:text-blue-600 transition-colors" title="Back"><i class="fas fa-arrow-left"></i> Back</button>
@@ -735,7 +721,6 @@
                 </div>
                 <div class="p-6 md:p-8">
                     <div id="study-planner-loader" class="loader hidden"></div>
-
                     <details id="performance-insights-container" class="insights-details mb-6 hidden">
                         <summary class="insights-summary">
                             <span>Performance Insights</span>
@@ -756,7 +741,6 @@
                             </div>
                         </div>
                     </details>
-
                     <div id="planner-dashboard">
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="text-2xl font-bold text-slate-800">Your Study Plans</h3>
@@ -978,6 +962,21 @@
                 <button id="confirm-create-plan-btn" class="action-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Create Plan</button>
             </div>
         </div>
+        
+        <div id="ios-install-modal" class="bg-white rounded-lg p-6 shadow-xl max-w-sm w-full hidden relative">
+            <button id="ios-install-close-btn" class="absolute top-2 right-2 text-2xl text-gray-600 hover:text-black z-10">&times;</button>
+            <div class="text-center">
+                <i class="fab fa-apple text-5xl text-gray-800 mb-4"></i>
+                <h3 class="text-xl font-bold mb-2">Install on iPhone/iPad</h3>
+                <p class="text-sm text-gray-600 mb-4">To install this app on your device, tap the <strong>Share</strong> button and then <strong>Add to Home Screen</strong>.</p>
+                <div class="flex justify-center items-center gap-4 text-gray-500 mb-2">
+                    <span class="flex flex-col items-center"><i class="fas fa-share-square text-2xl text-blue-500 mb-1"></i><span class="text-xs">1. Share</span></span>
+                    <i class="fas fa-arrow-right"></i>
+                    <span class="flex flex-col items-center"><i class="fas fa-plus-square text-2xl text-gray-600 mb-1"></i><span class="text-xs">2. Add to Home</span></span>
+                </div>
+            </div>
+        </div>
+
     </div>
     
     <script>
