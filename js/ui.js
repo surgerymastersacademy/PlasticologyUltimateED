@@ -1,4 +1,4 @@
-// js/ui.js (UPDATED - With URL Routing Logic)
+// js/ui.js (UPDATED - Fixes Matching Container Visibility Bug)
 
 import * as dom from './dom.js';
 import { appState } from './state.js';
@@ -23,7 +23,26 @@ export function showScreen(screenToShow, isGuest = false) {
     if (dom.modalBackdrop) dom.modalBackdrop.classList.add('hidden');
 
     // 2. Hide all main content containers
-    const screens = [dom.loginContainer, dom.mainMenuContainer, dom.lecturesContainer, dom.qbankContainer, dom.listContainer, dom.quizContainer, dom.activityLogContainer, dom.notesContainer, dom.libraryContainer, dom.leaderboardContainer, dom.osceContainer, dom.osceQuizContainer, dom.learningModeContainer, dom.studyPlannerContainer, dom.theoryContainer];
+    // --- FIX: Added dom.matchingContainer to this list ---
+    const screens = [
+        dom.loginContainer, 
+        dom.mainMenuContainer, 
+        dom.lecturesContainer, 
+        dom.qbankContainer, 
+        dom.listContainer, 
+        dom.quizContainer, 
+        dom.activityLogContainer, 
+        dom.notesContainer, 
+        dom.libraryContainer, 
+        dom.leaderboardContainer, 
+        dom.osceContainer, 
+        dom.osceQuizContainer, 
+        dom.learningModeContainer, 
+        dom.studyPlannerContainer, 
+        dom.theoryContainer,
+        dom.matchingContainer // <--- Added this to ensure it hides properly
+    ];
+    
     screens.forEach(screen => {
         if (screen) screen.classList.add('hidden');
     });
@@ -31,9 +50,7 @@ export function showScreen(screenToShow, isGuest = false) {
     // 3. Show the requested screen
     screenToShow.classList.remove('hidden');
 
-    // 4. --- NEW: Update URL Hash for Routing ---
-    // This enables the "Back" button and page refreshes.
-    // We check if the hash is already correct to avoid infinite loops.
+    // 4. Update URL Hash for Routing
     const screenId = screenToShow.id;
     let newHash = '';
 
@@ -49,18 +66,16 @@ export function showScreen(screenToShow, isGuest = false) {
         case 'activity-log-container': newHash = 'activity'; break;
         case 'notes-container': newHash = 'notes'; break;
         case 'login-container': newHash = 'login'; break;
-        // Quiz and Learning Mode usually have dynamic states, so we might simply default them or leave hash as is
         case 'quiz-container': newHash = 'quiz'; break; 
         case 'learning-mode-container': newHash = 'learning'; break;
-        default: newHash = ''; // Don't change hash for unknown screens (like sub-views)
+        case 'matching-container': newHash = 'matching'; break; // Added hash for matching
+        default: newHash = '';
     }
 
     if (newHash && window.location.hash !== `#${newHash}`) {
-        // We use replaceState for login to keep history clean, pushState for others
         if (newHash === 'login') {
-            history.replaceState(null, null, ' '); // Clear hash for login
+            history.replaceState(null, null, ' ');
         } else {
-            // Assigning hash triggers 'hashchange' event, handled in main.js
             window.location.hash = newHash; 
         }
     }
@@ -82,7 +97,7 @@ export function showScreen(screenToShow, isGuest = false) {
     }
 }
 
-// --- Keep Existing Helper Functions ---
+// --- Keep Existing Helper Functions (No Changes Below) ---
 
 export function showConfirmationModal(title, text, onConfirm) {
     if (!dom.confirmationModal) return;
