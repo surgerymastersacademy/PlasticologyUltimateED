@@ -1,10 +1,11 @@
-// js/main.js (FINAL VERSION - Includes Daily Streak Logic)
+// js/main.js (FINAL VERSION - COMPLETE)
+// نقطة الانطلاق الرئيسية للتطبيق: تربط كل الأجزاء ببعضها
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
 import * as ui from './ui.js';
 import * as utils from './utils.js';
-import { fetchContentData } from './api.js';
+import { fetchContentData, logTheoryActivity } from './api.js'; // Added logTheoryActivity import
 import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
 import {
     launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz,
@@ -21,14 +22,21 @@ import { analyzePerformanceByChapter } from './features/performance.js';
 import { showTheoryMenuScreen, launchTheorySession } from './features/theory.js';
 import { showRegistrationModal, hideRegistrationModal, handleRegistrationSubmit } from './features/registration.js';
 import { showMatchingMenu, handleStartMatchingExam, checkCurrentSetAnswers, handleNextMatchingSet } from './features/matching.js';
+import { checkAndTriggerOnboarding, startTour, nextTourStep, endTour } from './features/onboarding.js';
 
 
-// SHARED & EXPORTED FUNCTIONS
+// --- دوال التنقل والعرض المشتركة ---
+
 export function showMainMenuScreen() {
     ui.showScreen(dom.mainMenuContainer);
     appState.navigationHistory = [showMainMenuScreen];
     ui.displayAnnouncement();
     fetchAndShowLastActivity();
+    
+    // التحقق من جولة الشرح (Onboarding) بعد ثانية من تحميل القائمة
+    setTimeout(() => {
+        checkAndTriggerOnboarding();
+    }, 1000);
 }
 
 export function openNoteModal(type, itemId, itemTitle) {
@@ -52,7 +60,7 @@ export function openNoteModal(type, itemId, itemTitle) {
 
 
 function populateAllFilters() {
-    // For QBank
+    // فلتر بنك الأسئلة (QBank)
     const allSources = [...new Set(appState.allQuestions.map(q => q.source || 'Uncategorized'))].sort();
     const sourceCounts = appState.allQuestions.reduce((acc, q) => {
         const source = q.source || 'Uncategorized';
@@ -62,7 +70,7 @@ function populateAllFilters() {
     ui.populateFilterOptions(dom.sourceSelectMock, allSources, 'mock-source', sourceCounts);
     updateChapterFilter();
 
-    // For OSCE
+    // فلتر OSCE
     const osceChapters = [...new Set(appState.allOsceCases.map(c => c.Chapter || 'Uncategorized'))].sort();
     const osceSources = [...new Set(appState.allOsceCases.map(c => c.Source || 'Uncategorized'))].sort();
     const osceChapterCounts = appState.allOsceCases.reduce((acc, c) => {
@@ -79,9 +87,11 @@ function populateAllFilters() {
     ui.populateFilterOptions(dom.sourceSelectOsce, osceSources, 'osce-source', osceSourceCounts);
 }
 
+// --- نظام التوجيه (Router) ---
+// يدير التنقل عبر الروابط (#) ليعمل زر الرجوع في المتصفح
 function handleRouting() {
     if (!appState.currentUser && window.location.hash !== '#login') {
-        return;
+        return; // لا تفعل شيئاً إذا لم يسجل الدخول
     }
     const hash = window.location.hash;
     switch(hash) {
@@ -97,18 +107,19 @@ function handleRouting() {
         case '#activity': showActivityLog(); break;
         case '#notes': showNotesScreen(); break;
         case '#quiz': 
+            // حماية: إذا تم تحديث الصفحة أثناء الامتحان، عد للرئيسية لأن البيانات ضاعت
             if (!appState.currentQuiz.questions || appState.currentQuiz.questions.length === 0) {
                 window.location.hash = '#home';
             } else {
                 ui.showScreen(dom.quizContainer);
             }
             break;
-        case '#matching': showMatchingMenu(); break;
+        case '#matching': showMatchingMenu(); break; // المسار الجديد لـ Matching
         default: break;
     }
 }
 
-// --- PWA Logic ---
+// --- PWA & Install Banner Logic ---
 let deferredPrompt; 
 
 function initializePwaFeatures() {
@@ -117,11 +128,14 @@ function initializePwaFeatures() {
     const iosModal = document.getElementById('ios-install-modal');
     const iosCloseBtn = document.getElementById('ios-install-close-btn');
     
+    // إذا كان التطبيق مثبتاً بالفعل، لا تظهر شيئاً
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
     if (isStandalone) return; 
 
+    // اكتشاف iOS
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
+    // لنظام Android/Desktop
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
@@ -131,9 +145,11 @@ function initializePwaFeatures() {
     if(installBtn) {
         installBtn.addEventListener('click', () => {
             if (isIOS) {
+                // تعليمات آيفون
                 dom.modalBackdrop.classList.remove('hidden');
                 iosModal.classList.remove('hidden');
             } else if (deferredPrompt) {
+                // تثبيت أندرويد/ويندوز
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
@@ -147,6 +163,7 @@ function initializePwaFeatures() {
         });
     }
 
+    // إظهار البانر لمستخدمي آيفون دائماً
     if (isIOS && pwaBanner) {
         pwaBanner.classList.remove('hidden');
         installBtn.textContent = "Install on iOS";
@@ -160,47 +177,48 @@ function initializePwaFeatures() {
     }
 }
 
-// --- NEW: Daily Streak Logic ---
+// --- منطق عداد الاستمرار (Daily Streak) ---
 function calculateDailyStreak() {
     if (!dom.streakContainer || !dom.streakCount) return;
 
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const today = new Date().toISOString().split('T')[0]; // تاريخ اليوم YYYY-MM-DD
     const lastVisit = localStorage.getItem('lastVisitDate');
     let streak = parseInt(localStorage.getItem('dailyStreak') || '0');
 
     if (lastVisit === today) {
-        // Already visited today, do nothing
+        // المستخدم فتح التطبيق اليوم بالفعل، لا تفعل شيئاً
     } else if (lastVisit) {
+        // حساب الأمس
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toISOString().split('T')[0];
 
         if (lastVisit === yesterdayStr) {
-            // Consecutive day
+            // زيارة متتالية -> زيادة العداد
             streak++;
         } else {
-            // Missed a day, reset
+            // فاته يوم -> تصفير العداد لـ 1 (بداية جديدة)
             streak = 1; 
         }
     } else {
-        // First visit ever
+        // أول زيارة على الإطلاق
         streak = 1;
     }
 
-    // Update Storage
+    // حفظ البيانات
     localStorage.setItem('lastVisitDate', today);
     localStorage.setItem('dailyStreak', streak);
 
-    // Update UI
+    // تحديث الواجهة
     dom.streakCount.textContent = streak;
     if (streak > 0) {
         dom.streakContainer.classList.remove('hidden');
-        dom.streakContainer.classList.add('flex'); // Ensure flex display
+        dom.streakContainer.classList.add('flex');
     }
 }
 
 
-// MAIN APP INITIALIZATION
+// --- بدء تشغيل التطبيق ---
 document.addEventListener('DOMContentLoaded', () => {
 
     const toggleThemeBtn = document.getElementById('toggle-theme-btn');
@@ -208,10 +226,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginCanvas = document.getElementById('login-canvas');
     const htmlEl = document.documentElement;
 
+    // تفعيل الموجه (Router)
     window.addEventListener('hashchange', handleRouting);
+    
+    // تفعيل PWA
     initializePwaFeatures();
-    calculateDailyStreak(); // <-- Start Streak Calculation
+    
+    // حساب Streak
+    calculateDailyStreak(); 
 
+    // إعدادات الثيم (Dark/Light)
     function initializeSettings() {
         const savedTheme = localStorage.getItem('theme') || 'light';
         htmlEl.className = savedTheme;
@@ -249,6 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // دالة التحميل الأولية
     async function initializeApp() {
         dom.loginSubmitBtn.disabled = true;
         dom.loginSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Your Companion is on His way...';
@@ -286,9 +311,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initializeSettings();
 
-    // --- EVENT LISTENERS ---
+    // --- مستمعي الأحداث (EVENT LISTENERS) ---
     
-    // Login and Registration
+    // أزرار Onboarding (الجولة والمساعدة)
+    if(dom.helpBtn) dom.helpBtn.addEventListener('click', startTour);
+    if(dom.startTourBtn) dom.startTourBtn.addEventListener('click', startTour);
+    if(dom.skipTourBtn) dom.skipTourBtn.addEventListener('click', endTour);
+    if(dom.tourNextBtn) dom.tourNextBtn.addEventListener('click', nextTourStep);
+    if(dom.tourEndBtn) dom.tourEndBtn.addEventListener('click', endTour);
+
+    // تسجيل الدخول والتسجيل
     dom.loginForm.addEventListener('submit', handleLogin);
     dom.showRegisterLink.addEventListener('click', (e) => {
         e.preventDefault();
@@ -297,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.registrationForm.addEventListener('submit', handleRegistrationSubmit);
     dom.registerCancelBtn.addEventListener('click', hideRegistrationModal);
 
-    // Global Navigation
+    // القائمة العلوية وتسجيل الخروج
     dom.logoutBtn.addEventListener('click', handleLogout);
     dom.globalHomeBtn.addEventListener('click', () => {
         if (appState.currentUser?.Role === 'Guest') {
@@ -309,9 +341,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     dom.freeTestBtn.addEventListener('click', startFreeTest);
     
-    [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn, dom.theoryBackBtn, 
-    // NEW BACK BUTTON
-    dom.matchingBackBtn].forEach(btn => {
+    // زر الرجوع (موحد لجميع الصفحات)
+    [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn, dom.theoryBackBtn, dom.matchingBackBtn].forEach(btn => {
         if(btn) {
             btn.addEventListener('click', () => {
                 if (window.history.length > 1) {
@@ -323,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Main Menu & Header
+    // أزرار القائمة الرئيسية
     dom.lecturesBtn.addEventListener('click', () => { if (checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); } });
     dom.qbankBtn.addEventListener('click', () => { if (checkPermission('MCQBank')) { ui.showScreen(dom.qbankContainer); } });
     dom.learningModeBtn.addEventListener('click', () => { if (checkPermission('LerningMode')) showLearningModeBrowseScreen(); });
@@ -333,10 +364,10 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.studyPlannerBtn.addEventListener('click', () => { if (checkPermission('StudyPlanner')) showStudyPlannerScreen(); });
     dom.leaderboardBtn.addEventListener('click', () => checkPermission('LeadersBoard') && showLeaderboardScreen());
     
-    // Matching Bank Listener
-    const matchingBtn = document.getElementById('matching-btn');
-    if(matchingBtn) matchingBtn.addEventListener('click', () => showMatchingMenu());
+    // --- زر Matching الجديد ---
+    if(dom.matchingBtn) dom.matchingBtn.addEventListener('click', () => showMatchingMenu());
     
+    // البروفايل والرسائل والإعلانات
     dom.userProfileHeaderBtn.addEventListener('click', () => showUserCardModal(false));
     dom.editProfileBtn.addEventListener('click', () => toggleProfileEditMode(true));
     dom.cancelEditProfileBtn.addEventListener('click', () => toggleProfileEditMode(false));
@@ -348,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.sendMessageBtn.addEventListener('click', handleSendMessageBtn);
     dom.lectureSearchInput.addEventListener('keyup', (e) => renderLectures(e.target.value));
     
-    // Notes & Activity Log
+    // الملاحظات وسجل النشاط
     dom.notesBtn.addEventListener('click', showNotesScreen);
     dom.activityLogBtn.addEventListener('click', showActivityLog);
     dom.logFilterAll.addEventListener('click', () => renderFilteredLog('all'));
@@ -374,7 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     dom.noteCancelBtn.addEventListener('click', () => { dom.noteModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
     
-    // QBank & Quiz Listeners
+    // بنك الأسئلة (QBank)
     dom.startMockBtn.addEventListener('click', handleMockExamStart);
     dom.startSimulationBtn.addEventListener('click', handleStartSimulation);
     dom.qbankSearchBtn.addEventListener('click', handleQBankSearch);
@@ -409,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
     qbankTabs.forEach((tab, index) => { if(tab) tab.addEventListener('click', () => switchQBankTab(index)); });
     if(qbankTabs[0]) switchQBankTab(0);
 
-    // In-Quiz
+    // داخل الاختبار (In-Quiz)
     dom.endQuizBtn.addEventListener('click', triggerEndQuiz);
     dom.nextSkipBtn.addEventListener('click', handleNextQuestion);
     dom.previousBtn.addEventListener('click', handlePreviousQuestion);
@@ -427,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const reviewSimulationBtn = document.getElementById('review-simulation-btn');
     if(reviewSimulationBtn) reviewSimulationBtn.addEventListener('click', () => startSimulationReview());
 
-    // Matching Listeners
+    // --- أزرار Matching Bank ---
     dom.startMatchingBtn.addEventListener('click', handleStartMatchingExam);
     dom.matchingSubmitBtn.addEventListener('click', () => checkCurrentSetAnswers());
     dom.matchingNextBtn.addEventListener('click', handleNextMatchingSet);
@@ -477,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.plannerDashboard.classList.remove('hidden');
     });
 
-    // Modals
+    // النوافذ المنبثقة (Modals)
     dom.modalCancelBtn.addEventListener('click', () => { dom.confirmationModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
     dom.modalConfirmBtn.addEventListener('click', () => { if (appState.modalConfirmAction) { appState.modalConfirmAction(); dom.confirmationModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');} });
     dom.imageViewerCloseBtn.addEventListener('click', () => { dom.imageViewerModal.classList.add('hidden'); if(dom.userCardModal.classList.contains('hidden') && dom.createPlanModal.classList.contains('hidden') && dom.announcementsModal.classList.contains('hidden') && dom.messengerModal.classList.contains('hidden')) dom.modalBackdrop.classList.add('hidden');});
