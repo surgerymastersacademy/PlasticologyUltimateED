@@ -7,7 +7,7 @@
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e293b">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png">
 
@@ -427,20 +427,51 @@
                                         <p id="mock-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
                                     </div>
                                 </details>
+                                
                                 <details class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
                                     <summary class="p-4 cursor-pointer hover:bg-slate-50 flex justify-between items-center">
                                         <h3 class="text-xl font-bold text-slate-800 flex items-center"><i class="fas fa-flag-checkered text-rose-500 mr-3"></i>Exam Simulation Mode</h3>
                                         <i class="fas fa-chevron-down transition-transform duration-300 text-slate-500"></i>
                                     </summary>
                                     <div class="p-6 border-t border-slate-200 bg-slate-50">
-                                        <p class="text-slate-500 text-sm mb-4">Start a full exam simulation with a fixed timer and no immediate feedback, just like the real exam. Results will be shown only at the end.</p>
+                                        <p class="text-slate-500 text-sm mb-4">Start a full exam simulation (100 Qs / 120 Mins) with no immediate feedback, just like the real exam.</p>
+                                        
+                                        <button id="toggle-simulation-options-btn" class="text-blue-600 hover:text-blue-800 text-sm font-bold mb-4 flex items-center">
+                                            <i class="fas fa-sliders-h mr-2"></i> Customize Scope (Optional)
+                                        </button>
+
+                                        <div id="simulation-custom-options" class="hidden mb-4 border-l-4 border-blue-200 pl-4">
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <fieldset>
+                                                    <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Sources</legend>
+                                                    <div class="flex items-center p-2 border-b">
+                                                        <input id="select-all-sources-sim" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600" checked>
+                                                        <label for="select-all-sources-sim" class="ml-3 font-bold text-gray-700">Select All</label>
+                                                    </div>
+                                                    <div id="source-select-sim" class="filter-container space-y-2 bg-white">
+                                                        <p class="text-slate-400">Loading sources...</p>
+                                                    </div>
+                                                </fieldset>
+                                                <fieldset>
+                                                    <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Chapters</legend>
+                                                    <div class="flex items-center p-2 border-b">
+                                                        <input id="select-all-chapters-sim" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600" checked>
+                                                        <label for="select-all-chapters-sim" class="ml-3 font-bold text-gray-700">Select All</label>
+                                                    </div>
+                                                    <div id="chapter-select-sim" class="filter-container space-y-2 bg-white">
+                                                        <p class="text-slate-400">Loading chapters...</p>
+                                                    </div>
+                                                </fieldset>
+                                            </div>
+                                        </div>
+
                                         <button id="start-simulation-btn" class="action-btn w-full mt-2 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-4 rounded-lg">
                                             Start Full Simulation
                                         </button>
                                         <p id="simulation-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
                                     </div>
                                 </details>
-                            </div>
+                                </div>
                         </div>
                         <div id="qbank-panel-practice" class="qbank-panel hidden">
                            <div class="bg-white rounded-lg shadow-md p-6">
@@ -866,99 +897,6 @@
                     </div>
                 </div>
             </div>
-
-            <div id="matching-container" class="w-full hidden">
-                <div id="matching-menu-container">
-                    <div class="p-4 md:p-6 bg-slate-100 border-b flex justify-between items-center">
-                        <button id="matching-back-btn" class="text-slate-700 hover:text-blue-600 transition-colors" title="Back"><i class="fas fa-arrow-left"></i> Back</button>
-                        <h2 class="text-xl md:text-2xl font-bold text-slate-800">Matching Bank</h2>
-                        <div class="w-16"></div>
-                    </div>
-                    <div class="p-6 md:p-8">
-                        <div class="bg-white rounded-lg shadow-md p-6 max-w-2xl mx-auto">
-                            <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i class="fas fa-cogs text-pink-500 mr-3"></i>Setup Your Test</h3>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                                <div>
-                                    <label class="block text-sm font-bold text-slate-700 mb-2">Number of Sets (5 Qs each)</label>
-                                    <input type="number" id="matching-set-count" class="shadow appearance-none border rounded w-full py-2 px-3 text-slate-700" placeholder="Default: 10" min="1">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-slate-700 mb-2">Time per Set (Seconds)</label>
-                                    <input type="number" id="matching-timer-input" class="shadow appearance-none border rounded w-full py-2 px-3 text-slate-700" placeholder="Default: 60" min="10">
-                                </div>
-                            </div>
-                            
-                            <details class="mb-6 border rounded-lg">
-                                <summary class="p-3 cursor-pointer font-semibold bg-slate-50">Filter Questions (Optional)</summary>
-                                <div class="p-4">
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                         <fieldset>
-                                            <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Chapters</legend>
-                                            <div id="chapter-select-matching" class="filter-container space-y-2">
-                                                <p class="text-slate-400">Loading chapters...</p>
-                                            </div>
-                                        </fieldset>
-                                        <fieldset>
-                                            <legend class="block text-sm font-medium text-slate-700 mb-2">Filter by Sources</legend>
-                                            <div id="source-select-matching" class="filter-container space-y-2">
-                                                <p class="text-slate-400">Loading sources...</p>
-                                            </div>
-                                        </fieldset>
-                                    </div>
-                                </div>
-                            </details>
-
-                            <button id="start-matching-btn" class="action-btn w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-lg">
-                                Start Matching Test
-                            </button>
-                            <p id="matching-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
-                        </div>
-                    </div>
-                </div>
-                <div id="matching-game-container" class="hidden flex flex-col h-full min-h-[80vh]">
-                    <div class="p-4 bg-slate-100 border-b flex justify-between items-center sticky top-0 z-10">
-                         <div class="flex items-center gap-4">
-                            <button id="end-matching-btn" class="text-slate-600 hover:text-red-600 transition-colors text-xl" title="End Test"><i class="fas fa-stop-circle"></i></button>
-                            <span id="matching-progress" class="font-bold text-slate-700">Set 1/10</span>
-                        </div>
-                        <div id="matching-timer" class="text-lg font-mono bg-slate-200 text-slate-800 px-3 py-1 rounded-md">00:00</div>
-                        <div id="matching-score" class="font-bold text-blue-600">Score: 0</div>
-                    </div>
-                    
-                    <div class="p-4 flex-grow">
-                        <p class="text-center text-sm text-slate-500 mb-4">Tap an answer on the right, then tap the matching question on the left.</p>
-                        <div class="matching-container-grid">
-                            <div id="matching-premises-area"></div>
-                            <div id="matching-answers-area"></div>
-                        </div>
-                    </div>
-
-                    <div class="p-4 bg-white border-t flex justify-between items-center sticky bottom-0 z-10">
-                         <button id="matching-submit-btn" class="action-btn bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg w-full sm:w-auto">
-                            Check Answers
-                        </button>
-                        <button id="matching-next-btn" class="action-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg w-full sm:w-auto hidden">
-                            Next Set <i class="fas fa-arrow-right ml-2"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div id="library-container" class="w-full hidden">...</div>
-            <div id="leaderboard-container" class="w-full hidden">...</div>
-            <div id="lectures-container" class="w-full hidden">...</div>
-            <div id="qbank-container" class="w-full hidden">...</div>
-            <div id="osce-container" class="w-full hidden">...</div>
-            <div id="osce-quiz-container" class="w-full hidden flex flex-col h-full">...</div>
-            <div id="list-container" class="w-full hidden">...</div>
-            <div id="notes-container" class="w-full hidden">...</div>
-            <div id="activity-log-container" class="w-full hidden">...</div>
-            <div id="quiz-container" class="w-full hidden">...</div>
-            <div id="learning-mode-container" class="w-full hidden">...</div>
-            <div id="learning-mode-viewer" class="hidden">...</div>
-            <div id="theory-container" class="w-full hidden">...</div>
-            <div id="theory-viewer" class="hidden">...</div>
-            <div id="study-planner-container" class="w-full hidden">...</div>
             
         </main>
 
