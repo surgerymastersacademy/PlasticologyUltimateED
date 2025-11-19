@@ -1,4 +1,4 @@
-// js/dom.js (FINAL VERSION - ALL ELEMENTS DEFINED)
+// js/dom.js (FINAL VERSION - INCLUDES SIMULATION FILTERS)
 // هذا الملف يحتوي على مراجع لجميع عناصر HTML لمنع أخطاء "Undefined"
 
 // --- الرأس والقائمة العلوية (Header & Nav) ---
@@ -47,7 +47,7 @@ export const osceContainer = document.getElementById('osce-container');
 export const osceQuizContainer = document.getElementById('osce-quiz-container');
 export const learningModeContainer = document.getElementById('learning-mode-container');
 export const theoryContainer = document.getElementById('theory-container');
-export const studyPlannerContainer = document.getElementById('study-planner-container'); // المسؤول عن الخطأ السابق
+export const studyPlannerContainer = document.getElementById('study-planner-container');
 export const matchingContainer = document.getElementById('matching-container');
 
 // --- شاشة تسجيل الدخول (Login) ---
@@ -161,6 +161,15 @@ export const qbankPanelPractice = document.getElementById('qbank-panel-practice'
 export const qbankPanelBrowse = document.getElementById('qbank-panel-browse');
 export const qbankMainContent = document.getElementById('qbank-main-content');
 
+// --- NEW SIMULATION FILTER ELEMENTS (Added Here) ---
+export const toggleSimulationOptionsBtn = document.getElementById('toggle-simulation-options-btn');
+export const simulationCustomOptions = document.getElementById('simulation-custom-options');
+export const sourceSelectSim = document.getElementById('source-select-sim');
+export const chapterSelectSim = document.getElementById('chapter-select-sim');
+export const selectAllSourcesSim = document.getElementById('select-all-sources-sim');
+export const selectAllChaptersSim = document.getElementById('select-all-chapters-sim');
+
+
 // --- واجهة الاختبار (Quiz UI) ---
 export const listTitle = document.getElementById('list-title');
 export const listItems = document.getElementById('list-items');
@@ -195,8 +204,8 @@ export const restartBtn = document.getElementById('restart-btn');
 export const resultsHomeBtn = document.getElementById('results-home-btn');
 export const reviewIncorrectBtn = document.getElementById('review-incorrect-btn');
 
-// --- Planner (Study Planner Elements) - FIXED ---
-export const studyPlannerLoader = document.getElementById('study-planner-loader'); // ✅ Fixed Crash
+// --- Planner (Study Planner Elements) ---
+export const studyPlannerLoader = document.getElementById('study-planner-loader');
 export const plannerDashboard = document.getElementById('planner-dashboard');
 export const activePlanView = document.getElementById('active-plan-view');
 export const performanceInsightsContainer = document.getElementById('performance-insights-container');
