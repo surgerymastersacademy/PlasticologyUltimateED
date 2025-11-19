@@ -1,4 +1,5 @@
-// js/dom.js (FINAL VERSION - With Onboarding Elements)
+// js/dom.js (FINAL VERSION - COMPLETE)
+// يحتوي هذا الملف على مراجع لجميع عناصر HTML المستخدمة في التطبيق
 
 export const globalHeader = document.getElementById('global-header');
 export const globalHomeBtn = document.getElementById('global-home-btn');
@@ -10,22 +11,23 @@ export const userNameDisplay = document.getElementById('user-name-display');
 export const headerUserAvatar = document.getElementById('header-user-avatar');
 export const userProfileHeaderBtn = document.getElementById('user-profile-header-btn');
 
-// --- NEW: Help & Onboarding Elements ---
-export const helpBtn = document.getElementById('help-btn'); // The "?" button
-export const onboardingModal = document.getElementById('onboarding-modal'); // The "Welcome" popup
+// --- عناصر Daily Streak ---
+export const streakContainer = document.getElementById('streak-container');
+export const streakCount = document.getElementById('streak-count');
+
+// --- عناصر المساعدة والجولة (Onboarding) ---
+export const helpBtn = document.getElementById('help-btn');
+export const onboardingModal = document.getElementById('onboarding-modal');
 export const startTourBtn = document.getElementById('start-tour-btn');
 export const skipTourBtn = document.getElementById('skip-tour-btn');
-export const tourTooltip = document.getElementById('tour-tooltip'); // The floating box
+export const tourTooltip = document.getElementById('tour-tooltip');
 export const tourTitle = document.getElementById('tour-title');
 export const tourText = document.getElementById('tour-text');
 export const tourNextBtn = document.getElementById('tour-next-btn');
 export const tourEndBtn = document.getElementById('tour-end-btn');
 export const tourStepCount = document.getElementById('tour-step-count');
-// ---------------------------------------
 
-export const streakContainer = document.getElementById('streak-container');
-export const streakCount = document.getElementById('streak-count');
-
+// --- الحاويات الرئيسية (Containers) ---
 export const loginContainer = document.getElementById('login-container');
 export const mainMenuContainer = document.getElementById('main-menu-container');
 export const lecturesContainer = document.getElementById('lectures-container');
@@ -36,6 +38,15 @@ export const activityLogContainer = document.getElementById('activity-log-contai
 export const notesContainer = document.getElementById('notes-container');
 export const libraryContainer = document.getElementById('library-container');
 export const leaderboardContainer = document.getElementById('leaderboard-container');
+export const osceContainer = document.getElementById('osce-container');
+export const osceQuizContainer = document.getElementById('osce-quiz-container');
+export const learningModeContainer = document.getElementById('learning-mode-container');
+export const theoryContainer = document.getElementById('theory-container');
+export const studyPlannerContainer = document.getElementById('study-planner-container');
+// --- حاوية Matching الجديدة ---
+export const matchingContainer = document.getElementById('matching-container');
+
+// --- عناصر تسجيل الدخول ---
 export const loginForm = document.getElementById('login-form');
 export const loginLoader = document.getElementById('login-loader');
 export const loginLoadingText = document.getElementById('login-loading-text');
@@ -43,30 +54,57 @@ export const loginError = document.getElementById('login-error');
 export const usernameInput = document.getElementById('username');
 export const passwordInput = document.getElementById('password');
 export const loginSubmitBtn = document.getElementById('login-submit-btn');
+export const showRegisterLink = document.getElementById('show-register-link');
 export const freeTestBtn = document.getElementById('free-test-btn');
+
+// --- أزرار القائمة الرئيسية ---
 export const lecturesBtn = document.getElementById('lectures-btn');
 export const qbankBtn = document.getElementById('qbank-btn');
 export const libraryBtn = document.getElementById('library-btn');
 export const leaderboardBtn = document.getElementById('leaderboard-btn');
+export const learningModeBtn = document.getElementById('learning-mode-btn');
+export const theoryBtn = document.getElementById('theory-btn');
+export const osceBtn = document.getElementById('osce-btn');
+export const studyPlannerBtn = document.getElementById('study-planner-btn');
+// --- زر Matching الجديد ---
+export const matchingBtn = document.getElementById('matching-btn');
+
+// --- عناصر شرائط النشاط الأخير ---
 export const lastLectureRibbon = document.getElementById('last-lecture-ribbon');
 export const lastQuizRibbon = document.getElementById('last-quiz-ribbon');
+
+// --- أزرار الرجوع ---
+export const lecturesBackBtn = document.getElementById('lectures-back-btn');
+export const qbankBackBtn = document.getElementById('qbank-back-btn');
 export const libraryBackBtn = document.getElementById('library-back-btn');
+export const leaderboardBackBtn = document.getElementById('leaderboard-back-btn');
+export const activityBackBtn = document.getElementById('activity-back-btn');
+export const notesBackBtn = document.getElementById('notes-back-btn');
+export const listBackBtn = document.getElementById('list-back-btn');
+export const osceBackBtn = document.getElementById('osce-back-btn');
+export const learningModeBackBtn = document.getElementById('learning-mode-back-btn');
+export const theoryBackBtn = document.getElementById('theory-back-btn');
+export const studyPlannerBackBtn = document.getElementById('study-planner-back-btn');
+// --- زر رجوع Matching ---
+export const matchingBackBtn = document.getElementById('matching-back-btn');
+
+// --- المكتبة والترتيب ---
 export const libraryLoader = document.getElementById('library-loader');
 export const libraryList = document.getElementById('library-list');
-export const leaderboardBackBtn = document.getElementById('leaderboard-back-btn');
 export const leaderboardLoader = document.getElementById('leaderboard-loader');
 export const leaderboardList = document.getElementById('leaderboard-list');
 export const currentUserRankDiv = document.getElementById('current-user-rank');
-export const lecturesBackBtn = document.getElementById('lectures-back-btn');
+
+// --- المحاضرات ---
 export const lectureSearchInput = document.getElementById('lecture-search-input');
 export const lecturesLoader = document.getElementById('lectures-loader');
 export const lecturesList = document.getElementById('lectures-list');
-export const notesBackBtn = document.getElementById('notes-back-btn');
+
+// --- الملاحظات وسجل النشاط ---
 export const notesFilterQuizzes = document.getElementById('notes-filter-quizzes');
 export const notesFilterLectures = document.getElementById('notes-filter-lectures');
 export const notesFilterTheory = document.getElementById('notes-filter-theory');
 export const notesList = document.getElementById('notes-list');
-export const activityBackBtn = document.getElementById('activity-back-btn');
 export const clearLogBtn = document.getElementById('clear-log-btn');
 export const allSummary = document.getElementById('all-summary');
 export const quizSummary = document.getElementById('quiz-summary');
@@ -83,7 +121,8 @@ export const logFilterAll = document.getElementById('log-filter-all');
 export const logFilterQuizzes = document.getElementById('log-filter-quizzes');
 export const logFilterLectures = document.getElementById('log-filter-lectures');
 export const activityChartCanvas = document.getElementById('activity-chart');
-export const qbankBackBtn = document.getElementById('qbank-back-btn');
+
+// --- بنك الأسئلة (QBank) ---
 export const loader = document.getElementById('loader');
 export const loadingText = document.getElementById('loading-text');
 export const mockQCountInput = document.getElementById('mock-q-count');
@@ -97,7 +136,28 @@ export const mockError = document.getElementById('mock-error');
 export const browseByChapterBtn = document.getElementById('browse-by-chapter-btn');
 export const browseBySourceBtn = document.getElementById('browse-by-source-btn');
 export const practiceMistakesBtn = document.getElementById('practice-mistakes-btn');
-export const listBackBtn = document.getElementById('list-back-btn');
+export const qbankSearchInput = document.getElementById('qbank-search-input');
+export const qbankSearchQCount = document.getElementById('qbank-search-q-count');
+export const qbankSearchBtn = document.getElementById('qbank-search-btn');
+export const qbankSearchError = document.getElementById('qbank-search-error');
+export const qbankSearchResultsContainer = document.getElementById('qbank-search-results-container');
+export const qbankSearchResultsInfo = document.getElementById('qbank-search-results-info');
+export const qbankStartSearchQuizBtn = document.getElementById('qbank-start-search-quiz-btn');
+export const qbankClearSearchBtn = document.getElementById('qbank-clear-search-btn');
+export const selectAllSourcesMock = document.getElementById('select-all-sources-mock');
+export const selectAllChaptersMock = document.getElementById('select-all-chapters-mock');
+export const practiceBookmarkedBtn = document.getElementById('practice-bookmarked-btn');
+export const startSimulationBtn = document.getElementById('start-simulation-btn');
+export const simulationError = document.getElementById('simulation-error');
+export const qbankTabCreate = document.getElementById('qbank-tab-create');
+export const qbankTabPractice = document.getElementById('qbank-tab-practice');
+export const qbankTabBrowse = document.getElementById('qbank-tab-browse');
+export const qbankPanelCreate = document.getElementById('qbank-panel-create');
+export const qbankPanelPractice = document.getElementById('qbank-panel-practice');
+export const qbankPanelBrowse = document.getElementById('qbank-panel-browse');
+export const qbankMainContent = document.getElementById('qbank-main-content');
+
+// --- واجهة الاختبار (Quiz UI) ---
 export const listTitle = document.getElementById('list-title');
 export const listItems = document.getElementById('list-items');
 export const quizTitle = document.getElementById('quiz-title');
@@ -114,6 +174,8 @@ export const hintText = document.getElementById('hint-text');
 export const previousBtn = document.getElementById('previous-btn');
 export const nextSkipBtn = document.getElementById('next-skip-btn');
 export const flagBtn = document.getElementById('flag-btn');
+export const bookmarkBtn = document.getElementById('bookmark-btn');
+export const navigatorBtn = document.getElementById('navigator-btn');
 export const quizNoteBtn = document.getElementById('quiz-note-btn');
 export const endQuizBtn = document.getElementById('end-quiz-btn');
 export const scoreProgressText = document.getElementById('score-progress-text');
@@ -128,12 +190,31 @@ export const totalQuestionsSpan = document.getElementById('total-questions');
 export const restartBtn = document.getElementById('restart-btn');
 export const resultsHomeBtn = document.getElementById('results-home-btn');
 export const reviewIncorrectBtn = document.getElementById('review-incorrect-btn');
+
+// --- Matching Bank UI (عناصر المطابقة الجديدة) ---
+export const matchingMenuContainer = document.getElementById('matching-menu-container');
+export const matchingGameContainer = document.getElementById('matching-game-container');
+export const matchingSetCountInput = document.getElementById('matching-set-count');
+export const matchingTimerInput = document.getElementById('matching-timer-input');
+export const chapterSelectMatching = document.getElementById('chapter-select-matching');
+export const sourceSelectMatching = document.getElementById('source-select-matching');
+export const startMatchingBtn = document.getElementById('start-matching-btn');
+export const matchingError = document.getElementById('matching-error');
+export const endMatchingBtn = document.getElementById('end-matching-btn');
+export const matchingProgress = document.getElementById('matching-progress');
+export const matchingTimer = document.getElementById('matching-timer');
+export const matchingScore = document.getElementById('matching-score');
+export const matchingPremisesArea = document.getElementById('matching-premises-area');
+export const matchingAnswersArea = document.getElementById('matching-answers-area');
+export const matchingSubmitBtn = document.getElementById('matching-submit-btn');
+export const matchingNextBtn = document.getElementById('matching-next-btn');
+
+// --- النوافذ المنبثقة (Modals) ---
 export const modalBackdrop = document.getElementById('modal-backdrop');
 export const confirmationModal = document.getElementById('confirmation-modal');
 export const modalConfirmBtn = document.getElementById('modal-confirm-btn');
 export const modalCancelBtn = document.getElementById('modal-cancel-btn');
 export const questionNavigatorModal = document.getElementById('question-navigator-modal');
-export const navigatorBtn = document.getElementById('navigator-btn');
 export const navigatorGrid = document.getElementById('navigator-grid');
 export const navigatorCloseBtn = document.getElementById('navigator-close-btn');
 export const imageViewerModal = document.getElementById('image-viewer-modal');
@@ -152,10 +233,60 @@ export const clearLogCancelBtn = document.getElementById('clear-log-cancel-btn')
 export const announcementsModal = document.getElementById('announcements-modal');
 export const announcementsList = document.getElementById('announcements-list');
 export const announcementsCloseBtn = document.getElementById('announcements-close-btn');
-export const osceBtn = document.getElementById('osce-btn');
-export const osceContainer = document.getElementById('osce-container');
-export const osceQuizContainer = document.getElementById('osce-quiz-container');
-export const osceBackBtn = document.getElementById('osce-back-btn');
+export const messengerModal = document.getElementById('messenger-modal');
+export const messengerCloseBtn = document.getElementById('messenger-close-btn');
+export const messagesList = document.getElementById('messages-list');
+export const messageInput = document.getElementById('message-input');
+export const sendMessageBtn = document.getElementById('send-message-btn');
+export const messengerError = document.getElementById('messenger-error');
+export const userCardModal = document.getElementById('user-card-modal');
+export const userCardCloseBtn = document.getElementById('user-card-close-btn');
+export const userAvatar = document.getElementById('user-avatar');
+export const cardUserName = document.getElementById('card-user-name');
+export const cardUserNickname = document.getElementById('card-user-nickname');
+export const cardQuizScore = document.getElementById('card-quiz-score');
+export const cardExamDate = document.getElementById('card-exam-date');
+export const cardDaysLeft = document.getElementById('card-days-left');
+export const editProfileBtn = document.getElementById('edit-profile-btn');
+export const profileDetailsView = document.getElementById('profile-details-view');
+export const profileEditView = document.getElementById('profile-edit-view');
+export const editNickname = document.getElementById('edit-nickname');
+export const editExamDate = document.getElementById('edit-exam-date');
+export const avatarSelectionGrid = document.getElementById('avatar-selection-grid');
+export const profileEditError = document.getElementById('profile-edit-error');
+export const cancelEditProfileBtn = document.getElementById('cancel-edit-profile-btn');
+export const saveProfileBtn = document.getElementById('save-profile-btn');
+export const cardSubscriptionStatus = document.getElementById('card-subscription-status');
+export const cardSubscriptionExpiry = document.getElementById('card-subscription-expiry');
+export const createPlanModal = document.getElementById('create-plan-modal');
+export const newPlanName = document.getElementById('new-plan-name');
+export const newPlanStartDate = document.getElementById('new-plan-start-date');
+export const newPlanEndDate = document.getElementById('new-plan-end-date');
+export const createPlanError = document.getElementById('create-plan-error');
+export const cancelCreatePlanBtn = document.getElementById('cancel-create-plan-btn');
+export const confirmCreatePlanBtn = document.getElementById('confirm-create-plan-btn');
+export const performanceInsightsContainer = document.getElementById('performance-insights-container');
+export const strengthsList = document.getElementById('strengths-list');
+export const weaknessesList = document.getElementById('weaknesses-list');
+
+// --- Registration ---
+export const registrationModal = document.getElementById('registration-modal');
+export const registrationForm = document.getElementById('registration-form');
+export const registerCancelBtn = document.getElementById('register-cancel-btn');
+export const registerSubmitBtn = document.getElementById('register-submit-btn');
+export const registrationError = document.getElementById('registration-error');
+export const registrationSuccess = document.getElementById('registration-success');
+export const registerName = document.getElementById('register-name');
+export const registerUsername = document.getElementById('register-username');
+export const registerEmail = document.getElementById('register-email');
+export const registerMobile = document.getElementById('register-mobile');
+export const registerPassword = document.getElementById('register-password');
+export const registerConfirmPassword = document.getElementById('register-confirm-password');
+export const registerCountry = document.getElementById('register-country');
+export const registerStudyType = document.getElementById('register-study-type');
+export const registerExamDate = document.getElementById('register-exam-date');
+
+// --- OSCE & Theory UI ---
 export const startOsceSlayerBtn = document.getElementById('start-osce-slayer-btn');
 export const osceCaseCountInput = document.getElementById('osce-case-count');
 export const osceTimePerQInput = document.getElementById('osce-time-per-q');
@@ -187,11 +318,8 @@ export const osceNavigatorContent = document.getElementById('osce-navigator-cont
 export const osceNavigatorCloseBtn = document.getElementById('osce-navigator-close-btn');
 export const osceSelfCorrectionArea = document.getElementById('osce-self-correction-area');
 export const radioBannerContainer = document.getElementById('radio-banner-container');
-export const learningModeBtn = document.getElementById('learning-mode-btn');
-export const learningModeContainer = document.getElementById('learning-mode-container');
 export const learningModeControls = document.getElementById('learning-mode-controls');
 export const learningModeViewer = document.getElementById('learning-mode-viewer');
-export const learningModeBackBtn = document.getElementById('learning-mode-back-btn');
 export const learningBrowseByChapterBtn = document.getElementById('learning-browse-by-chapter-btn');
 export const learningBrowseBySourceBtn = document.getElementById('learning-browse-by-source-btn');
 export const endLearningBtn = document.getElementById('end-learning-btn');
@@ -206,81 +334,8 @@ export const learningNextBtn = document.getElementById('learning-next-btn');
 export const learningSearchInput = document.getElementById('learning-search-input');
 export const learningSearchBtn = document.getElementById('learning-search-btn');
 export const learningSearchError = document.getElementById('learning-search-error');
-export const qbankSearchInput = document.getElementById('qbank-search-input');
-export const qbankSearchQCount = document.getElementById('qbank-search-q-count');
-export const qbankSearchBtn = document.getElementById('qbank-search-btn');
-export const qbankSearchError = document.getElementById('qbank-search-error');
-export const qbankSearchResultsContainer = document.getElementById('qbank-search-results-container');
-export const qbankSearchResultsInfo = document.getElementById('qbank-search-results-info');
-export const qbankStartSearchQuizBtn = document.getElementById('qbank-start-search-quiz-btn');
-export const qbankClearSearchBtn = document.getElementById('qbank-clear-search-btn');
-export const selectAllSourcesMock = document.getElementById('select-all-sources-mock');
-export const selectAllChaptersMock = document.getElementById('select-all-chapters-mock');
-export const practiceBookmarkedBtn = document.getElementById('practice-bookmarked-btn');
-export const bookmarkBtn = document.getElementById('bookmark-btn');
-export const startSimulationBtn = document.getElementById('start-simulation-btn');
-export const simulationError = document.getElementById('simulation-error');
-export const userCardModal = document.getElementById('user-card-modal');
-export const userCardCloseBtn = document.getElementById('user-card-close-btn');
-export const userAvatar = document.getElementById('user-avatar');
-export const cardUserName = document.getElementById('card-user-name');
-export const cardUserNickname = document.getElementById('card-user-nickname');
-export const cardQuizScore = document.getElementById('card-quiz-score');
-export const cardExamDate = document.getElementById('card-exam-date');
-export const cardDaysLeft = document.getElementById('card-days-left');
-export const editProfileBtn = document.getElementById('edit-profile-btn');
-export const profileDetailsView = document.getElementById('profile-details-view');
-export const profileEditView = document.getElementById('profile-edit-view');
-export const editNickname = document.getElementById('edit-nickname');
-export const editExamDate = document.getElementById('edit-exam-date');
-export const avatarSelectionGrid = document.getElementById('avatar-selection-grid');
-export const profileEditError = document.getElementById('profile-edit-error');
-export const cancelEditProfileBtn = document.getElementById('cancel-edit-profile-btn');
-export const saveProfileBtn = document.getElementById('save-profile-btn');
-export const messengerBtn = document.getElementById('messenger-btn');
-export const messengerModal = document.getElementById('messenger-modal');
-export const messengerCloseBtn = document.getElementById('messenger-close-btn');
-export const messagesList = document.getElementById('messages-list');
-export const messageInput = document.getElementById('message-input');
-export const sendMessageBtn = document.getElementById('send-message-btn');
-export const messengerError = document.getElementById('messenger-error');
-export const studyPlannerBtn = document.getElementById('study-planner-btn');
-export const studyPlannerContainer = document.getElementById('study-planner-container');
-export const studyPlannerBackBtn = document.getElementById('study-planner-back-btn');
-export const studyPlannerLoader = document.getElementById('study-planner-loader');
-export const plannerDashboard = document.getElementById('planner-dashboard');
-export const studyPlansList = document.getElementById('study-plans-list');
-export const showCreatePlanModalBtn = document.getElementById('show-create-plan-modal-btn');
-export const activePlanView = document.getElementById('active-plan-view');
-export const activePlanName = document.getElementById('active-plan-name');
-export const backToPlansDashboardBtn = document.getElementById('back-to-plans-dashboard-btn');
-export const studyPlanSummary = document.getElementById('study-plan-summary');
-export const planDaysRemaining = document.getElementById('plan-days-remaining');
-export const planTasksToday = document.getElementById('plan-tasks-today');
-export const planProgressBar = document.getElementById('plan-progress-bar');
-export const studyPlanDaysContainer = document.getElementById('study-plan-days-container');
-export const createPlanModal = document.getElementById('create-plan-modal');
-export const newPlanName = document.getElementById('new-plan-name');
-export const newPlanStartDate = document.getElementById('new-plan-start-date');
-export const newPlanEndDate = document.getElementById('new-plan-end-date');
-export const createPlanError = document.getElementById('create-plan-error');
-export const cancelCreatePlanBtn = document.getElementById('cancel-create-plan-btn');
-export const confirmCreatePlanBtn = document.getElementById('confirm-create-plan-btn');
-export const performanceInsightsContainer = document.getElementById('performance-insights-container');
-export const strengthsList = document.getElementById('strengths-list');
-export const weaknessesList = document.getElementById('weaknesses-list');
-export const qbankTabCreate = document.getElementById('qbank-tab-create');
-export const qbankTabPractice = document.getElementById('qbank-tab-practice');
-export const qbankTabBrowse = document.getElementById('qbank-tab-browse');
-export const qbankPanelCreate = document.getElementById('qbank-panel-create');
-export const qbankPanelPractice = document.getElementById('qbank-panel-practice');
-export const qbankPanelBrowse = document.getElementById('qbank-panel-browse');
-export const qbankMainContent = document.getElementById('qbank-main-content');
-export const theoryBtn = document.getElementById('theory-btn');
-export const theoryContainer = document.getElementById('theory-container');
 export const theoryControls = document.getElementById('theory-controls');
 export const theoryViewer = document.getElementById('theory-viewer');
-export const theoryBackBtn = document.getElementById('theory-back-btn');
 export const theorySearchInput = document.getElementById('theory-search-input');
 export const theorySearchBtn = document.getElementById('theory-search-btn');
 export const theoryFlashcardModeBtn = document.getElementById('theory-flashcard-mode-btn');
@@ -301,41 +356,3 @@ export const theoryNextBtn = document.getElementById('theory-next-btn');
 export const theoryNoteBtn = document.getElementById('theory-note-btn');
 export const theoryStatusBtn = document.getElementById('theory-status-btn');
 export const theorySourceText = document.getElementById('theory-source-text');
-export const registrationModal = document.getElementById('registration-modal');
-export const registrationForm = document.getElementById('registration-form');
-export const showRegisterLink = document.getElementById('show-register-link');
-export const registerCancelBtn = document.getElementById('register-cancel-btn');
-export const registerSubmitBtn = document.getElementById('register-submit-btn');
-export const registrationError = document.getElementById('registration-error');
-export const registrationSuccess = document.getElementById('registration-success');
-export const registerName = document.getElementById('register-name');
-export const registerUsername = document.getElementById('register-username');
-export const registerEmail = document.getElementById('register-email');
-export const registerMobile = document.getElementById('register-mobile');
-export const registerPassword = document.getElementById('register-password');
-export const registerConfirmPassword = document.getElementById('register-confirm-password');
-export const registerCountry = document.getElementById('register-country');
-export const registerStudyType = document.getElementById('register-study-type');
-export const registerExamDate = document.getElementById('register-exam-date');
-export const cardSubscriptionStatus = document.getElementById('card-subscription-status');
-export const cardSubscriptionExpiry = document.getElementById('card-subscription-expiry');
-
-export const matchingBtn = document.getElementById('matching-btn');
-export const matchingContainer = document.getElementById('matching-container');
-export const matchingMenuContainer = document.getElementById('matching-menu-container');
-export const matchingGameContainer = document.getElementById('matching-game-container');
-export const matchingBackBtn = document.getElementById('matching-back-btn');
-export const matchingSetCountInput = document.getElementById('matching-set-count');
-export const matchingTimerInput = document.getElementById('matching-timer-input');
-export const chapterSelectMatching = document.getElementById('chapter-select-matching');
-export const sourceSelectMatching = document.getElementById('source-select-matching');
-export const startMatchingBtn = document.getElementById('start-matching-btn');
-export const matchingError = document.getElementById('matching-error');
-export const endMatchingBtn = document.getElementById('end-matching-btn');
-export const matchingProgress = document.getElementById('matching-progress');
-export const matchingTimer = document.getElementById('matching-timer');
-export const matchingScore = document.getElementById('matching-score');
-export const matchingPremisesArea = document.getElementById('matching-premises-area');
-export const matchingAnswersArea = document.getElementById('matching-answers-area');
-export const matchingSubmitBtn = document.getElementById('matching-submit-btn');
-export const matchingNextBtn = document.getElementById('matching-next-btn');
