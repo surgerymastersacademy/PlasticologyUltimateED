@@ -1,6 +1,6 @@
-/* style.css (UPDATED - Fixed Invisible Text in Dark Mode) */
+/* Custom styles - Plasticology Ultimate Edition */
 
-/* NEW: Theme Variables */
+/* Theme Variables */
 :root {
     --bg-color: #eef2f7;
     --bg-gradient: linear-gradient(to top right, #e0e7ff, #f0f4f8);
@@ -209,7 +209,7 @@ details[open] > summary .fa-chevron-down {
 #avatar-selection-grid img { border-radius: 50%; cursor: pointer; transition: border 0.3s; }
 #avatar-selection-grid img:hover { border: 2px solid #3b82f6; }
 
-/* --- NEW: Modern Login Page & Settings Enhancements --- */
+/* Modern Login Page & Settings Enhancements */
 #settings-container {
     position: fixed;
     top: 1rem;
@@ -226,7 +226,6 @@ details[open] > summary .fa-chevron-down {
     z-index: 100;
 }
 
-/* Mobile view fix for settings container */
 @media (max-width: 640px) {
     #settings-container {
         top: auto;
@@ -291,7 +290,6 @@ html.animation-off .animation-off-icon { display: none; }
 }
 
 /* Dark Mode Question & Header Fixes */
-/* This explicitly forces the question text to be light in dark mode */
 #question-text,
 #learning-question-text,
 #theory-question-text,
@@ -299,7 +297,6 @@ html.animation-off .animation-off-icon { display: none; }
     color: var(--question-text-color);
 }
 
-/* Ensure answer buttons in dark mode are visible */
 html.dark .answer-btn,
 html.dark .learning-answer-btn {
     background-color: var(--answer-btn-bg);
@@ -380,53 +377,177 @@ html.dark .learning-answer-btn:hover {
     font-weight: 600;
 }
 
-/* ===========================
-// Update Title: FIX - RTL Support & Theme Variables for Multiple Answer Styles
-// Date: 13/10/2025
-// Version: v1.2.2
-// Type: إصلاح
-// Description: Corrected styles for the new answer format to support RTL and use theme variables for dark mode.
-// =========================== */
-
-/* Ensure labels with the .answer-btn class have the correct layout properties */
+/* Answer Styles */
 label.answer-btn {
     display: flex;
     align-items: center;
     cursor: pointer;
-    text-align: start; /* CORRECTED for RTL */
+    text-align: start;
     padding: 1rem;
     border-radius: 0.5rem;
     border-width: 2px;
     border-color: transparent;
 }
 
-/* Style the radio/checkbox inputs themselves */
 .answer-btn input[type="radio"],
 .answer-btn input[type="checkbox"] {
-    accent-color: #4f46e5; /* Default: indigo-600 */
+    accent-color: #4f46e5; 
     width: 1.25em;
     height: 1.25em;
-    margin-inline-end: 0.75rem; /* CORRECTED for RTL */
+    margin-inline-end: 0.75rem;
 }
 
-/* Change accent color based on correctness */
 .answer-btn.correct input[type="radio"],
 .answer-btn.correct input[type="checkbox"] {
-    accent-color: #10b981; /* green-500 */
+    accent-color: #10b981; 
 }
 
 .answer-btn.incorrect input[type="radio"],
 .answer-btn.incorrect input[type="checkbox"] {
-    accent-color: #ef4444; /* red-500 */
+    accent-color: #ef4444; 
 }
 
-/* Style for selected answers during simulation mode */
 .answer-btn.simulation-selected {
-    border-color: #60a5fa; /* A neutral blue for selection */
-    background-color: #eff6ff; /* Very light blue */
+    border-color: #60a5fa; 
+    background-color: #eff6ff;
 }
 
 html.dark .answer-btn.simulation-selected {
     border-color: #3b82f6;
-    background-color: var(--answer-btn-hover-bg); /* Use theme variable for dark background */
+    background-color: var(--answer-btn-hover-bg);
+}
+
+/* --- NEW: Matching Bank Styles --- */
+
+.matching-container-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .matching-container-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Premises (Left Side) */
+.premise-card {
+    background-color: var(--card-bg-color);
+    border: 1px solid var(--card-border-color);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.premise-text {
+    font-weight: 600;
+    color: var(--text-color-primary);
+}
+
+.premise-drop-zone {
+    min-height: 3.5rem;
+    border: 2px dashed #cbd5e1;
+    border-radius: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0.5rem;
+}
+
+html.dark .premise-drop-zone {
+    border-color: #475569;
+    background-color: rgba(30, 41, 59, 0.5);
+}
+
+.premise-drop-zone:hover {
+    border-color: #3b82f6;
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Answers (Right Side) */
+.answer-draggable {
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    color: #334155;
+}
+
+html.dark .answer-draggable {
+    background-color: #334155;
+    border-color: #475569;
+    color: #f1f5f9;
+}
+
+.answer-draggable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-color: #94a3b8;
+}
+
+/* Selection State */
+.answer-draggable.answer-selected {
+    background-color: #eff6ff;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+html.dark .answer-draggable.answer-selected {
+    background-color: #1e3a8a;
+    border-color: #60a5fa;
+}
+
+/* Feedback States */
+.premise-drop-zone.correct-match {
+    border-color: #10b981; /* Green */
+    background-color: #d1fae5;
+}
+html.dark .premise-drop-zone.correct-match {
+    background-color: rgba(6, 95, 70, 0.3);
+}
+
+.premise-drop-zone.incorrect-match {
+    border-color: #ef4444; /* Red */
+    background-color: #fee2e2;
+}
+html.dark .premise-drop-zone.incorrect-match {
+    background-color: rgba(153, 27, 27, 0.3);
+}
+
+.correct-answer-reveal {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #15803d;
+    font-weight: bold;
+    padding: 0.5rem;
+    background-color: #f0fdf4;
+    border-radius: 0.25rem;
+    border-left: 3px solid #15803d;
+}
+html.dark .correct-answer-reveal {
+    background-color: rgba(20, 83, 45, 0.3);
+    color: #4ade80;
+}
+
+/* Empty state for answer pool */
+#matching-answers-area:empty::before {
+    content: "All answers placed!";
+    color: #94a3b8;
+    font-style: italic;
+    text-align: center;
+    display: block;
+    padding: 2rem;
 }
