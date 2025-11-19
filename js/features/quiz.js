@@ -1,6 +1,6 @@
-// js/features/quiz.js (FINAL FIXED VERSION)
+// js/features/quiz.js (FINAL VERSION - WITH CUSTOM SIMULATION LOGIC)
 
-import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES } from '../state.js';
+import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
 import { logUserActivity, logIncorrectAnswer, logCorrectedMistake } from '../api.js';
@@ -95,7 +95,6 @@ export function startSimulationReview() {
     };
     launchQuiz(appState.currentQuiz.originalQuestions, `Review: ${dom.quizTitle.textContent}`, config);
 }
-
 
 // --- IN-QUIZ BUTTON FUNCTIONS ---
 
@@ -697,18 +696,50 @@ export function handleMockExamStart() {
     launchQuiz(mockQuestions, "Custom Mock Exam", config);
 }
 
+// --- NEW SIMULATION START LOGIC (CUSTOMIZABLE) ---
+
 export function handleStartSimulation() {
     dom.simulationError.classList.add('hidden');
+    
+    // 1. Get base pool
     let questionPool = getQuestionPool();
 
-    if (questionPool.length < SIMULATION_Q_COUNT) {
-        dom.simulationError.textContent = `Not enough unanswered questions available (${questionPool.length}). Showing from all questions instead.`;
-        dom.simulationError.classList.remove('hidden');
-        questionPool = appState.allQuestions;
+    // 2. Read Simulation Filters (Safe check for undefined elements)
+    let selectedSources = [];
+    let selectedChapters = [];
+
+    if (dom.sourceSelectSim) {
+        selectedSources = [...dom.sourceSelectSim.querySelectorAll('input:checked')].map(el => el.value);
+    }
+    
+    if (dom.chapterSelectSim) {
+        selectedChapters = [...dom.chapterSelectSim.querySelectorAll('input:checked')].map(el => el.value);
     }
 
-    const simulationQuestions = [...questionPool].sort(() => Math.random() - 0.5).slice(0, SIMULATION_Q_COUNT);
-    const totalTimeSeconds = SIMULATION_TOTAL_TIME_MINUTES * 60;
+    // 3. Apply Filters (if any selection is made)
+    if (selectedSources.length > 0) {
+        questionPool = questionPool.filter(q => selectedSources.includes(q.source || 'Uncategorized'));
+    }
+    if (selectedChapters.length > 0) {
+        questionPool = questionPool.filter(q => selectedChapters.includes(q.chapter || 'Uncategorized'));
+    }
+
+    // 4. Validate Pool Size
+    if (questionPool.length === 0) {
+        dom.simulationError.textContent = `No questions match your criteria. Please select more sources or chapters.`;
+        dom.simulationError.classList.remove('hidden');
+        return;
+    }
+
+    // 5. Select Random Questions (Max 100)
+    const simulationQuestions = [...questionPool]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, SIMULATION_Q_COUNT);
+
+    // 6. Calculate Time dynamically (1.2 mins per question)
+    const actualCount = simulationQuestions.length;
+    const totalTimeSeconds = Math.floor((actualCount / 100) * SIMULATION_TOTAL_TIME_MINUTES * 60);
+
     const config = { isSimulation: true, totalTimeSeconds };
     launchQuiz(simulationQuestions, "Exam Simulation", config);
 }
@@ -801,7 +832,6 @@ export async function startIncorrectQuestionsQuiz() {
     dom.loadingText.textContent = 'Loading your mistakes...';
     dom.loadingText.classList.remove('hidden');
     try {
-        // Use API wrapper logic if possible, but GET is fine here as per API design
         const response = await fetch(`${API_URL}?request=getIncorrectQuestions&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`, { redirect: 'follow' });
         if (!response.ok) throw new Error('Failed to fetch your mistakes.');
         const data = await response.json();
