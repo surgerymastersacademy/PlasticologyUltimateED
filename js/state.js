@@ -1,9 +1,6 @@
-// js/state.js (FINAL VERSION - Includes Matching Game State)
+// js/state.js (FINAL - Dynamic Versioning)
 
-export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
-
-// Change this number whenever you update your Google Sheet content
-export const APP_VERSION = '1.1'; 
+export const API_URL = 'https://script.google.com/macros/s/AKfycbxS4JqdtlcCud_OO3zlWVeCQAUwg2Al1xG3QqITq24vEI5UolL5YL_W1kfnC5soOaiFcQ/exec';
 
 export const SIMULATION_Q_COUNT = 100;
 export const SIMULATION_TOTAL_TIME_MINUTES = 120;
@@ -93,14 +90,14 @@ export const appState = {
         timerInterval: null
     },
 
-    // --- NEW: Current Matching Game State ---
+    // Current Matching Game State
     currentMatching: {
-        allSets: [], // Array of sets (each set has premises and shuffled answers)
+        allSets: [], 
         currentSetIndex: 0,
-        userMatches: {}, // Map of PremiseID -> AnswerID for current set
+        userMatches: {}, 
         score: 0,
         timerInterval: null,
         timePerSet: 60,
-        selectedAnswerElement: null // To track which answer is clicked
+        selectedAnswerElement: null 
     },
 };
