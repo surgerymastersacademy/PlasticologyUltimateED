@@ -1,6 +1,8 @@
-// js/state.js (FINAL - Dynamic Versioning)
+// js/state.js (FINAL VERSION - Dynamic Versioning & Matching Support)
 
 export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
+
+// تمت إزالة APP_VERSION من هنا لأنه سيتم جلبه ديناميكياً من الإكسيل
 
 export const SIMULATION_Q_COUNT = 100;
 export const SIMULATION_TOTAL_TIME_MINUTES = 120;
@@ -90,15 +92,14 @@ export const appState = {
         timerInterval: null
     },
 
-    // Current Matching Game State
+    // --- NEW: Current Matching Game State ---
     currentMatching: {
-        allSets: [], 
+        allSets: [], // Array of sets (each set has premises and shuffled answers)
         currentSetIndex: 0,
-        userMatches: {}, 
+        userMatches: {}, // Map of PremiseID -> AnswerID for current set
         score: 0,
         timerInterval: null,
         timePerSet: 60,
-        selectedAnswerElement: null 
+        selectedAnswerElement: null // To track which answer is clicked
     },
 };
-
