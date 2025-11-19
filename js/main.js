@@ -1,37 +1,34 @@
-// js/main.js (FINAL FULL VERSION)
+// js/main.js (FINAL VERSION)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
 import * as ui from './ui.js';
 import * as utils from './utils.js';
-import { fetchContentData, logTheoryActivity } from './api.js';
-import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
+import { fetchContentData } from './api.js';
+import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
 import {
-    launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz,
+    handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz,
     toggleBookmark, toggleFlag, showHint, showQuestionNavigator, startQuizBrowse, restartCurrentQuiz, reviewIncorrectAnswers, startSimulationReview
 } from './features/quiz.js';
-import { renderLectures, saveUserProgress, fetchAndShowLastActivity } from './features/lectures.js';
+import { renderLectures, fetchAndShowLastActivity } from './features/lectures.js';
 import { startOsceSlayer, startCustomOsce, endOsceQuiz, handleOsceNext, handleOscePrevious, showOsceNavigator } from './features/osce.js';
 import { showStudyPlannerScreen, handleCreatePlan } from './features/planner.js';
 import { showLearningModeBrowseScreen, handleLearningSearch, handleLearningNext, handleLearningPrevious, startLearningBrowse, startLearningMistakes, startLearningBookmarked } from './features/learningMode.js';
 import { showActivityLog, renderFilteredLog } from './features/activityLog.js';
 import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.js';
 import { showLeaderboardScreen } from './features/leaderboard.js';
-import { analyzePerformanceByChapter } from './features/performance.js';
 import { showTheoryMenuScreen, launchTheorySession } from './features/theory.js';
 import { showRegistrationModal, hideRegistrationModal, handleRegistrationSubmit } from './features/registration.js';
 import { showMatchingMenu, handleStartMatchingExam, checkCurrentSetAnswers, handleNextMatchingSet } from './features/matching.js';
 import { checkAndTriggerOnboarding, startTour, nextTourStep, endTour } from './features/onboarding.js';
+import { logTheoryActivity } from './api.js'; // For saving theory notes
 
 // --- Helper: Safe Event Listener ---
-// هذه الدالة تمنع توقف التطبيق إذا كان الزر غير موجود في الصفحة
 function safeListen(element, event, handler) {
     if (element) {
         element.addEventListener(event, handler);
     }
 }
-
-// --- دوال التنقل والعرض المشتركة ---
 
 export function showMainMenuScreen() {
     ui.showScreen(dom.mainMenuContainer);
@@ -39,7 +36,6 @@ export function showMainMenuScreen() {
     ui.displayAnnouncement();
     fetchAndShowLastActivity();
     
-    // التحقق من جولة الشرح (Onboarding)
     setTimeout(() => {
         checkAndTriggerOnboarding();
     }, 1000);
@@ -64,9 +60,8 @@ export function openNoteModal(type, itemId, itemTitle) {
     if(dom.noteModal) dom.noteModal.classList.remove('hidden');
 }
 
-
 function populateAllFilters() {
-    // فلتر بنك الأسئلة (QBank)
+    // QBank Filters
     const allSources = [...new Set(appState.allQuestions.map(q => q.source || 'Uncategorized'))].sort();
     const sourceCounts = appState.allQuestions.reduce((acc, q) => {
         const source = q.source || 'Uncategorized';
@@ -76,7 +71,7 @@ function populateAllFilters() {
     ui.populateFilterOptions(dom.sourceSelectMock, allSources, 'mock-source', sourceCounts);
     updateChapterFilter();
 
-    // فلتر OSCE
+    // OSCE Filters
     const osceChapters = [...new Set(appState.allOsceCases.map(c => c.Chapter || 'Uncategorized'))].sort();
     const osceSources = [...new Set(appState.allOsceCases.map(c => c.Source || 'Uncategorized'))].sort();
     const osceChapterCounts = appState.allOsceCases.reduce((acc, c) => {
@@ -93,7 +88,7 @@ function populateAllFilters() {
     ui.populateFilterOptions(dom.sourceSelectOsce, osceSources, 'osce-source', osceSourceCounts);
 }
 
-// --- نظام التوجيه (Router) ---
+// --- Router ---
 function handleRouting() {
     if (!appState.currentUser && window.location.hash !== '#login') {
         return;
@@ -123,15 +118,9 @@ function handleRouting() {
     }
 }
 
-// --- PWA & Install Banner Logic ---
+// --- PWA Logic ---
 let deferredPrompt; 
-
 function initializePwaFeatures() {
-    const pwaBanner = document.getElementById('pwa-install-banner');
-    const installBtn = document.getElementById('pwa-install-btn');
-    const iosModal = document.getElementById('ios-install-modal');
-    const iosCloseBtn = document.getElementById('ios-install-close-btn');
-    
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
     if (isStandalone) return; 
 
@@ -140,19 +129,20 @@ function initializePwaFeatures() {
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        if(pwaBanner) pwaBanner.classList.remove('hidden');
+        if(dom.pwaInstallBanner) dom.pwaInstallBanner.classList.remove('hidden');
     });
 
-    if(installBtn) {
-        installBtn.addEventListener('click', () => {
+    if(dom.pwaInstallBtn) {
+        dom.pwaInstallBtn.addEventListener('click', () => {
             if (isIOS) {
-                dom.modalBackdrop.classList.remove('hidden');
-                iosModal.classList.remove('hidden');
+                if(dom.modalBackdrop) dom.modalBackdrop.classList.remove('hidden');
+                const iosModal = document.getElementById('ios-install-modal');
+                if(iosModal) iosModal.classList.remove('hidden');
             } else if (deferredPrompt) {
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
-                        if(pwaBanner) pwaBanner.classList.add('hidden');
+                        if(dom.pwaInstallBanner) dom.pwaInstallBanner.classList.add('hidden');
                     }
                     deferredPrompt = null;
                 });
@@ -161,46 +151,37 @@ function initializePwaFeatures() {
             }
         });
     }
-
-    if (isIOS && pwaBanner) {
-        pwaBanner.classList.remove('hidden');
-        installBtn.textContent = "Install on iOS";
-    }
-
+    // iOS Modal Close logic handled in generic modal closer or below
+    const iosCloseBtn = document.getElementById('ios-install-close-btn');
     if(iosCloseBtn) {
         iosCloseBtn.addEventListener('click', () => {
-            iosModal.classList.add('hidden');
+            const iosModal = document.getElementById('ios-install-modal');
+            if(iosModal) iosModal.classList.add('hidden');
             dom.modalBackdrop.classList.add('hidden');
         });
     }
 }
 
-// --- Daily Streak Logic ---
+// --- Daily Streak ---
 function calculateDailyStreak() {
     if (!dom.streakContainer || !dom.streakCount) return;
-
     const today = new Date().toISOString().split('T')[0];
     const lastVisit = localStorage.getItem('lastVisitDate');
     let streak = parseInt(localStorage.getItem('dailyStreak') || '0');
 
-    if (lastVisit === today) {
-    } else if (lastVisit) {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-        if (lastVisit === yesterdayStr) {
-            streak++;
+    if (lastVisit !== today) {
+        if (lastVisit) {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            if (lastVisit === yesterdayStr) streak++;
+            else streak = 1; 
         } else {
-            streak = 1; 
+            streak = 1;
         }
-    } else {
-        streak = 1;
+        localStorage.setItem('lastVisitDate', today);
+        localStorage.setItem('dailyStreak', streak);
     }
-
-    localStorage.setItem('lastVisitDate', today);
-    localStorage.setItem('dailyStreak', streak);
-
     dom.streakCount.textContent = streak;
     if (streak > 0) {
         dom.streakContainer.classList.remove('hidden');
@@ -208,10 +189,8 @@ function calculateDailyStreak() {
     }
 }
 
-
-// --- MAIN APP INITIALIZATION ---
+// --- APP INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
-
     const toggleThemeBtn = document.getElementById('toggle-theme-btn');
     const toggleAnimationBtn = document.getElementById('toggle-animation-btn');
     const loginCanvas = document.getElementById('login-canvas');
@@ -261,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function initializeApp() {
         if(dom.loginSubmitBtn) {
             dom.loginSubmitBtn.disabled = true;
-            dom.loginSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Your Companion is on His way...';
+            dom.loginSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Connecting...';
         }
         if(dom.freeTestBtn) dom.freeTestBtn.disabled = true;
 
@@ -275,24 +254,22 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.allOsceCases = utils.parseOsceCases(data.osceCases);
             appState.allOsceQuestions = utils.parseOsceQuestions(data.osceQuestions);
             appState.allRoles = data.roles || [];
-            appState.allChaptersNames = Object.keys(appState.groupedLectures);
             appState.allTheoryQuestions = utils.parseTheoryQuestions(data.theoryQuestions);
 
             populateAllFilters();
             
             if(dom.loginSubmitBtn) {
-                dom.loginSubmitBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Your Companion is Here!';
+                dom.loginSubmitBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Ready!';
                 setTimeout(() => {
                     dom.loginSubmitBtn.disabled = false;
                     dom.loginSubmitBtn.textContent = 'Log In';
-                }, 1500);
+                }, 1000);
             }
             if(dom.freeTestBtn) dom.freeTestBtn.disabled = false;
-
         } else {
-            if(dom.loginSubmitBtn) dom.loginSubmitBtn.textContent = 'Error Loading Data';
+            if(dom.loginSubmitBtn) dom.loginSubmitBtn.textContent = 'Connection Error';
             if(dom.loginError) {
-                dom.loginError.textContent = 'Failed to load app content. Please refresh.';
+                dom.loginError.textContent = 'Failed to load content. Please refresh.';
                 dom.loginError.classList.remove('hidden');
             }
         }
@@ -300,23 +277,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initializeSettings();
 
-    // --- ربط الأحداث (EVENT LISTENERS) ---
-    // نستخدم safeListen لمنع أي خطأ في حالة عدم وجود الزر
-
-    // Onboarding
+    // --- EVENT LISTENERS ---
     safeListen(dom.helpBtn, 'click', startTour);
     safeListen(dom.startTourBtn, 'click', startTour);
     safeListen(dom.skipTourBtn, 'click', endTour);
     safeListen(dom.tourNextBtn, 'click', nextTourStep);
     safeListen(dom.tourEndBtn, 'click', endTour);
 
-    // Login
     safeListen(dom.loginForm, 'submit', handleLogin);
     safeListen(dom.showRegisterLink, 'click', (e) => { e.preventDefault(); showRegistrationModal(); });
     safeListen(dom.registrationForm, 'submit', handleRegistrationSubmit);
     safeListen(dom.registerCancelBtn, 'click', hideRegistrationModal);
 
-    // Global Nav
     safeListen(dom.logoutBtn, 'click', handleLogout);
     safeListen(dom.globalHomeBtn, 'click', () => {
         if (appState.currentUser?.Role === 'Guest') { ui.showScreen(dom.loginContainer); appState.currentUser = null; } 
@@ -325,12 +297,11 @@ document.addEventListener('DOMContentLoaded', () => {
     safeListen(dom.freeTestBtn, 'click', startFreeTest);
     
     // Back Buttons
-    const backButtons = [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn, dom.theoryBackBtn, dom.matchingBackBtn];
-    backButtons.forEach(btn => {
+    [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn, dom.theoryBackBtn, dom.matchingBackBtn].forEach(btn => {
         safeListen(btn, 'click', () => { if (window.history.length > 1) window.history.back(); else showMainMenuScreen(); });
     });
 
-    // Main Menu
+    // Menu Buttons
     safeListen(dom.lecturesBtn, 'click', () => { if (checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); } });
     safeListen(dom.qbankBtn, 'click', () => { if (checkPermission('MCQBank')) { ui.showScreen(dom.qbankContainer); } });
     safeListen(dom.learningModeBtn, 'click', () => { if (checkPermission('LerningMode')) showLearningModeBrowseScreen(); });
@@ -341,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
     safeListen(dom.leaderboardBtn, 'click', () => checkPermission('LeadersBoard') && showLeaderboardScreen());
     safeListen(dom.matchingBtn, 'click', () => showMatchingMenu());
     
-    // Profile & Misc
+    // Features
     safeListen(dom.userProfileHeaderBtn, 'click', () => showUserCardModal(false));
     safeListen(dom.editProfileBtn, 'click', () => toggleProfileEditMode(true));
     safeListen(dom.cancelEditProfileBtn, 'click', () => toggleProfileEditMode(false));
@@ -353,7 +324,6 @@ document.addEventListener('DOMContentLoaded', () => {
     safeListen(dom.sendMessageBtn, 'click', handleSendMessageBtn);
     safeListen(dom.lectureSearchInput, 'keyup', (e) => renderLectures(e.target.value));
     
-    // Notes & Activity
     safeListen(dom.notesBtn, 'click', showNotesScreen);
     safeListen(dom.activityLogBtn, 'click', showActivityLog);
     safeListen(dom.logFilterAll, 'click', () => renderFilteredLog('all'));
@@ -373,7 +343,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     safeListen(dom.noteCancelBtn, 'click', () => { dom.noteModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
     
-    // QBank
     safeListen(dom.startMockBtn, 'click', handleMockExamStart);
     safeListen(dom.startSimulationBtn, 'click', handleStartSimulation);
     safeListen(dom.qbankSearchBtn, 'click', handleQBankSearch);
@@ -385,17 +354,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     safeListen(dom.toggleCustomOptionsBtn, 'click', () => dom.customExamOptions.classList.toggle('visible'));
     safeListen(dom.sourceSelectMock, 'change', updateChapterFilter);
-    safeListen(dom.selectAllSourcesMock, 'change', (e) => {
-        if(dom.sourceSelectMock) dom.sourceSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
+    if(dom.selectAllSourcesMock) safeListen(dom.selectAllSourcesMock, 'change', (e) => {
+        dom.sourceSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
         updateChapterFilter();
     });
-    safeListen(dom.selectAllChaptersMock, 'change', (e) => {
-        if(dom.chapterSelectMock) dom.chapterSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
+    if(dom.selectAllChaptersMock) safeListen(dom.selectAllChaptersMock, 'change', (e) => {
+        dom.chapterSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
     });
     safeListen(dom.practiceMistakesBtn, 'click', startIncorrectQuestionsQuiz);
     safeListen(dom.practiceBookmarkedBtn, 'click', startBookmarkedQuestionsQuiz);
-    safeListen(dom.browseByChapterBtn, 'click', () => startQuizBrowse('chapter'));
-    safeListen(dom.browseBySourceBtn, 'click', () => startQuizBrowse('source'));
+    if(dom.browseByChapterBtn) safeListen(dom.browseByChapterBtn, 'click', () => startQuizBrowse('chapter'));
+    if(dom.browseBySourceBtn) safeListen(dom.browseBySourceBtn, 'click', () => startQuizBrowse('source'));
     
     // Tabs
     const qbankTabs = [dom.qbankTabCreate, dom.qbankTabPractice, dom.qbankTabBrowse];
@@ -409,7 +378,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }); 
     });
 
-    // In-Quiz
     safeListen(dom.endQuizBtn, 'click', triggerEndQuiz);
     safeListen(dom.nextSkipBtn, 'click', handleNextQuestion);
     safeListen(dom.previousBtn, 'click', handlePreviousQuestion);
@@ -424,16 +392,13 @@ document.addEventListener('DOMContentLoaded', () => {
     safeListen(dom.resultsHomeBtn, 'click', showMainMenuScreen);
     safeListen(dom.restartBtn, 'click', () => restartCurrentQuiz());
     safeListen(dom.reviewIncorrectBtn, 'click', () => reviewIncorrectAnswers());
-    const reviewSimulationBtn = document.getElementById('review-simulation-btn');
-    safeListen(reviewSimulationBtn, 'click', () => startSimulationReview());
+    safeListen(document.getElementById('review-simulation-btn'), 'click', () => startSimulationReview());
 
-    // Matching
     safeListen(dom.startMatchingBtn, 'click', handleStartMatchingExam);
     safeListen(dom.matchingSubmitBtn, 'click', () => checkCurrentSetAnswers());
     safeListen(dom.matchingNextBtn, 'click', handleNextMatchingSet);
     safeListen(dom.endMatchingBtn, 'click', () => { ui.showConfirmationModal('End Test', 'Are you sure?', () => showMatchingMenu()); });
 
-    // OSCE
     safeListen(dom.startOsceSlayerBtn, 'click', startOsceSlayer);
     safeListen(dom.startCustomOsceBtn, 'click', startCustomOsce);
     safeListen(dom.toggleOsceOptionsBtn, 'click', () => dom.customOsceOptions.classList.toggle('visible'));
@@ -444,23 +409,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if(dom.chapterSelectOsce) safeListen(document.getElementById('select-all-chapters-osce'), 'change', (e) => { dom.chapterSelectOsce.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; }); });
     if(dom.sourceSelectOsce) safeListen(document.getElementById('select-all-sources-osce'), 'change', (e) => { dom.sourceSelectOsce.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; }); });
     
-    // Learning Mode
     safeListen(dom.endLearningBtn, 'click', showLearningModeBrowseScreen);
     safeListen(dom.learningNextBtn, 'click', handleLearningNext);
     safeListen(dom.learningPreviousBtn, 'click', handleLearningPrevious);
     safeListen(dom.learningSearchBtn, 'click', handleLearningSearch);
-    safeListen(dom.learningBrowseByChapterBtn, 'click', () => startLearningBrowse('chapter'));
-    safeListen(dom.learningBrowseBySourceBtn, 'click', () => startLearningBrowse('source'));
+    if(dom.learningBrowseByChapterBtn) safeListen(dom.learningBrowseByChapterBtn, 'click', () => startLearningBrowse('chapter'));
+    if(dom.learningBrowseBySourceBtn) safeListen(dom.learningBrowseBySourceBtn, 'click', () => startLearningBrowse('source'));
     safeListen(document.getElementById('learning-mistakes-btn'), 'click', startLearningMistakes);
     safeListen(document.getElementById('learning-bookmarked-btn'), 'click', startLearningBookmarked);
 
-    // Planner
     safeListen(dom.showCreatePlanModalBtn, 'click', () => { dom.createPlanModal.classList.remove('hidden'); dom.modalBackdrop.classList.remove('hidden'); });
     safeListen(dom.cancelCreatePlanBtn, 'click', () => { dom.createPlanModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
     safeListen(dom.confirmCreatePlanBtn, 'click', handleCreatePlan);
     safeListen(dom.backToPlansDashboardBtn, 'click', () => { dom.activePlanView.classList.add('hidden'); dom.plannerDashboard.classList.remove('hidden'); });
 
-    // Modals (General)
     safeListen(dom.modalCancelBtn, 'click', () => { dom.confirmationModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
     safeListen(dom.modalConfirmBtn, 'click', () => { if (appState.modalConfirmAction) { appState.modalConfirmAction(); dom.confirmationModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');} });
     safeListen(dom.imageViewerCloseBtn, 'click', () => { dom.imageViewerModal.classList.add('hidden'); if(dom.userCardModal.classList.contains('hidden') && dom.createPlanModal.classList.contains('hidden') && dom.announcementsModal.classList.contains('hidden') && dom.messengerModal.classList.contains('hidden')) dom.modalBackdrop.classList.add('hidden');});
