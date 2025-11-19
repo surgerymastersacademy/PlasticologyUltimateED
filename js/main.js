@@ -1,10 +1,10 @@
-// js/main.js (FINAL VERSION)
+// js/main.js (FINAL VERSION - UPDATED FOR SIMULATION FILTERS)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
 import * as ui from './ui.js';
 import * as utils from './utils.js';
-import { fetchContentData } from './api.js';
+import { fetchContentData, logTheoryActivity } from './api.js';
 import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
 import {
     handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz,
@@ -21,7 +21,6 @@ import { showTheoryMenuScreen, launchTheorySession } from './features/theory.js'
 import { showRegistrationModal, hideRegistrationModal, handleRegistrationSubmit } from './features/registration.js';
 import { showMatchingMenu, handleStartMatchingExam, checkCurrentSetAnswers, handleNextMatchingSet } from './features/matching.js';
 import { checkAndTriggerOnboarding, startTour, nextTourStep, endTour } from './features/onboarding.js';
-import { logTheoryActivity } from './api.js'; // For saving theory notes
 
 // --- Helper: Safe Event Listener ---
 function safeListen(element, event, handler) {
@@ -61,7 +60,7 @@ export function openNoteModal(type, itemId, itemTitle) {
 }
 
 function populateAllFilters() {
-    // QBank Filters
+    // 1. QBank Mock Filters (Existing)
     const allSources = [...new Set(appState.allQuestions.map(q => q.source || 'Uncategorized'))].sort();
     const sourceCounts = appState.allQuestions.reduce((acc, q) => {
         const source = q.source || 'Uncategorized';
@@ -71,7 +70,25 @@ function populateAllFilters() {
     ui.populateFilterOptions(dom.sourceSelectMock, allSources, 'mock-source', sourceCounts);
     updateChapterFilter();
 
-    // OSCE Filters
+    // 2. Simulation Filters (NEW)
+    // Populate Sources
+    ui.populateFilterOptions(dom.sourceSelectSim, allSources, 'sim-source', sourceCounts);
+    
+    // Populate Chapters (All chapters initially)
+    const allChapters = [...new Set(appState.allQuestions.map(q => q.chapter || 'Uncategorized'))].sort();
+    const chapterCounts = appState.allQuestions.reduce((acc, q) => {
+        const chapter = q.chapter || 'Uncategorized';
+        acc[chapter] = (acc[chapter] || 0) + 1;
+        return acc;
+    }, {});
+    ui.populateFilterOptions(dom.chapterSelectSim, allChapters, 'sim-chapter', chapterCounts);
+
+    // Check all boxes by default for Simulation Mode
+    if(dom.sourceSelectSim) dom.sourceSelectSim.querySelectorAll('input').forEach(i => i.checked = true);
+    if(dom.chapterSelectSim) dom.chapterSelectSim.querySelectorAll('input').forEach(i => i.checked = true);
+
+
+    // 3. OSCE Filters (Existing)
     const osceChapters = [...new Set(appState.allOsceCases.map(c => c.Chapter || 'Uncategorized'))].sort();
     const osceSources = [...new Set(appState.allOsceCases.map(c => c.Source || 'Uncategorized'))].sort();
     const osceChapterCounts = appState.allOsceCases.reduce((acc, c) => {
@@ -151,7 +168,6 @@ function initializePwaFeatures() {
             }
         });
     }
-    // iOS Modal Close logic handled in generic modal closer or below
     const iosCloseBtn = document.getElementById('ios-install-close-btn');
     if(iosCloseBtn) {
         iosCloseBtn.addEventListener('click', () => {
@@ -343,8 +359,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     safeListen(dom.noteCancelBtn, 'click', () => { dom.noteModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
     
+    // QBank Listeners
     safeListen(dom.startMockBtn, 'click', handleMockExamStart);
-    safeListen(dom.startSimulationBtn, 'click', handleStartSimulation);
+    safeListen(dom.startSimulationBtn, 'click', handleStartSimulation); // Uses new filtered logic
     safeListen(dom.qbankSearchBtn, 'click', handleQBankSearch);
     safeListen(dom.qbankStartSearchQuizBtn, 'click', startSearchedQuiz);
     safeListen(dom.qbankClearSearchBtn, 'click', () => {
@@ -353,6 +370,8 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.qbankSearchInput.value = '';
     });
     safeListen(dom.toggleCustomOptionsBtn, 'click', () => dom.customExamOptions.classList.toggle('visible'));
+    
+    // Mock Filters
     safeListen(dom.sourceSelectMock, 'change', updateChapterFilter);
     if(dom.selectAllSourcesMock) safeListen(dom.selectAllSourcesMock, 'change', (e) => {
         dom.sourceSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
@@ -361,12 +380,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if(dom.selectAllChaptersMock) safeListen(dom.selectAllChaptersMock, 'change', (e) => {
         dom.chapterSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
     });
+
+    // NEW: Simulation Filters Listeners
+    safeListen(dom.toggleSimulationOptionsBtn, 'click', () => dom.simulationCustomOptions.classList.toggle('hidden'));
+    if(dom.selectAllSourcesSim) safeListen(dom.selectAllSourcesSim, 'change', (e) => {
+        dom.sourceSelectSim.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
+    });
+    if(dom.selectAllChaptersSim) safeListen(dom.selectAllChaptersSim, 'change', (e) => {
+        dom.chapterSelectSim.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
+    });
+
     safeListen(dom.practiceMistakesBtn, 'click', startIncorrectQuestionsQuiz);
     safeListen(dom.practiceBookmarkedBtn, 'click', startBookmarkedQuestionsQuiz);
     if(dom.browseByChapterBtn) safeListen(dom.browseByChapterBtn, 'click', () => startQuizBrowse('chapter'));
     if(dom.browseBySourceBtn) safeListen(dom.browseBySourceBtn, 'click', () => startQuizBrowse('source'));
     
-    // Tabs
     const qbankTabs = [dom.qbankTabCreate, dom.qbankTabPractice, dom.qbankTabBrowse];
     qbankTabs.forEach((tab, index) => { 
         safeListen(tab, 'click', () => {
