@@ -1,10 +1,10 @@
-// js/main.js (FINAL VERSION - With Registration Logic)
+// js/main.js (UPDATED - With Hash Router)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
 import * as ui from './ui.js';
 import * as utils from './utils.js';
-import { fetchContentData, fetchUserData, logTheoryActivity } from './api.js';
+import { fetchContentData } from './api.js';
 import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
 import {
     launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz,
@@ -19,7 +19,6 @@ import { showNotesScreen, renderNotes, handleSaveNote } from './features/notes.j
 import { showLeaderboardScreen } from './features/leaderboard.js';
 import { analyzePerformanceByChapter } from './features/performance.js';
 import { showTheoryMenuScreen, launchTheorySession } from './features/theory.js';
-// --- NEW: Import registration handlers ---
 import { showRegistrationModal, hideRegistrationModal, handleRegistrationSubmit } from './features/registration.js';
 
 
@@ -52,7 +51,7 @@ export function openNoteModal(type, itemId, itemTitle) {
 
 
 function populateAllFilters() {
-    // For QBank (Exam Mode)
+    // For QBank
     const allSources = [...new Set(appState.allQuestions.map(q => q.source || 'Uncategorized'))].sort();
     const sourceCounts = appState.allQuestions.reduce((acc, q) => {
         const source = q.source || 'Uncategorized';
@@ -79,6 +78,64 @@ function populateAllFilters() {
     ui.populateFilterOptions(dom.sourceSelectOsce, osceSources, 'osce-source', osceSourceCounts);
 }
 
+// --- NEW: Router Function ---
+function handleRouting() {
+    // Only route if user is logged in (and not Guest, unless explicitly allowed)
+    if (!appState.currentUser && window.location.hash !== '#login') {
+        return; // Do nothing, let the login flow handle it
+    }
+
+    const hash = window.location.hash;
+    console.log("Router navigating to:", hash);
+
+    switch(hash) {
+        case '#home':
+            showMainMenuScreen();
+            break;
+        case '#lectures':
+            if (checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); }
+            break;
+        case '#qbank':
+            if (checkPermission('MCQBank')) ui.showScreen(dom.qbankContainer);
+            break;
+        case '#learning':
+            if (checkPermission('LerningMode')) showLearningModeBrowseScreen();
+            break;
+        case '#theory':
+            if (checkPermission('TheoryBank')) showTheoryMenuScreen();
+            break;
+        case '#osce':
+            if (checkPermission('OSCEBank')) ui.showScreen(dom.osceContainer);
+            break;
+        case '#library':
+            if (checkPermission('Library')) { ui.renderBooks(); ui.showScreen(dom.libraryContainer); }
+            break;
+        case '#planner':
+            if (checkPermission('StudyPlanner')) showStudyPlannerScreen();
+            break;
+        case '#leaderboard':
+            if (checkPermission('LeadersBoard')) showLeaderboardScreen();
+            break;
+        case '#activity':
+            showActivityLog();
+            break;
+        case '#notes':
+            showNotesScreen();
+            break;
+        case '#quiz':
+            // If page refreshes on #quiz, we lose state. Redirect to home for safety.
+            if (!appState.currentQuiz.questions || appState.currentQuiz.questions.length === 0) {
+                window.location.hash = '#home';
+            } else {
+                ui.showScreen(dom.quizContainer);
+            }
+            break;
+        default:
+            // Unknown hash or root, do nothing or go home
+            break;
+    }
+}
+
 
 // MAIN APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', () => {
@@ -87,6 +144,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleAnimationBtn = document.getElementById('toggle-animation-btn');
     const loginCanvas = document.getElementById('login-canvas');
     const htmlEl = document.documentElement;
+
+    // Initialize Router Listener
+    window.addEventListener('hashchange', handleRouting);
 
     function initializeSettings() {
         // Theme
@@ -186,25 +246,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     dom.freeTestBtn.addEventListener('click', startFreeTest);
+    
+    // Back Button Logic
     [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn, dom.theoryBackBtn].forEach(btn => {
         btn.addEventListener('click', () => {
-            if (appState.navigationHistory.length > 1) {
-                appState.navigationHistory.pop();
-                const previousScreen = appState.navigationHistory[appState.navigationHistory.length - 1];
-                if (typeof previousScreen === 'function') previousScreen();
+            // Use history.back() to support the new routing system naturally
+            if (window.history.length > 1) {
+                window.history.back();
             } else {
                 showMainMenuScreen();
             }
         });
     });
 
-    // Main Menu & Header
-    dom.lecturesBtn.addEventListener('click', () => { if (checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); appState.navigationHistory.push(() => ui.showScreen(dom.lecturesContainer)); } });
-    dom.qbankBtn.addEventListener('click', () => { if (checkPermission('MCQBank')) { ui.showScreen(dom.qbankContainer); appState.navigationHistory.push(() => ui.showScreen(dom.qbankContainer)); } });
+    // Main Menu & Header - NOTE: Click events now rely on showScreen updating the hash
+    dom.lecturesBtn.addEventListener('click', () => { if (checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); } });
+    dom.qbankBtn.addEventListener('click', () => { if (checkPermission('MCQBank')) { ui.showScreen(dom.qbankContainer); } });
     dom.learningModeBtn.addEventListener('click', () => { if (checkPermission('LerningMode')) showLearningModeBrowseScreen(); });
     dom.theoryBtn.addEventListener('click', () => { if (checkPermission('TheoryBank')) showTheoryMenuScreen(); });
-    dom.osceBtn.addEventListener('click', () => { if (checkPermission('OSCEBank')) { ui.showScreen(dom.osceContainer); appState.navigationHistory.push(() => ui.showScreen(dom.osceContainer)); } });
-    dom.libraryBtn.addEventListener('click', () => { if (checkPermission('Library')) { ui.renderBooks(); ui.showScreen(dom.libraryContainer); appState.navigationHistory.push(() => ui.showScreen(dom.libraryContainer)); } });
+    dom.osceBtn.addEventListener('click', () => { if (checkPermission('OSCEBank')) { ui.showScreen(dom.osceContainer); } });
+    dom.libraryBtn.addEventListener('click', () => { if (checkPermission('Library')) { ui.renderBooks(); ui.showScreen(dom.libraryContainer); } });
     dom.studyPlannerBtn.addEventListener('click', () => { if (checkPermission('StudyPlanner')) showStudyPlannerScreen(); });
     dom.userProfileHeaderBtn.addEventListener('click', () => showUserCardModal(false));
     dom.editProfileBtn.addEventListener('click', () => toggleProfileEditMode(true));
