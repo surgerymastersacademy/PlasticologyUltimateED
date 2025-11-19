@@ -41,39 +41,26 @@
             <a href="https://www.surgerymastersacademy.com" target="_blank" title="Back to Main Website">
                 <img id="header-logo" src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-10">
             </a>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
+                
+                <button id="help-btn" class="text-white hover:text-yellow-400 transition-colors text-xl" title="Start Tour">
+                    <i class="fas fa-question-circle"></i>
+                </button>
+
                 <div id="streak-container" class="hidden md:flex items-center bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full font-bold border border-orange-500/50" title="Daily Streak">
                     <i class="fas fa-fire mr-2"></i>
-                    <span id="streak-count">0</span> Day
+                    <span id="streak-count">0</span>
                 </div>
+
                 <button id="user-profile-header-btn" class="flex items-center gap-2 text-white hover:text-slate-300 transition-colors" title="My Profile" aria-label="My Profile">
                     <img id="header-user-avatar" src="https://api.dicebear.com/7.x/initials/svg?seed=User" alt="User Avatar" class="w-8 h-8 rounded-full border-2 border-white">
                     <span id="user-name-display" class="text-base font-medium text-slate-200 hidden sm:block"></span>
                 </button>
-                <button id="radio-btn" class="text-white hover:text-slate-300 transition-colors" title="Plasticology Radio" aria-label="Plasticology Radio">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 7.5 16.5-4.125M12 6.75c-2.708 0-5.363.224-7.948.655C2.999 7.58 2.25 8.507 2.25 9.574v9.176A2.25 2.25 0 0 0 4.5 21h15a2.25 2.25 0 0 0 2.25-2.25V9.574c0-1.067-.75-1.994-1.802-2.169A48.329 48.329 0 0 0 12 6.75Zm-1.683 6.443-.005.005-.006-.005.006-.005.005.005Zm-.005 2.127-.005-.006.005-.005.005.005-.005.005Zm-2.116-.006-.005.006-.006-.006.005-.005.006.005Zm-.005-2.116-.006-.005.006-.005.005.005-.005.005ZM9.255 10.5v.008h-.008V10.5h.008Zm3.249 1.88-.007.004-.003-.007.006-.003.004.006Zm-1.38 5.126-.003-.006.006-.004.004.007-.006.003Zm.007-6.501-.003.006-.007-.003.004-.007.006.004Zm1.370 5.129-.007-.004.004-.006.006.003-.004.007Zm.504-1.877h-.008v-.007h.008v.007ZM9.255 18v.008h-.008V18h.008Zm-3.246-1.87-.007.004L6 16.127l.006-.003.004.006Zm1.366-5.119-.004-.006.006-.004.004.007-.006.003ZM7.38 17.5l-.003.006-.007-.003.004-.007.006.004Zm-1.376-5.116L6 12.38l.003-.007.007.004-.004.007Zm-.5 1.873h-.008v-.007h.008v.007ZM17.25 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Zm0 4.5a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" />
-                    </svg>
-                </button>
-                <button id="announcements-btn" class="text-white hover:text-slate-300 transition-colors text-2xl" title="Announcements" aria-label="Announcements">
-                    <i class="fas fa-bullhorn"></i>
-                </button>
-                <button id="notes-btn" class="text-white hover:text-slate-300 transition-colors text-2xl" title="My Notes" aria-label="My Notes">
-                    <i class="fas fa-book-open"></i>
-                </button>
-                <button id="activity-log-btn" class="text-white hover:text-slate-300 transition-colors text-2xl" title="Activity Log" aria-label="Activity Log">
-                    <i class="fas fa-history"></i>
-                </button>
-                <button id="messenger-btn" class="text-white hover:text-slate-300 transition-colors text-2xl" title="Messenger" aria-label="Messenger">
-                    <i class="fas fa-comments"></i>
-                </button>
-                <a href="https://t.me/DrBishoyAcademy" target="_blank" class="text-white hover:text-slate-300 transition-colors text-2xl" title="Contact Support"><i class="fas fa-headset"></i></a>
-                <button id="global-home-btn" class="text-white hover:text-slate-300 transition-colors text-2xl" title="Back to Home" aria-label="Back to Home">
-                    <i class="fas fa-home"></i>
-                </button>
-                <button id="logout-btn" class="text-white hover:text-red-500 transition-colors text-2xl hidden" title="Logout" aria-label="Logout">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
+                
+                <button id="announcements-btn" class="text-white hover:text-slate-300 transition-colors text-xl"><i class="fas fa-bullhorn"></i></button>
+                <button id="messenger-btn" class="text-white hover:text-slate-300 transition-colors text-xl"><i class="fas fa-comments"></i></button>
+                <button id="global-home-btn" class="text-white hover:text-slate-300 transition-colors text-xl"><i class="fas fa-home"></i></button>
+                <button id="logout-btn" class="text-white hover:text-red-500 transition-colors text-xl hidden"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
 
@@ -90,7 +77,7 @@
 
         <main id="main-content">
             <div id="login-container" class="w-full max-w-sm mx-auto">
-                <div class="login-card p-8 rounded-2xl shadow-xl">
+                 <div class="login-card p-8 rounded-2xl shadow-xl">
                     <img id="login-logo" src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-20 mx-auto mb-4">
                     <div class="text-center mb-8">
                         <h1 class="text-2xl font-bold text-slate-800">Welcome To Plasticology</h1>
@@ -161,7 +148,6 @@
                         <div id="last-lecture-ribbon" class="hidden p-3 bg-teal-100 border border-teal-200 text-teal-800 rounded-lg text-center text-sm font-medium"></div>
                         <div id="last-quiz-ribbon" class="hidden p-3 bg-blue-100 border border-blue-200 text-blue-800 rounded-lg text-center text-sm font-medium"></div>
                     </div>
-                    <p class="text-slate-500 text-center mb-8">Let’s get started – choose a section</p>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
                         <button id="lectures-btn" class="main-menu-btn flex flex-col items-center justify-center p-8 rounded-xl text-white bg-gradient-to-r from-teal-500 to-cyan-600">
                             <i class="fas fa-video text-5xl mb-4"></i>
@@ -850,7 +836,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div id="matching-game-container" class="hidden flex flex-col h-full min-h-[80vh]">
                     <div class="p-4 bg-slate-100 border-b flex justify-between items-center sticky top-0 z-10">
                          <div class="flex items-center gap-4">
@@ -879,11 +864,45 @@
                     </div>
                 </div>
             </div>
-            </main>
-        <footer id="app-footer" class="text-center p-4 bg-slate-100 text-xs text-slate-500 border-t">
-           Copyright © Egyptian Plastic Surgery Academy Plasticology Dr.Bishoy
-        </footer>
+            
+        </main>
+
         <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+             
+             <div id="onboarding-modal" class="bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full hidden text-center">
+                <div class="mb-4">
+                    <img src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-16 mx-auto mb-2" style="filter: invert(1) opacity(0.5);">
+                    <h2 class="text-2xl font-bold text-slate-800">What's New in v3.0!</h2>
+                    <p class="text-slate-500 mt-1">We've added some exciting features to help you study better.</p>
+                </div>
+                <div class="space-y-4 text-left mb-6">
+                    <div class="flex items-start">
+                        <div class="bg-pink-100 p-2 rounded-lg mr-3"><i class="fas fa-puzzle-piece text-pink-600"></i></div>
+                        <div><h4 class="font-bold text-slate-800">Matching Bank</h4><p class="text-sm text-slate-600">Test your knowledge connections.</p></div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="bg-orange-100 p-2 rounded-lg mr-3"><i class="fas fa-fire text-orange-600"></i></div>
+                        <div><h4 class="font-bold text-slate-800">Daily Streak</h4><p class="text-sm text-slate-600">Stay consistent and track your progress.</p></div>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button id="skip-tour-btn" class="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-lg hover:bg-slate-200">Skip</button>
+                    <button id="start-tour-btn" class="flex-2 w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-md">Start Tour 🚀</button>
+                </div>
+             </div>
+
+             <div id="tour-tooltip" class="hidden">
+                <div class="flex justify-between items-start">
+                    <h3 id="tour-title" class="font-bold">Title</h3>
+                    <span id="tour-step-count" class="text-xs font-mono bg-slate-100 px-2 py-1 rounded">1/5</span>
+                </div>
+                <p id="tour-text" class="mt-2 mb-4">Description goes here.</p>
+                <div class="flex justify-end gap-2">
+                    <button id="tour-end-btn" class="text-xs text-slate-400 hover:text-slate-600 px-2">End Tour</button>
+                    <button id="tour-next-btn" class="px-4 py-1 bg-blue-600 text-white text-sm font-bold rounded hover:bg-blue-700">Next</button>
+                </div>
+             </div>
+
              <div id="registration-modal" class="bg-white rounded-lg p-8 shadow-xl max-w-lg w-full hidden">
             <h3 class="text-xl font-bold mb-4 text-center">Create a New Account</h3>
             <p class="text-center text-slate-500 mb-6">Register for a 24-hour free trial.</p>
