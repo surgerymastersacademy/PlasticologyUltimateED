@@ -3,269 +3,300 @@
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
-import * as utils from '../utils.js';
 import { logUserActivity } from '../api.js';
-import { showMainMenuScreen } from '../main.js';
+import { populateFilterOptions } from '../ui.js';
+import { formatTime } from '../utils.js';
 
-let selectedAnswerElement = null;
-let timerInterval = null;
+// --- Initialization & Menu ---
 
-// This function will be called from main.js to set up all the event listeners
-export function initializeMatching() {
-    dom.startMatchingBtn.addEventListener('click', handleStartMatchingExam);
-    dom.matchingMenuBackBtn.addEventListener('click', showMainMenuScreen);
-    dom.endMatchingQuizBtn.addEventListener('click', () => {
-        clearInterval(timerInterval);
-        ui.showConfirmationModal('Are you sure you want to end this exam?', showMainMenuScreen);
-    });
+export function showMatchingMenu() {
+    ui.showScreen(dom.matchingContainer);
+    dom.matchingMenuContainer.classList.remove('hidden');
+    dom.matchingGameContainer.classList.add('hidden');
+    appState.navigationHistory.push(showMatchingMenu);
 
-    dom.matchingAnswersArea.addEventListener('click', handleAnswerClick);
-    dom.matchingPremisesArea.addEventListener('click', handlePremiseClick);
-    dom.matchingNextBtn.addEventListener('click', handleNextSet);
-    dom.matchingPreviousBtn.addEventListener('click', handlePreviousSet);
-    
-    dom.selectAllChaptersMatching.addEventListener('change', (e) => {
-        dom.chapterSelectMatching.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
-    });
-    dom.selectAllSourcesMatching.addEventListener('change', (e) => {
-        dom.sourceSelectMatching.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
-    });
+    // Populate filters (similar to QBank)
+    populateFilters();
 }
 
-export function showMatchingMenuScreen() {
-    if (!appState.allQuestions || appState.allQuestions.length === 0) {
-        ui.showError(dom.loginError, "Question data is not loaded yet. Please wait.");
-        return;
-    }
+function populateFilters() {
+    const allQuestions = appState.allQuestions;
     
-    const allChapters = [...new Set(appState.allQuestions.map(q => q.Chapter).filter(Boolean))].sort();
-    const allSources = [...new Set(appState.allQuestions.map(q => q.source || 'Uncategorized'))].sort();
-    
-    ui.populateFilterOptions(dom.chapterSelectMatching, allChapters, 'matching-chapter');
-    ui.populateFilterOptions(dom.sourceSelectMatching, allSources, 'matching-source');
+    const chapters = [...new Set(allQuestions.map(q => q.chapter || 'Uncategorized'))].sort();
+    const chapterCounts = allQuestions.reduce((acc, q) => {
+        acc[q.chapter || 'Uncategorized'] = (acc[q.chapter || 'Uncategorized'] || 0) + 1;
+        return acc;
+    }, {});
+    populateFilterOptions(dom.chapterSelectMatching, chapters, 'match-chapter', chapterCounts);
 
-    ui.showScreen(dom.matchingMenuContainer);
-    appState.navigationHistory.push(showMatchingMenuScreen);
+    const sources = [...new Set(allQuestions.map(q => q.source || 'Uncategorized'))].sort();
+    const sourceCounts = allQuestions.reduce((acc, q) => {
+        acc[q.source || 'Uncategorized'] = (acc[q.source || 'Uncategorized'] || 0) + 1;
+        return acc;
+    }, {});
+    populateFilterOptions(dom.sourceSelectMatching, sources, 'match-source', sourceCounts);
 }
 
+// --- Game Logic ---
 
-function handleStartMatchingExam() {
-    const setCount = parseInt(dom.matchingSetCountInput.value, 10) || 10;
-    const timePerSet = parseInt(dom.matchingTimerInput.value, 10) || 60;
-    const requiredQuestions = setCount * 5;
+export function handleStartMatchingExam() {
+    dom.matchingError.classList.add('hidden');
+    
+    // 1. Get Settings
+    const setCount = parseInt(dom.matchingSetCountInput.value) || 10;
+    const timePerSet = parseInt(dom.matchingTimerInput.value) || 60;
+    
+    // 2. Filter Questions
+    const selectedChapters = [...dom.chapterSelectMatching.querySelectorAll('input:checked')].map(el => el.value);
+    const selectedSources = [...dom.sourceSelectMatching.querySelectorAll('input:checked')].map(el => el.value);
+    
+    let pool = appState.allQuestions;
+    if (selectedChapters.length > 0) pool = pool.filter(q => selectedChapters.includes(q.chapter));
+    if (selectedSources.length > 0) pool = pool.filter(q => selectedSources.includes(q.source));
 
-    const selectedChapters = ui.getSelectedFilterOptions(dom.chapterSelectMatching);
-    const selectedSources = ui.getSelectedFilterOptions(dom.sourceSelectMatching);
-
-    let filteredQuestions = appState.allQuestions;
-    if (selectedChapters.length > 0) {
-        filteredQuestions = filteredQuestions.filter(q => selectedChapters.includes(q.Chapter));
-    }
-    if (selectedSources.length > 0) {
-        filteredQuestions = filteredQuestions.filter(q => selectedSources.includes(q.source));
-    }
-
-    if (filteredQuestions.length < requiredQuestions) {
-        ui.showError(dom.matchingError, `Not enough questions found (${filteredQuestions.length}). Need ${requiredQuestions}. Try broader filters.`);
+    // 3. Validate Pool Size (Need at least 5 questions per set)
+    if (pool.length < 5) {
+        dom.matchingError.textContent = `Not enough questions. Found ${pool.length}, need at least 5.`;
+        dom.matchingError.classList.remove('hidden');
         return;
     }
 
-    utils.shuffleArray(filteredQuestions);
+    // 4. Create Sets
+    // Shuffle pool
+    pool = pool.sort(() => Math.random() - 0.5);
     
-    appState.matchingExam = {
-        sets: [],
-        config: { setCount, timePerSet },
+    const maxPossibleSets = Math.floor(pool.length / 5);
+    const finalSetCount = Math.min(setCount, maxPossibleSets);
+    
+    if (finalSetCount < 1) {
+         dom.matchingError.textContent = `Selection too restrictive.`;
+         dom.matchingError.classList.remove('hidden');
+         return;
+    }
+
+    const examSets = [];
+    for (let i = 0; i < finalSetCount; i++) {
+        const startIndex = i * 5;
+        const setQuestions = pool.slice(startIndex, startIndex + 5);
+        
+        // We need to verify these questions actually HAVE correct answers text
+        const preparedSet = setQuestions.map(q => {
+            const correctOpt = q.answerOptions.find(o => o.isCorrect);
+            return {
+                id: q.UniqueID,
+                question: q.question,
+                answerText: correctOpt ? correctOpt.text : "Answer Error",
+                answerId: q.UniqueID // In matching, Answer ID matches Question ID
+            };
+        });
+
+        examSets.push({
+            premises: preparedSet, // Questions
+            answers: [...preparedSet].sort(() => Math.random() - 0.5) // Shuffled Answers
+        });
+    }
+
+    // 5. Initialize State
+    appState.currentMatching = {
+        allSets: examSets,
+        currentSetIndex: 0,
         userMatches: {},
-        scores: {},
+        score: 0,
+        timerInterval: null,
+        timePerSet: timePerSet,
+        selectedAnswerElement: null
     };
+
+    // 6. Start UI
+    dom.matchingMenuContainer.classList.add('hidden');
+    dom.matchingGameContainer.classList.remove('hidden');
+    startSet();
+}
+
+function startSet() {
+    const state = appState.currentMatching;
+    const currentSet = state.allSets[state.currentSetIndex];
     
-    for (let i = 0; i < setCount; i++) {
-        const setQuestions = filteredQuestions.slice(i * 5, (i + 1) * 5);
-        const premises = setQuestions.map(q => ({ question: q.Question, UniqueID: q.UniqueID }));
-        const answers = setQuestions.map(q => ({ answer: q.CorrectAnswer, UniqueID: q.UniqueID }));
-        utils.shuffleArray(answers);
-        
-        appState.matchingExam.sets.push({ premises, answers });
-        appState.matchingExam.userMatches[i] = {};
-    }
+    // Reset per-set state
+    state.userMatches = {};
+    state.selectedAnswerElement = null;
+    clearInterval(state.timerInterval);
     
-    appState.currentMatchingSetIndex = 0;
-    ui.showScreen(dom.matchingQuizContainer);
-    renderCurrentSet();
-}
+    // Update Header
+    dom.matchingProgress.textContent = `Set ${state.currentSetIndex + 1}/${state.allSets.length}`;
+    dom.matchingScore.textContent = `Score: ${state.score}`;
+    
+    // Controls
+    dom.matchingSubmitBtn.classList.remove('hidden');
+    dom.matchingNextBtn.classList.add('hidden');
 
-function renderCurrentSet() {
-    const setIndex = appState.currentMatchingSetIndex;
-    const currentSet = appState.matchingExam.sets[setIndex];
-    const userMatchesForSet = appState.matchingExam.userMatches[setIndex] || {};
+    // Render DOM
+    renderGameField(currentSet);
 
-    dom.matchingPremisesArea.innerHTML = '';
-    dom.matchingAnswersArea.innerHTML = '';
-    [dom.matchingAnswersArea, dom.matchingPremisesArea].forEach(el => el.classList.remove('no-pointer-events'));
-
-    currentSet.premises.forEach(premise => {
-        dom.matchingPremisesArea.innerHTML += `
-            <div class="premise-item">
-                <div class="premise-text">${premise.question}</div>
-                <div class="premise-drop-zone" data-premise-id="${premise.UniqueID}"></div>
-            </div>`;
-    });
-
-    const matchedAnswerIds = Object.values(userMatchesForSet);
-    currentSet.answers.forEach(answer => {
-        if (!matchedAnswerIds.includes(answer.UniqueID)) {
-            dom.matchingAnswersArea.appendChild(createAnswerElement(answer));
-        }
-    });
-
-    for (const [premiseId, answerId] of Object.entries(userMatchesForSet)) {
-        const dropZone = dom.matchingPremisesArea.querySelector(`[data-premise-id="${premiseId}"]`);
-        const answerObj = currentSet.answers.find(a => a.UniqueID === answerId);
-        if (dropZone && answerObj) {
-            dropZone.appendChild(createAnswerElement(answerObj));
-        }
-    }
-
-    updateUI();
-    startTimer();
-}
-
-function handleAnswerClick(e) {
-    const target = e.target.closest('.answer-item');
-    if (!target) return;
-
-    if (selectedAnswerElement) {
-        selectedAnswerElement.classList.remove('answer-selected');
-    }
-    if (selectedAnswerElement === target) {
-        selectedAnswerElement = null;
-        return;
-    }
-    selectedAnswerElement = target;
-    selectedAnswerElement.classList.add('answer-selected');
-}
-
-function handlePremiseClick(e) {
-    const premiseDropZone = e.target.closest('.premise-drop-zone');
-    const answerInZone = e.target.closest('.answer-item');
-
-    if (answerInZone && premiseDropZone) {
-        delete appState.matchingExam.userMatches[appState.currentMatchingSetIndex][premiseDropZone.dataset.premiseId];
-        dom.matchingAnswersArea.appendChild(answerInZone);
-        if (selectedAnswerElement === answerInZone) selectedAnswerElement = null;
-        return;
-    }
-
-    if (premiseDropZone && !premiseDropZone.hasChildNodes() && selectedAnswerElement) {
-        premiseDropZone.appendChild(selectedAnswerElement);
-        appState.matchingExam.userMatches[appState.currentMatchingSetIndex][premiseDropZone.dataset.premiseId] = selectedAnswerElement.dataset.answerId;
-        selectedAnswerElement.classList.remove('answer-selected');
-        selectedAnswerElement = null;
-    }
-}
-
-function createAnswerElement({ answer, UniqueID }) {
-    const el = document.createElement('div');
-    el.className = 'answer-item';
-    el.dataset.answerId = UniqueID;
-    el.textContent = answer;
-    return el;
-}
-
-function handleNextSet() {
-    clearInterval(timerInterval);
-    const { currentMatchingSetIndex, matchingExam: { config } } = appState;
-    if (currentMatchingSetIndex < config.setCount - 1) {
-        appState.currentMatchingSetIndex++;
-        renderCurrentSet();
-    } else {
-        checkCurrentSetAnswers();
-    }
-}
-
-function handlePreviousSet() {
-    clearInterval(timerInterval);
-    if (appState.currentMatchingSetIndex > 0) {
-        appState.currentMatchingSetIndex--;
-        renderCurrentSet();
-    }
-}
-
-function checkCurrentSetAnswers() {
-    clearInterval(timerInterval);
-    [dom.matchingAnswersArea, dom.matchingPremisesArea].forEach(el => el.classList.add('no-pointer-events'));
-    dom.matchingNextBtn.disabled = true;
-
-    const setIndex = appState.currentMatchingSetIndex;
-    const { sets, userMatches } = appState.matchingExam;
-    let score = 0;
-
-    sets[setIndex].premises.forEach(premise => {
-        const dropZone = dom.matchingPremisesArea.querySelector(`[data-premise-id="${premise.UniqueID}"]`);
-        const placedAnswerId = userMatches[setIndex][premise.UniqueID];
-        const isCorrect = premise.UniqueID === placedAnswerId;
-        
-        dropZone.parentElement.classList.add(isCorrect ? 'correct-match' : 'incorrect-match');
-        if (isCorrect) score++;
-        
-        if (!isCorrect) {
-            const correctAnswer = sets[setIndex].answers.find(a => a.UniqueID === premise.UniqueID);
-            const revealEl = document.createElement('div');
-            revealEl.className = 'correct-answer-reveal';
-            revealEl.innerHTML = `Correct: <strong>${correctAnswer.answer}</strong>`;
-            dropZone.insertAdjacentElement('afterend', revealEl);
-        }
-    });
-
-    appState.matchingExam.scores[setIndex] = score;
-    setTimeout(calculateAndShowFinalScore, 2500);
-}
-
-function calculateAndShowFinalScore() {
-    const { scores, config } = appState.matchingExam;
-    const totalScore = Object.values(scores).reduce((sum, s) => sum + s, 0);
-    const totalQuestions = config.setCount * 5;
-
-    logUserActivity({
-        userId: appState.currentUser.UniqueID,
-        userName: appState.currentUser.Name,
-        eventType: 'FinishMatchingQuiz',
-        quizTitle: 'Matching Bank Exam',
-        score: totalScore,
-        totalQuestions,
-        details: JSON.stringify(appState.matchingExam.userMatches)
-    });
-
-    ui.showResultsModal(
-        'Matching Exam Complete!',
-        `Your final score is ${totalScore} out of ${totalQuestions}.`,
-        showMainMenuScreen
-    );
-}
-
-function startTimer() {
-    clearInterval(timerInterval);
-    let timeLeft = appState.matchingExam.config.timePerSet;
-    dom.matchingTimer.textContent = utils.formatTime(timeLeft);
-    timerInterval = setInterval(() => {
+    // Start Timer
+    let timeLeft = state.timePerSet;
+    dom.matchingTimer.textContent = formatTime(timeLeft);
+    state.timerInterval = setInterval(() => {
         timeLeft--;
-        dom.matchingTimer.textContent = utils.formatTime(timeLeft);
+        dom.matchingTimer.textContent = formatTime(timeLeft);
         if (timeLeft <= 0) {
-            clearInterval(timerInterval);
-            const { currentMatchingSetIndex, matchingExam: { config } } = appState;
-            if (currentMatchingSetIndex < config.setCount - 1) {
-                handleNextSet();
-            } else {
-                checkCurrentSetAnswers();
-            }
+            clearInterval(state.timerInterval);
+            checkCurrentSetAnswers(true); // Auto submit on timeout
         }
     }, 1000);
 }
 
-function updateUI() {
-    const { currentMatchingSetIndex, matchingExam: { config } } = appState;
-    dom.matchingProgressText.textContent = `Set ${currentMatchingSetIndex + 1} of ${config.setCount}`;
-    dom.matchingPreviousBtn.disabled = currentMatchingSetIndex === 0;
-    dom.matchingNextBtn.disabled = false;
-    dom.matchingNextBtn.textContent = (currentMatchingSetIndex === config.setCount - 1) ? 'Check Answers' : 'Next';
+function renderGameField(set) {
+    dom.matchingPremisesArea.innerHTML = '';
+    dom.matchingAnswersArea.innerHTML = '';
+
+    // Render Premises (Drop Zones)
+    set.premises.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'premise-card';
+        card.innerHTML = `
+            <div class="premise-text">${item.question}</div>
+            <div class="premise-drop-zone" data-premise-id="${item.id}">
+                <span class="text-slate-400 text-sm pointer-events-none">Tap an answer, then tap here</span>
+            </div>
+        `;
+        
+        // Add click listener to drop zone
+        const dropZone = card.querySelector('.premise-drop-zone');
+        dropZone.addEventListener('click', () => handlePremiseClick(dropZone, item.id));
+        
+        dom.matchingPremisesArea.appendChild(card);
+    });
+
+    // Render Answers (Clickable)
+    set.answers.forEach(item => {
+        createAnswerElement(item, dom.matchingAnswersArea);
+    });
+}
+
+function createAnswerElement(item, parent) {
+    const ansDiv = document.createElement('div');
+    ansDiv.className = 'answer-draggable';
+    ansDiv.textContent = item.answerText;
+    ansDiv.dataset.answerId = item.answerId;
+    
+    ansDiv.addEventListener('click', (e) => handleAnswerClick(e.target));
+    
+    parent.appendChild(ansDiv);
+}
+
+// --- Interaction Logic ---
+
+function handleAnswerClick(element) {
+    const state = appState.currentMatching;
+    
+    // If clicking an answer already inside a premise -> Return it to pool
+    if (element.parentElement.classList.contains('premise-drop-zone')) {
+        const premiseId = element.parentElement.dataset.premiseId;
+        delete state.userMatches[premiseId]; // Remove match record
+        dom.matchingAnswersArea.appendChild(element); // Move back to pool
+        return;
+    }
+
+    // Normal selection from pool
+    if (state.selectedAnswerElement) {
+        state.selectedAnswerElement.classList.remove('answer-selected');
+    }
+    
+    state.selectedAnswerElement = element;
+    element.classList.add('answer-selected');
+}
+
+function handlePremiseClick(dropZone, premiseId) {
+    const state = appState.currentMatching;
+    
+    if (!state.selectedAnswerElement) return; // No answer selected
+    
+    // Check if zone already has an answer
+    if (dropZone.children.length > 0 && dropZone.children[0].classList.contains('answer-draggable')) {
+        // Move existing answer back to pool
+        const existing = dropZone.children[0];
+        dom.matchingAnswersArea.appendChild(existing);
+    }
+
+    // Move selected answer to this zone
+    dropZone.innerHTML = ''; // Remove placeholder text
+    dropZone.appendChild(state.selectedAnswerElement);
+    
+    // Record Match
+    state.userMatches[premiseId] = state.selectedAnswerElement.dataset.answerId;
+    
+    // Cleanup Selection
+    state.selectedAnswerElement.classList.remove('answer-selected');
+    state.selectedAnswerElement = null;
+}
+
+// --- Grading & Navigation ---
+
+export function checkCurrentSetAnswers(isTimeUp = false) {
+    const state = appState.currentMatching;
+    clearInterval(state.timerInterval);
+    
+    // Lock Interface
+    dom.matchingSubmitBtn.classList.add('hidden');
+    dom.matchingNextBtn.classList.remove('hidden');
+    
+    // Disable clicks
+    const answers = document.querySelectorAll('.answer-draggable');
+    answers.forEach(a => a.style.pointerEvents = 'none');
+    const zones = document.querySelectorAll('.premise-drop-zone');
+    zones.forEach(z => z.style.pointerEvents = 'none');
+
+    // Check Matches
+    const currentSet = state.allSets[state.currentSetIndex];
+    
+    currentSet.premises.forEach(premise => {
+        const zone = document.querySelector(`.premise-drop-zone[data-premise-id="${premise.id}"]`);
+        const userAnswerId = state.userMatches[premise.id];
+        
+        // Logic: In this matching format, PremiseID should equal AnswerID for a correct match
+        const isCorrect = userAnswerId && String(userAnswerId) === String(premise.id);
+        
+        if (isCorrect) {
+            zone.classList.add('correct-match');
+            state.score++;
+        } else {
+            zone.classList.add('incorrect-match');
+            // Show Correct Answer
+            const reveal = document.createElement('div');
+            reveal.className = 'correct-answer-reveal';
+            reveal.innerHTML = `<i class="fas fa-check mr-1"></i> Correct: ${premise.answerText}`;
+            zone.parentElement.appendChild(reveal);
+        }
+    });
+
+    dom.matchingScore.textContent = `Score: ${state.score}`;
+}
+
+export function handleNextMatchingSet() {
+    const state = appState.currentMatching;
+    if (state.currentSetIndex < state.allSets.length - 1) {
+        state.currentSetIndex++;
+        startSet();
+    } else {
+        endMatchingGame();
+    }
+}
+
+function endMatchingGame() {
+    const state = appState.currentMatching;
+    clearInterval(state.timerInterval);
+    
+    // Log Result
+    logUserActivity({
+        eventType: 'FinishMatchingQuiz',
+        score: state.score,
+        totalSets: state.allSets.length,
+        details: `Completed ${state.allSets.length} sets. Final Score: ${state.score}`
+    });
+
+    ui.showConfirmationModal('Test Complete', `You scored ${state.score} points!`, () => {
+        dom.modalBackdrop.classList.add('hidden');
+        showMatchingMenu();
+    });
 }
