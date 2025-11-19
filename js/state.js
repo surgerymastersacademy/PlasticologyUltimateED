@@ -1,11 +1,9 @@
-// js/state.js (UPDATED - With Version Control for Caching)
+// js/state.js (FINAL VERSION - Includes Matching Game State)
 
 export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
 
-// --- NEW: Version Control ---
-// Change this number (e.g., to '1.1') whenever you update your Google Sheet content.
-// This forces the app to re-download the new data instead of using the cache.
-export const APP_VERSION = '3.1'; 
+// Change this number whenever you update your Google Sheet content
+export const APP_VERSION = '1.1'; 
 
 export const SIMULATION_Q_COUNT = 100;
 export const SIMULATION_TOTAL_TIME_MINUTES = 120;
@@ -94,6 +92,15 @@ export const appState = {
         title: '',
         timerInterval: null
     },
+
+    // --- NEW: Current Matching Game State ---
+    currentMatching: {
+        allSets: [], // Array of sets (each set has premises and shuffled answers)
+        currentSetIndex: 0,
+        userMatches: {}, // Map of PremiseID -> AnswerID for current set
+        score: 0,
+        timerInterval: null,
+        timePerSet: 60,
+        selectedAnswerElement: null // To track which answer is clicked
+    },
 };
-
-
