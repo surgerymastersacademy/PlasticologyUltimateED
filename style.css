@@ -1,4 +1,4 @@
-/* Custom styles */
+/* style.css (UPDATED - Fixed Invisible Text in Dark Mode) */
 
 /* NEW: Theme Variables */
 :root {
@@ -32,7 +32,6 @@ html.dark {
     --answer-btn-text: #f1f5f9; /* slate-100 */
     --answer-btn-hover-bg: #475569; /* hover:bg-slate-600 */
 }
-
 
 body {
     font-family: 'Cairo', 'Inter', sans-serif;
@@ -237,7 +236,6 @@ details[open] > summary .fa-chevron-down {
     }
 }
 
-
 #settings-container button {
     width: 2.5rem;
     height: 2.5rem;
@@ -292,17 +290,27 @@ html.animation-off .animation-off-icon { display: none; }
     transition: color 0.3s ease;
 }
 
-/* Dark Mode Quiz Question Fix */
-#question-text {
+/* Dark Mode Question & Header Fixes */
+/* This explicitly forces the question text to be light in dark mode */
+#question-text,
+#learning-question-text,
+#theory-question-text,
+#osce-question-text {
     color: var(--question-text-color);
 }
-.answer-btn {
+
+/* Ensure answer buttons in dark mode are visible */
+html.dark .answer-btn,
+html.dark .learning-answer-btn {
     background-color: var(--answer-btn-bg);
     color: var(--answer-btn-text);
+    border-color: var(--input-border);
 }
-.answer-btn:hover {
+html.dark .answer-btn:hover,
+html.dark .learning-answer-btn:hover {
     background-color: var(--answer-btn-hover-bg);
 }
+
 
 /* Performance Insights Accordion */
 .insights-details {
@@ -377,7 +385,7 @@ html.animation-off .animation-off-icon { display: none; }
 // Date: 13/10/2025
 // Version: v1.2.2
 // Type: إصلاح
-// Description: Corrected styles for the new answer format to support RTL and use theme variables for dark mode. Replaced 'text-align: left' with 'text-align: start' and 'margin-right' with 'margin-inline-end'.
+// Description: Corrected styles for the new answer format to support RTL and use theme variables for dark mode.
 // =========================== */
 
 /* Ensure labels with the .answer-btn class have the correct layout properties */
