@@ -1,8 +1,7 @@
-// js/state.js (FINAL VERSION - Dynamic Versioning & Matching Support)
+// js/state.js (FINAL)
 
+// ⚠️ هام: استبدل الرابط أدناه بالرابط الجديد الذي نسخته من Google Apps Script
 export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
-
-// تمت إزالة APP_VERSION من هنا لأنه سيتم جلبه ديناميكياً من الإكسيل
 
 export const SIMULATION_Q_COUNT = 100;
 export const SIMULATION_TOTAL_TIME_MINUTES = 120;
@@ -11,7 +10,6 @@ export const AVATAR_BASE_URL = "https://api.dicebear.com/7.x/initials/svg?seed="
 export const AVATAR_OPTIONS = [ "User", "Avatar", "Profile", "Person", "Guest", "Student", "Doctor", "Nurse", "Medical", "Health", "Science", "Knowledge", "Book", "Study", "Exam", "Quiz", "Success", "Champion", "Winner", "Learner" ];
 
 export const appState = {
-    // Content Data
     allQuestions: [],
     allFreeTestQuestions: [],
     allOsceCases: [],
@@ -23,7 +21,6 @@ export const appState = {
     allChaptersNames: [],
     allTheoryQuestions: [],
     
-    // User Data
     currentUser: null,
     userCardData: null,
     viewedLectures: new Set(),
@@ -35,11 +32,9 @@ export const appState = {
     userMessages: [],
     userTheoryLogs: [],
     
-    // Planner State
     studyPlans: [], 
     activeStudyPlan: null, 
 
-    // Navigation & UI State
     navigationHistory: [],
     activityChartInstance: null,
     currentNote: { type: null, itemId: null, itemTitle: null },
@@ -47,7 +42,6 @@ export const appState = {
     qbankSearchResults: [],
     messengerPollInterval: null,
 
-    // Current Quiz State
     currentQuiz: {
         questions: [],
         originalQuestions: [],
@@ -65,7 +59,6 @@ export const appState = {
         isSimulationReview: false
     },
 
-    // Current OSCE State
     currentOsce: {
         cases: [],
         caseIndex: 0,
@@ -76,14 +69,12 @@ export const appState = {
         totalQuestions: 0,
     },
 
-    // Current Learning Mode State
     currentLearning: {
         questions: [],
         currentIndex: 0,
         title: ''
     },
 
-    // Theory Session State
     currentTheorySession: {
         questions: [],
         currentIndex: 0,
@@ -92,14 +83,13 @@ export const appState = {
         timerInterval: null
     },
 
-    // --- NEW: Current Matching Game State ---
     currentMatching: {
-        allSets: [], // Array of sets (each set has premises and shuffled answers)
+        allSets: [], 
         currentSetIndex: 0,
-        userMatches: {}, // Map of PremiseID -> AnswerID for current set
+        userMatches: {}, 
         score: 0,
         timerInterval: null,
         timePerSet: 60,
-        selectedAnswerElement: null // To track which answer is clicked
+        selectedAnswerElement: null 
     },
 };
