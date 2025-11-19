@@ -1,31 +1,18 @@
-// js/features/lectures.js
-
-// This module handles the logic for the lectures screen,
-// including rendering, searching, and progress tracking.
+// js/features/lectures.js (FINAL - VERIFIED)
 
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
 import { logUserActivity } from '../api.js';
 import { startChapterQuiz } from './quiz.js';
-// Note: openNoteModal would need to be handled more globally, maybe in main.js
-// For now, this dependency is assumed to be available.
 import { openNoteModal } from '../main.js';
 
-/**
- * Saves user progress (viewed lectures, bookmarks) to localStorage.
- */
 export function saveUserProgress() {
     if (!appState.currentUser || appState.currentUser.Role === 'Guest') return;
     localStorage.setItem(`viewedLectures_${appState.currentUser.UniqueID}`, JSON.stringify(Array.from(appState.viewedLectures)));
     localStorage.setItem(`bookmarkedQuestions_${appState.currentUser.UniqueID}`, JSON.stringify(Array.from(appState.bookmarkedQuestions)));
 }
 
-/**
- * Toggles the "viewed" status of a lecture.
- * @param {string} lectureLink - The unique link for the lecture.
- * @param {string} lectureName - The name of the lecture for logging.
- */
 function toggleLectureViewed(lectureLink, lectureName) {
     if (appState.viewedLectures.has(lectureLink)) {
         appState.viewedLectures.delete(lectureLink);
@@ -40,10 +27,6 @@ function toggleLectureViewed(lectureLink, lectureName) {
     renderLectures(dom.lectureSearchInput.value);
 }
 
-/**
- * Renders the list of lectures, grouped by chapters.
- * @param {string} filterText - The search term to filter lectures.
- */
 export function renderLectures(filterText = '') {
     dom.lecturesList.innerHTML = '';
     const lowerCaseFilter = filterText.toLowerCase();
@@ -62,6 +45,7 @@ export function renderLectures(filterText = '') {
         const isTopicMatch = chapterData.topics.some(topic => topic.name.toLowerCase().includes(lowerCaseFilter));
         if (filterText && !isChapterMatch && !isTopicMatch) return;
         chaptersFound++;
+        
         const details = document.createElement('details');
         details.className = 'bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm';
         details.open = !!filterText;
@@ -94,6 +78,7 @@ export function renderLectures(filterText = '') {
         contentDiv.className = 'p-4 bg-slate-50 border-t border-slate-200';
         const topicList = document.createElement('ul');
         topicList.className = 'space-y-2';
+        
         chapterData.topics.forEach(topic => {
             const listItem = document.createElement('li');
             listItem.className = 'flex items-center justify-between p-3 rounded-md hover:bg-blue-100 transition-colors group';
@@ -162,20 +147,16 @@ export function renderLectures(filterText = '') {
     });
 
     if (chaptersFound === 0) {
-        dom.lecturesList.innerHTML = `<p class="text-center text-slate-500">No lectures found matching your search.</p>`;
+        dom.lecturesList.innerHTML = `<p class="text-center text-slate-500">No lectures found.</p>`;
     }
 }
 
-/**
- * Fetches and displays the last user activity on the main menu.
- */
 export async function fetchAndShowLastActivity() {
     if (!appState.currentUser || appState.currentUser.Role === 'Guest' || appState.fullActivityLog.length === 0) {
         dom.lastLectureRibbon.classList.add('hidden');
         dom.lastQuizRibbon.classList.add('hidden');
         return;
     }
-
     const lastLecture = appState.fullActivityLog.find(log => log.eventType === 'ViewLecture');
     const lastQuiz = appState.fullActivityLog.find(log => log.eventType === 'FinishQuiz');
 
