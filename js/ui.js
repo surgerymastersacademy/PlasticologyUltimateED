@@ -1,4 +1,4 @@
-// js/ui.js (UPDATED - With UI Safety Guardrails)
+// js/ui.js (UPDATED - With URL Routing Logic)
 
 import * as dom from './dom.js';
 import { appState } from './state.js';
@@ -6,73 +6,95 @@ import { applyRolePermissions } from './features/userProfile.js';
 
 /**
  * Hides all main screens and shows the specified one.
- * Includes Guardrail: Checks if screenToShow exists before manipulating it.
+ * AUTOMATICALLY UPDATES THE URL HASH.
  */
 export function showScreen(screenToShow, isGuest = false) {
-    // Close all modals first (Safely)
+    // Guardrail: If screen doesn't exist, stop.
+    if (!screenToShow) {
+        console.error("showScreen: Tried to show a screen that does not exist.");
+        return;
+    }
+
+    // 1. Close all modals (Safely)
     const modals = [dom.confirmationModal, dom.questionNavigatorModal, dom.imageViewerModal, dom.noteModal, dom.clearLogModal, dom.announcementsModal, dom.userCardModal, dom.messengerModal, dom.osceNavigatorModal];
     modals.forEach(modal => {
         if (modal) modal.classList.add('hidden');
     });
-    
     if (dom.modalBackdrop) dom.modalBackdrop.classList.add('hidden');
 
-    // Hide all main content containers
+    // 2. Hide all main content containers
     const screens = [dom.loginContainer, dom.mainMenuContainer, dom.lecturesContainer, dom.qbankContainer, dom.listContainer, dom.quizContainer, dom.activityLogContainer, dom.notesContainer, dom.libraryContainer, dom.leaderboardContainer, dom.osceContainer, dom.osceQuizContainer, dom.learningModeContainer, dom.studyPlannerContainer, dom.theoryContainer];
-    
     screens.forEach(screen => {
         if (screen) screen.classList.add('hidden');
     });
 
-    // Guardrail: If the requested screen doesn't exist, stop here to prevent crash
-    if (!screenToShow) {
-        console.error("showScreen: Tried to show a screen that does not exist in DOM.");
-        return;
-    }
-
+    // 3. Show the requested screen
     screenToShow.classList.remove('hidden');
 
-    // Handle Global Header and Watermark
-    const watermarkOverlay = document.getElementById('watermark-overlay');
-    const globalHeader = dom.globalHeader;
+    // 4. --- NEW: Update URL Hash for Routing ---
+    // This enables the "Back" button and page refreshes.
+    // We check if the hash is already correct to avoid infinite loops.
+    const screenId = screenToShow.id;
+    let newHash = '';
 
+    switch (screenId) {
+        case 'main-menu-container': newHash = 'home'; break;
+        case 'lectures-container': newHash = 'lectures'; break;
+        case 'qbank-container': newHash = 'qbank'; break;
+        case 'osce-container': newHash = 'osce'; break;
+        case 'theory-container': newHash = 'theory'; break;
+        case 'library-container': newHash = 'library'; break;
+        case 'study-planner-container': newHash = 'planner'; break;
+        case 'leaderboard-container': newHash = 'leaderboard'; break;
+        case 'activity-log-container': newHash = 'activity'; break;
+        case 'notes-container': newHash = 'notes'; break;
+        case 'login-container': newHash = 'login'; break;
+        // Quiz and Learning Mode usually have dynamic states, so we might simply default them or leave hash as is
+        case 'quiz-container': newHash = 'quiz'; break; 
+        case 'learning-mode-container': newHash = 'learning'; break;
+        default: newHash = ''; // Don't change hash for unknown screens (like sub-views)
+    }
+
+    if (newHash && window.location.hash !== `#${newHash}`) {
+        // We use replaceState for login to keep history clean, pushState for others
+        if (newHash === 'login') {
+            history.replaceState(null, null, ' '); // Clear hash for login
+        } else {
+            // Assigning hash triggers 'hashchange' event, handled in main.js
+            window.location.hash = newHash; 
+        }
+    }
+
+    // 5. Handle Header & Watermark
+    const watermarkOverlay = document.getElementById('watermark-overlay');
     if (screenToShow !== dom.loginContainer && !isGuest) {
-        if (globalHeader) globalHeader.classList.remove('hidden');
+        if (dom.globalHeader) dom.globalHeader.classList.remove('hidden');
         if (watermarkOverlay) watermarkOverlay.classList.remove('hidden');
         if (dom.userNameDisplay) dom.userNameDisplay.classList.remove('hidden');
         
-        // Re-enable UI elements safely
         [dom.logoutBtn, dom.activityLogBtn, dom.notesBtn, dom.userProfileHeaderBtn, dom.messengerBtn].forEach(el => {
             if (el) el.classList.remove('hidden');
         });
-
         applyRolePermissions();
     } else {
-        if (globalHeader) globalHeader.classList.add('hidden');
+        if (dom.globalHeader) dom.globalHeader.classList.add('hidden');
         if (watermarkOverlay) watermarkOverlay.classList.add('hidden');
     }
 }
 
-/**
- * Displays a confirmation modal.
- */
+// --- Keep Existing Helper Functions ---
+
 export function showConfirmationModal(title, text, onConfirm) {
-    if (!dom.confirmationModal) return; // Guardrail
-    
+    if (!dom.confirmationModal) return;
     appState.modalConfirmAction = onConfirm;
     const titleEl = dom.confirmationModal.querySelector('#modal-title');
     const textEl = dom.confirmationModal.querySelector('#modal-text');
-    
     if (titleEl) titleEl.textContent = title;
     if (textEl) textEl.textContent = text;
-    
     dom.confirmationModal.classList.remove('hidden');
     if (dom.modalBackdrop) dom.modalBackdrop.classList.remove('hidden');
 }
 
-/**
- * Displays the image viewer modal.
- */
 export function showImageModal(src) {
     if (!dom.imageViewerModal || !dom.modalImage) return;
     if (dom.modalBackdrop) dom.modalBackdrop.classList.remove('hidden');
@@ -80,49 +102,36 @@ export function showImageModal(src) {
     dom.modalImage.src = src;
 }
 
-/**
- * Renders the list of books in the library.
- */
 export function renderBooks() {
     if (!dom.libraryList) return;
     dom.libraryList.innerHTML = '';
-    
     if (!appState.mcqBooks || appState.mcqBooks.length === 0) {
         dom.libraryList.innerHTML = `<p class="text-center text-slate-500">No books found in the library.</p>`;
         return;
     }
-
     appState.mcqBooks.forEach(book => {
         if (!book.Book || !book.Link) return;
         const bookElement = document.createElement('a');
         bookElement.href = book.Link;
         bookElement.target = '_blank';
         bookElement.className = 'flex items-start p-4 bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md hover:bg-slate-50 transition-all duration-200';
-
         let iconHtml;
         if (book.icon && (book.icon.startsWith('http://') || book.icon.startsWith('https://'))) {
             iconHtml = `<div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-slate-100 rounded-lg mr-4 overflow-hidden"><img src="${book.icon}" alt="${book.Book}" class="w-full h-full object-cover"></div>`;
         } else {
             iconHtml = `<div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-orange-100 rounded-lg mr-4"><i class="${book.icon || 'fas fa-book'} text-2xl text-orange-600"></i></div>`;
         }
-
         const contentHtml = `<div class="flex-grow"><h3 class="font-bold text-slate-800 text-lg">${book.Book}</h3><p class="text-slate-600 text-sm mt-1">${book.Description || ''}</p></div>`;
         const arrowHtml = `<div class="flex-shrink-0 ml-4 self-center"><i class="fas fa-external-link-alt text-slate-400"></i></div>`;
-
         bookElement.innerHTML = iconHtml + contentHtml + arrowHtml;
         dom.libraryList.appendChild(bookElement);
     });
 }
 
-/**
- * Renders the leaderboard with top 10 users and current user's rank.
- */
 export function renderLeaderboard(top10, currentUserRank) {
     if (!dom.leaderboardList || !dom.currentUserRankDiv) return;
-
     dom.leaderboardList.innerHTML = '';
     dom.currentUserRankDiv.innerHTML = '';
-
     if (currentUserRank) {
         dom.currentUserRankDiv.innerHTML = `
             <div class="p-4 bg-blue-100 border-2 border-blue-300 rounded-lg">
@@ -140,27 +149,17 @@ export function renderLeaderboard(top10, currentUserRank) {
             </div>
         `;
     }
-
     if (!top10 || top10.length === 0) {
         dom.leaderboardList.innerHTML = `<p class="text-center text-slate-500 mt-4">The leaderboard is empty.</p>`;
         return;
     }
-
     top10.forEach(user => {
         const rank = user.rank;
         let rankIcon = '';
         let rankColor = 'bg-white border-slate-200';
-        if (rank === 1) {
-            rankIcon = 'fas fa-trophy text-yellow-400';
-            rankColor = 'bg-yellow-100 border-yellow-300';
-        } else if (rank === 2) {
-            rankIcon = 'fas fa-medal text-gray-400';
-            rankColor = 'bg-gray-100 border-gray-300';
-        } else if (rank === 3) {
-            rankIcon = 'fas fa-award text-orange-400';
-            rankColor = 'bg-orange-100 border-orange-300';
-        }
-
+        if (rank === 1) { rankIcon = 'fas fa-trophy text-yellow-400'; rankColor = 'bg-yellow-100 border-yellow-300'; } 
+        else if (rank === 2) { rankIcon = 'fas fa-medal text-gray-400'; rankColor = 'bg-gray-100 border-gray-300'; } 
+        else if (rank === 3) { rankIcon = 'fas fa-award text-orange-400'; rankColor = 'bg-orange-100 border-orange-300'; }
         const userElement = document.createElement('div');
         userElement.className = `flex items-center p-4 rounded-lg border-2 ${rankColor}`;
         userElement.innerHTML = `
@@ -172,20 +171,11 @@ export function renderLeaderboard(top10, currentUserRank) {
     });
 }
 
-/**
- * Updates the watermark with the current user's name and date.
- */
 export function updateWatermark() {
     const user = appState.currentUser;
     const watermarkOverlay = document.getElementById('watermark-overlay');
-    
-    if (!watermarkOverlay) return; // Guardrail
-
-    if (!user || user.Role === 'Guest') {
-        watermarkOverlay.classList.add('hidden');
-        return;
-    }
-
+    if (!watermarkOverlay) return;
+    if (!user || user.Role === 'Guest') { watermarkOverlay.classList.add('hidden'); return; }
     watermarkOverlay.innerHTML = '';
     const date = new Date().toLocaleDateString('en-GB');
     const watermarkItem = document.createElement('div');
@@ -198,51 +188,28 @@ export function updateWatermark() {
     watermarkOverlay.appendChild(watermarkItem);
 }
 
-/**
- * Displays the latest unseen announcement.
- */
 export function displayAnnouncement() {
     const banner = document.getElementById('announcement-banner');
     if (!banner) return;
-
-    if (!appState.allAnnouncements || !appState.allAnnouncements.length) {
-        banner.classList.add('hidden');
-        return;
-    }
+    if (!appState.allAnnouncements || !appState.allAnnouncements.length) { banner.classList.add('hidden'); return; }
     const latestAnnouncement = appState.allAnnouncements[0];
     const seenAnnouncementId = localStorage.getItem('seenAnnouncementId');
-    if (seenAnnouncementId === latestAnnouncement.UniqueID) {
-        banner.classList.add('hidden');
-        return;
-    }
+    if (seenAnnouncementId === latestAnnouncement.UniqueID) { banner.classList.add('hidden'); return; }
     banner.innerHTML = `
         <div class="mb-4 p-4 bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700 rounded-lg relative">
             <div class="flex">
                 <div class="py-1"><i class="fas fa-bullhorn fa-lg mr-4"></i></div>
-                <div>
-                    <p class="font-bold">Latest Update</p>
-                    <p class="text-sm">${latestAnnouncement.UpdateMessage}</p>
-                </div>
+                <div><p class="font-bold">Latest Update</p><p class="text-sm">${latestAnnouncement.UpdateMessage}</p></div>
             </div>
             <button id="close-announcement-btn" class="absolute top-0 bottom-0 right-0 px-4 py-3">&times;</button>
-        </div>
-    `;
+        </div>`;
     banner.classList.remove('hidden');
     const closeBtn = document.getElementById('close-announcement-btn');
-    if(closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            banner.classList.add('hidden');
-            localStorage.setItem('seenAnnouncementId', latestAnnouncement.UniqueID);
-        });
-    }
+    if(closeBtn) { closeBtn.addEventListener('click', () => { banner.classList.add('hidden'); localStorage.setItem('seenAnnouncementId', latestAnnouncement.UniqueID); }); }
 }
 
-/**
- * Shows the announcements modal with a list of all announcements.
- */
 export function showAnnouncementsModal() {
     if (!dom.announcementsList || !dom.announcementsModal) return;
-    
     dom.announcementsList.innerHTML = '';
     if (!appState.allAnnouncements || appState.allAnnouncements.length === 0) {
         dom.announcementsList.innerHTML = `<p class="text-center text-slate-500">No announcements right now.</p>`;
@@ -251,43 +218,25 @@ export function showAnnouncementsModal() {
             const annItem = document.createElement('div');
             annItem.className = 'p-3 border-b';
             const date = new Date(ann.TimeStamp).toLocaleDateString('en-GB');
-            annItem.innerHTML = `
-                <p class="font-bold text-slate-700">${ann.UpdateMessage}</p>
-                <p class="text-xs text-slate-400 text-right mt-1">${date}</p>
-            `;
+            annItem.innerHTML = `<p class="font-bold text-slate-700">${ann.UpdateMessage}</p><p class="text-xs text-slate-400 text-right mt-1">${date}</p>`;
             dom.announcementsList.appendChild(annItem);
         });
     }
-    
     if (dom.modalBackdrop) dom.modalBackdrop.classList.remove('hidden');
     dom.announcementsModal.classList.remove('hidden');
 }
 
-/**
- * Populates a container with checkbox filter options.
- * Guardrails added for empty containers or null items.
- */
 export function populateFilterOptions(containerElement, items, inputNamePrefix, counts) {
     if (!containerElement) return;
-    
     containerElement.innerHTML = '';
-    if (!items || items.length === 0) {
-        containerElement.innerHTML = `<p class="text-slate-400 text-sm">No options available.</p>`;
-        return;
-    }
-
+    if (!items || items.length === 0) { containerElement.innerHTML = `<p class="text-slate-400 text-sm">No options available.</p>`; return; }
     items.forEach(item => {
         if (!item) return;
         const div = document.createElement('div');
         div.className = 'flex items-center';
-        // Safe ID generation removing special chars
         const safeId = `${inputNamePrefix}-${item.replace(/[^a-zA-Z0-9]/g, '-')}`;
         const count = counts ? (counts[item] || 0) : 0;
-        
-        div.innerHTML = `
-            <input id="${safeId}" name="${inputNamePrefix}" value="${item}" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-            <label for="${safeId}" class="ml-3 text-sm text-gray-600">${item} ${count > 0 ? `(${count} Qs)` : ''}</label>
-        `;
+        div.innerHTML = `<input id="${safeId}" name="${inputNamePrefix}" value="${item}" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"><label for="${safeId}" class="ml-3 text-sm text-gray-600">${item} ${count > 0 ? `(${count} Qs)` : ''}</label>`;
         containerElement.appendChild(div);
     });
 }
