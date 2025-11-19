@@ -1,4 +1,4 @@
-// js/dom.js (FINAL VERSION - Includes Matching Bank Elements)
+// js/dom.js (FINAL VERSION - With Daily Streak Elements)
 
 // This file contains references to all DOM elements used in the application.
 
@@ -11,6 +11,12 @@ export const announcementsBtn = document.getElementById('announcements-btn');
 export const userNameDisplay = document.getElementById('user-name-display');
 export const headerUserAvatar = document.getElementById('header-user-avatar');
 export const userProfileHeaderBtn = document.getElementById('user-profile-header-btn');
+
+// --- NEW: Daily Streak Elements ---
+export const streakContainer = document.getElementById('streak-container');
+export const streakCount = document.getElementById('streak-count');
+// ----------------------------------
+
 export const loginContainer = document.getElementById('login-container');
 export const mainMenuContainer = document.getElementById('main-menu-container');
 export const lecturesContainer = document.getElementById('lectures-container');
