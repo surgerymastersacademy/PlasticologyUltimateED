@@ -1,6 +1,6 @@
-/* Custom styles - Plasticology Ultimate Edition */
+/* style.css (FINAL VERSION - COMPLETE) */
 
-/* Theme Variables */
+/* --- Theme Variables --- */
 :root {
     --bg-color: #eef2f7;
     --bg-gradient: linear-gradient(to top right, #e0e7ff, #f0f4f8);
@@ -209,7 +209,7 @@ details[open] > summary .fa-chevron-down {
 #avatar-selection-grid img { border-radius: 50%; cursor: pointer; transition: border 0.3s; }
 #avatar-selection-grid img:hover { border: 2px solid #3b82f6; }
 
-/* Modern Login Page & Settings Enhancements */
+/* --- Settings Enhancements --- */
 #settings-container {
     position: fixed;
     top: 1rem;
@@ -289,7 +289,7 @@ html.animation-off .animation-off-icon { display: none; }
     transition: color 0.3s ease;
 }
 
-/* Dark Mode Question & Header Fixes */
+/* --- Dark Mode Fixes for Question Text --- */
 #question-text,
 #learning-question-text,
 #theory-question-text,
@@ -307,7 +307,6 @@ html.dark .answer-btn:hover,
 html.dark .learning-answer-btn:hover {
     background-color: var(--answer-btn-hover-bg);
 }
-
 
 /* Performance Insights Accordion */
 .insights-details {
@@ -336,7 +335,6 @@ html.dark .learning-answer-btn:hover {
     padding: 0 1rem 1rem 1rem;
     border-top: 1px solid #e2e8f0;
 }
-
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-10px); }
@@ -417,7 +415,8 @@ html.dark .answer-btn.simulation-selected {
     background-color: var(--answer-btn-hover-bg);
 }
 
-/* --- NEW: Matching Bank Styles --- */
+
+/* --- Matching Bank Styles (NEW) --- */
 
 .matching-container-grid {
     display: grid;
@@ -550,4 +549,79 @@ html.dark .correct-answer-reveal {
     text-align: center;
     display: block;
     padding: 2rem;
+}
+
+/* --- Onboarding & Tour Styles (NEW) --- */
+
+/* Highlight Effect */
+.tour-highlight {
+    position: relative;
+    z-index: 60 !important;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7), 0 0 15px rgba(255, 255, 255, 0.5) !important;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+    background-color: white;
+}
+
+html.dark .tour-highlight {
+    background-color: #1e293b;
+}
+
+/* Tooltip Box */
+#tour-tooltip {
+    position: fixed;
+    bottom: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 400px;
+    z-index: 70;
+    background: white;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    border-left: 5px solid #3b82f6;
+    animation: slideUp 0.4s ease-out;
+}
+
+html.dark #tour-tooltip {
+    background: #1e293b;
+    border: 1px solid #475569;
+    border-left: 5px solid #3b82f6;
+    color: #f1f5f9;
+}
+
+#tour-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #1e3a8a;
+    margin-bottom: 0.5rem;
+}
+
+html.dark #tour-title {
+    color: #60a5fa;
+}
+
+#tour-text {
+    color: #475569;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+}
+
+html.dark #tour-text {
+    color: #94a3b8;
+}
+
+/* Welcome Modal Special Styling */
+#onboarding-modal {
+    background: linear-gradient(to bottom right, #ffffff, #f8fafc);
+    border: none;
+}
+html.dark #onboarding-modal {
+    background: linear-gradient(to bottom right, #1e293b, #0f172a);
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translate(-50%, 20px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
 }
