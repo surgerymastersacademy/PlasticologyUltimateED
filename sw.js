@@ -1,7 +1,7 @@
-// sw.js - Service Worker for Plasticology PWA (FINAL VERSION v3)
+// sw.js (FINAL FIXED VERSION v4)
 
-// Increment this version to force all users to download the new code
-const CACHE_NAME = 'plasticology-app-v3'; // Updated to v3 for Onboarding
+// Increased version to force update and fix Tailwind CORS error
+const CACHE_NAME = 'plasticology-app-v4'; 
 
 const ASSETS_TO_CACHE = [
   './',
@@ -28,18 +28,17 @@ const ASSETS_TO_CACHE = [
   './js/features/registration.js',
   './js/features/theory.js',
   './js/features/userProfile.js',
-  './js/features/matching.js',   // Matching Feature
-  './js/features/onboarding.js', // NEW: Onboarding Feature
-  // External Libraries
-  'https://cdn.tailwindcss.com',
+  './js/features/matching.js',
+  './js/features/onboarding.js',
+  // External Libraries (Only cache safe static files)
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
   'https://cdn.jsdelivr.net/npm/chart.js'
+  // REMOVED: Tailwind CDN (Causes CORS error/Crash)
 ];
 
-// 1. Install Event: Cache all static assets
+// 1. Install Event
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); // Force activation
-  
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
@@ -47,14 +46,13 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// 2. Activate Event: Clean up old caches
+// 2. Activate Event
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('Deleting old cache:', key);
             return caches.delete(key);
           }
         })
@@ -63,17 +61,17 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// 3. Fetch Event: Serve from Cache, fallback to Network
+// 3. Fetch Event
 self.addEventListener('fetch', (event) => {
-  // Ignore Google Apps Script API calls
-  if (event.request.url.includes('script.google.com')) {
+  // Ignore Google Apps Script and Tailwind
+  if (event.request.url.includes('script.google.com') || event.request.url.includes('tailwindcss')) {
     return;
   }
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       return cachedResponse || fetch(event.request).catch(() => {
-          // Offline fallback logic can go here
+          // Offline fallback
       });
     })
   );
