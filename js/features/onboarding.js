@@ -1,5 +1,5 @@
-// js/features/onboarding.js
-// هذا الملف مسؤول عن جولة الشرح للمستخدمين الجدد
+// js/features/onboarding.js (FIXED VERSION)
+// تم إصلاح مشكلة تعليق زر الإنهاء
 
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
@@ -84,15 +84,18 @@ export function startTour() {
  * ينهي الجولة
  */
 export function endTour() {
-    // إزالة التأثيرات البصرية
+    // 1. إزالة التأثيرات البصرية
     const activeHighlights = document.querySelectorAll('.tour-highlight');
     activeHighlights.forEach(el => el.classList.remove('tour-highlight'));
     
-    // إخفاء العناصر
+    // 2. إخفاء عناصر الجولة
     dom.tourTooltip.classList.add('hidden');
-    dom.modalBackdrop.classList.add('hidden');
     dom.onboardingModal.classList.add('hidden');
     
+    // 3. هام جداً: إخفاء الخلفية المظلمة ليعود التطبيق للعمل
+    dom.modalBackdrop.classList.add('hidden');
+    
+    // 4. تسجيل الانتهاء
     localStorage.setItem('plasticology_tour_v3_seen', 'true');
 }
 
@@ -103,10 +106,12 @@ function highlightStep(index) {
 
     // إذا انتهت الخطوات
     if (index >= TOUR_STEPS.length) {
+        // بدلاً من عرض نافذة تأكيد معلقة، سننهي الجولة مباشرة
+        // أو نعرض رسالة شكر بسيطة تغلق نفسها
         endTour();
-        ui.showConfirmationModal("You're Ready!", "Good luck with your studies!", () => {
-             dom.modalBackdrop.classList.add('hidden');
-        });
+        
+        // خيار إضافي: عرض رسالة نجاح صغيرة (اختياري)
+        // alert("You're ready to go! Good luck."); 
         return;
     }
 
