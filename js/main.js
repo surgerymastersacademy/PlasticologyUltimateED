@@ -1,11 +1,10 @@
-// js/main.js (FINAL VERSION - COMPLETE)
-// نقطة الانطلاق الرئيسية للتطبيق: تربط كل الأجزاء ببعضها
+// js/main.js (FINAL FULL VERSION)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
 import * as ui from './ui.js';
 import * as utils from './utils.js';
-import { fetchContentData, logTheoryActivity } from './api.js'; // Added logTheoryActivity import
+import { fetchContentData, logTheoryActivity } from './api.js';
 import { handleLogin, handleLogout, showUserCardModal, handleSaveProfile, showMessengerModal, handleSendMessageBtn, checkPermission, loadUserProgress, updateUserProfileHeader, toggleProfileEditMode } from './features/userProfile.js';
 import {
     launchQuiz, handleMockExamStart, handleStartSimulation, triggerEndQuiz, handleNextQuestion, handlePreviousQuestion, startChapterQuiz, startSearchedQuiz, handleQBankSearch, updateChapterFilter, startFreeTest, startIncorrectQuestionsQuiz, startBookmarkedQuestionsQuiz,
@@ -24,6 +23,13 @@ import { showRegistrationModal, hideRegistrationModal, handleRegistrationSubmit 
 import { showMatchingMenu, handleStartMatchingExam, checkCurrentSetAnswers, handleNextMatchingSet } from './features/matching.js';
 import { checkAndTriggerOnboarding, startTour, nextTourStep, endTour } from './features/onboarding.js';
 
+// --- Helper: Safe Event Listener ---
+// هذه الدالة تمنع توقف التطبيق إذا كان الزر غير موجود في الصفحة
+function safeListen(element, event, handler) {
+    if (element) {
+        element.addEventListener(event, handler);
+    }
+}
 
 // --- دوال التنقل والعرض المشتركة ---
 
@@ -33,7 +39,7 @@ export function showMainMenuScreen() {
     ui.displayAnnouncement();
     fetchAndShowLastActivity();
     
-    // التحقق من جولة الشرح (Onboarding) بعد ثانية من تحميل القائمة
+    // التحقق من جولة الشرح (Onboarding)
     setTimeout(() => {
         checkAndTriggerOnboarding();
     }, 1000);
@@ -52,10 +58,10 @@ export function openNoteModal(type, itemId, itemTitle) {
         existingNote = log ? { NoteText: log.Notes } : null;
     }
 
-    dom.noteModalTitle.textContent = `Note on: ${itemTitle.substring(0, 40)}...`;
-    dom.noteTextarea.value = existingNote ? existingNote.NoteText : '';
-    dom.modalBackdrop.classList.remove('hidden');
-    dom.noteModal.classList.remove('hidden');
+    if(dom.noteModalTitle) dom.noteModalTitle.textContent = `Note on: ${itemTitle.substring(0, 40)}...`;
+    if(dom.noteTextarea) dom.noteTextarea.value = existingNote ? existingNote.NoteText : '';
+    if(dom.modalBackdrop) dom.modalBackdrop.classList.remove('hidden');
+    if(dom.noteModal) dom.noteModal.classList.remove('hidden');
 }
 
 
@@ -88,10 +94,9 @@ function populateAllFilters() {
 }
 
 // --- نظام التوجيه (Router) ---
-// يدير التنقل عبر الروابط (#) ليعمل زر الرجوع في المتصفح
 function handleRouting() {
     if (!appState.currentUser && window.location.hash !== '#login') {
-        return; // لا تفعل شيئاً إذا لم يسجل الدخول
+        return;
     }
     const hash = window.location.hash;
     switch(hash) {
@@ -107,14 +112,13 @@ function handleRouting() {
         case '#activity': showActivityLog(); break;
         case '#notes': showNotesScreen(); break;
         case '#quiz': 
-            // حماية: إذا تم تحديث الصفحة أثناء الامتحان، عد للرئيسية لأن البيانات ضاعت
             if (!appState.currentQuiz.questions || appState.currentQuiz.questions.length === 0) {
                 window.location.hash = '#home';
             } else {
                 ui.showScreen(dom.quizContainer);
             }
             break;
-        case '#matching': showMatchingMenu(); break; // المسار الجديد لـ Matching
+        case '#matching': showMatchingMenu(); break;
         default: break;
     }
 }
@@ -128,14 +132,11 @@ function initializePwaFeatures() {
     const iosModal = document.getElementById('ios-install-modal');
     const iosCloseBtn = document.getElementById('ios-install-close-btn');
     
-    // إذا كان التطبيق مثبتاً بالفعل، لا تظهر شيئاً
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
     if (isStandalone) return; 
 
-    // اكتشاف iOS
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-    // لنظام Android/Desktop
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
@@ -145,11 +146,9 @@ function initializePwaFeatures() {
     if(installBtn) {
         installBtn.addEventListener('click', () => {
             if (isIOS) {
-                // تعليمات آيفون
                 dom.modalBackdrop.classList.remove('hidden');
                 iosModal.classList.remove('hidden');
             } else if (deferredPrompt) {
-                // تثبيت أندرويد/ويندوز
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
@@ -163,7 +162,6 @@ function initializePwaFeatures() {
         });
     }
 
-    // إظهار البانر لمستخدمي آيفون دائماً
     if (isIOS && pwaBanner) {
         pwaBanner.classList.remove('hidden');
         installBtn.textContent = "Install on iOS";
@@ -177,39 +175,32 @@ function initializePwaFeatures() {
     }
 }
 
-// --- منطق عداد الاستمرار (Daily Streak) ---
+// --- Daily Streak Logic ---
 function calculateDailyStreak() {
     if (!dom.streakContainer || !dom.streakCount) return;
 
-    const today = new Date().toISOString().split('T')[0]; // تاريخ اليوم YYYY-MM-DD
+    const today = new Date().toISOString().split('T')[0];
     const lastVisit = localStorage.getItem('lastVisitDate');
     let streak = parseInt(localStorage.getItem('dailyStreak') || '0');
 
     if (lastVisit === today) {
-        // المستخدم فتح التطبيق اليوم بالفعل، لا تفعل شيئاً
     } else if (lastVisit) {
-        // حساب الأمس
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toISOString().split('T')[0];
 
         if (lastVisit === yesterdayStr) {
-            // زيارة متتالية -> زيادة العداد
             streak++;
         } else {
-            // فاته يوم -> تصفير العداد لـ 1 (بداية جديدة)
             streak = 1; 
         }
     } else {
-        // أول زيارة على الإطلاق
         streak = 1;
     }
 
-    // حفظ البيانات
     localStorage.setItem('lastVisitDate', today);
     localStorage.setItem('dailyStreak', streak);
 
-    // تحديث الواجهة
     dom.streakCount.textContent = streak;
     if (streak > 0) {
         dom.streakContainer.classList.remove('hidden');
@@ -218,7 +209,7 @@ function calculateDailyStreak() {
 }
 
 
-// --- بدء تشغيل التطبيق ---
+// --- MAIN APP INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
 
     const toggleThemeBtn = document.getElementById('toggle-theme-btn');
@@ -226,32 +217,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginCanvas = document.getElementById('login-canvas');
     const htmlEl = document.documentElement;
 
-    // تفعيل الموجه (Router)
     window.addEventListener('hashchange', handleRouting);
-    
-    // تفعيل PWA
     initializePwaFeatures();
-    
-    // حساب Streak
     calculateDailyStreak(); 
 
-    // إعدادات الثيم (Dark/Light)
     function initializeSettings() {
         const savedTheme = localStorage.getItem('theme') || 'light';
         htmlEl.className = savedTheme;
-        toggleThemeBtn.className = savedTheme;
+        if(toggleThemeBtn) toggleThemeBtn.className = savedTheme;
 
         const savedAnimation = localStorage.getItem('animation') || 'on';
         if (savedAnimation === 'off') {
-            loginCanvas.style.display = 'none';
+            if(loginCanvas) loginCanvas.style.display = 'none';
             htmlEl.classList.add('animation-off');
         } else {
-            loginCanvas.style.display = 'block';
+            if(loginCanvas) loginCanvas.style.display = 'block';
             htmlEl.classList.remove('animation-off');
         }
     }
 
-    toggleThemeBtn.addEventListener('click', () => {
+    safeListen(toggleThemeBtn, 'click', () => {
         if (htmlEl.classList.contains('light')) {
             htmlEl.className = htmlEl.className.replace('light', 'dark');
             localStorage.setItem('theme', 'dark');
@@ -261,23 +246,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    toggleAnimationBtn.addEventListener('click', () => {
+    safeListen(toggleAnimationBtn, 'click', () => {
         if (htmlEl.classList.contains('animation-off')) {
             htmlEl.classList.remove('animation-off');
-            loginCanvas.style.display = 'block';
+            if(loginCanvas) loginCanvas.style.display = 'block';
             localStorage.setItem('animation', 'on');
         } else {
             htmlEl.classList.add('animation-off');
-            loginCanvas.style.display = 'none';
+            if(loginCanvas) loginCanvas.style.display = 'none';
             localStorage.setItem('animation', 'off');
         }
     });
 
-    // دالة التحميل الأولية
     async function initializeApp() {
-        dom.loginSubmitBtn.disabled = true;
-        dom.loginSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Your Companion is on His way...';
-        dom.freeTestBtn.disabled = true;
+        if(dom.loginSubmitBtn) {
+            dom.loginSubmitBtn.disabled = true;
+            dom.loginSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Your Companion is on His way...';
+        }
+        if(dom.freeTestBtn) dom.freeTestBtn.disabled = true;
 
         const data = await fetchContentData();
         if (data && data.roles && data.questions) {
@@ -294,236 +280,197 @@ document.addEventListener('DOMContentLoaded', () => {
 
             populateAllFilters();
             
-            dom.loginSubmitBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Your Companion is Here!';
-            dom.freeTestBtn.disabled = false;
-            
-            setTimeout(() => {
-                dom.loginSubmitBtn.disabled = false;
-                dom.loginSubmitBtn.textContent = 'Log In';
-            }, 1500);
+            if(dom.loginSubmitBtn) {
+                dom.loginSubmitBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Your Companion is Here!';
+                setTimeout(() => {
+                    dom.loginSubmitBtn.disabled = false;
+                    dom.loginSubmitBtn.textContent = 'Log In';
+                }, 1500);
+            }
+            if(dom.freeTestBtn) dom.freeTestBtn.disabled = false;
 
         } else {
-            dom.loginSubmitBtn.textContent = 'Error Loading Data';
-            dom.loginError.textContent = 'Failed to load app content. Please refresh.';
-            dom.loginError.classList.remove('hidden');
+            if(dom.loginSubmitBtn) dom.loginSubmitBtn.textContent = 'Error Loading Data';
+            if(dom.loginError) {
+                dom.loginError.textContent = 'Failed to load app content. Please refresh.';
+                dom.loginError.classList.remove('hidden');
+            }
         }
     }
 
     initializeSettings();
 
-    // --- مستمعي الأحداث (EVENT LISTENERS) ---
-    
-    // أزرار Onboarding (الجولة والمساعدة)
-    if(dom.helpBtn) dom.helpBtn.addEventListener('click', startTour);
-    if(dom.startTourBtn) dom.startTourBtn.addEventListener('click', startTour);
-    if(dom.skipTourBtn) dom.skipTourBtn.addEventListener('click', endTour);
-    if(dom.tourNextBtn) dom.tourNextBtn.addEventListener('click', nextTourStep);
-    if(dom.tourEndBtn) dom.tourEndBtn.addEventListener('click', endTour);
+    // --- ربط الأحداث (EVENT LISTENERS) ---
+    // نستخدم safeListen لمنع أي خطأ في حالة عدم وجود الزر
 
-    // تسجيل الدخول والتسجيل
-    dom.loginForm.addEventListener('submit', handleLogin);
-    dom.showRegisterLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        showRegistrationModal();
-    });
-    dom.registrationForm.addEventListener('submit', handleRegistrationSubmit);
-    dom.registerCancelBtn.addEventListener('click', hideRegistrationModal);
+    // Onboarding
+    safeListen(dom.helpBtn, 'click', startTour);
+    safeListen(dom.startTourBtn, 'click', startTour);
+    safeListen(dom.skipTourBtn, 'click', endTour);
+    safeListen(dom.tourNextBtn, 'click', nextTourStep);
+    safeListen(dom.tourEndBtn, 'click', endTour);
 
-    // القائمة العلوية وتسجيل الخروج
-    dom.logoutBtn.addEventListener('click', handleLogout);
-    dom.globalHomeBtn.addEventListener('click', () => {
-        if (appState.currentUser?.Role === 'Guest') {
-            ui.showScreen(dom.loginContainer);
-            appState.currentUser = null;
-        } else {
-            showMainMenuScreen();
-        }
+    // Login
+    safeListen(dom.loginForm, 'submit', handleLogin);
+    safeListen(dom.showRegisterLink, 'click', (e) => { e.preventDefault(); showRegistrationModal(); });
+    safeListen(dom.registrationForm, 'submit', handleRegistrationSubmit);
+    safeListen(dom.registerCancelBtn, 'click', hideRegistrationModal);
+
+    // Global Nav
+    safeListen(dom.logoutBtn, 'click', handleLogout);
+    safeListen(dom.globalHomeBtn, 'click', () => {
+        if (appState.currentUser?.Role === 'Guest') { ui.showScreen(dom.loginContainer); appState.currentUser = null; } 
+        else { showMainMenuScreen(); }
     });
-    dom.freeTestBtn.addEventListener('click', startFreeTest);
+    safeListen(dom.freeTestBtn, 'click', startFreeTest);
     
-    // زر الرجوع (موحد لجميع الصفحات)
-    [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn, dom.theoryBackBtn, dom.matchingBackBtn].forEach(btn => {
-        if(btn) {
-            btn.addEventListener('click', () => {
-                if (window.history.length > 1) {
-                    window.history.back();
-                } else {
-                    showMainMenuScreen();
-                }
-            });
-        }
+    // Back Buttons
+    const backButtons = [dom.lecturesBackBtn, dom.qbankBackBtn, dom.listBackBtn, dom.activityBackBtn, dom.libraryBackBtn, dom.notesBackBtn, dom.leaderboardBackBtn, dom.osceBackBtn, dom.learningModeBackBtn, dom.studyPlannerBackBtn, dom.theoryBackBtn, dom.matchingBackBtn];
+    backButtons.forEach(btn => {
+        safeListen(btn, 'click', () => { if (window.history.length > 1) window.history.back(); else showMainMenuScreen(); });
     });
 
-    // أزرار القائمة الرئيسية
-    dom.lecturesBtn.addEventListener('click', () => { if (checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); } });
-    dom.qbankBtn.addEventListener('click', () => { if (checkPermission('MCQBank')) { ui.showScreen(dom.qbankContainer); } });
-    dom.learningModeBtn.addEventListener('click', () => { if (checkPermission('LerningMode')) showLearningModeBrowseScreen(); });
-    dom.theoryBtn.addEventListener('click', () => { if (checkPermission('TheoryBank')) showTheoryMenuScreen(); });
-    dom.osceBtn.addEventListener('click', () => { if (checkPermission('OSCEBank')) { ui.showScreen(dom.osceContainer); } });
-    dom.libraryBtn.addEventListener('click', () => { if (checkPermission('Library')) { ui.renderBooks(); ui.showScreen(dom.libraryContainer); } });
-    dom.studyPlannerBtn.addEventListener('click', () => { if (checkPermission('StudyPlanner')) showStudyPlannerScreen(); });
-    dom.leaderboardBtn.addEventListener('click', () => checkPermission('LeadersBoard') && showLeaderboardScreen());
+    // Main Menu
+    safeListen(dom.lecturesBtn, 'click', () => { if (checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); } });
+    safeListen(dom.qbankBtn, 'click', () => { if (checkPermission('MCQBank')) { ui.showScreen(dom.qbankContainer); } });
+    safeListen(dom.learningModeBtn, 'click', () => { if (checkPermission('LerningMode')) showLearningModeBrowseScreen(); });
+    safeListen(dom.theoryBtn, 'click', () => { if (checkPermission('TheoryBank')) showTheoryMenuScreen(); });
+    safeListen(dom.osceBtn, 'click', () => { if (checkPermission('OSCEBank')) { ui.showScreen(dom.osceContainer); } });
+    safeListen(dom.libraryBtn, 'click', () => { if (checkPermission('Library')) { ui.renderBooks(); ui.showScreen(dom.libraryContainer); } });
+    safeListen(dom.studyPlannerBtn, 'click', () => { if (checkPermission('StudyPlanner')) showStudyPlannerScreen(); });
+    safeListen(dom.leaderboardBtn, 'click', () => checkPermission('LeadersBoard') && showLeaderboardScreen());
+    safeListen(dom.matchingBtn, 'click', () => showMatchingMenu());
     
-    // --- زر Matching الجديد ---
-    if(dom.matchingBtn) dom.matchingBtn.addEventListener('click', () => showMatchingMenu());
+    // Profile & Misc
+    safeListen(dom.userProfileHeaderBtn, 'click', () => showUserCardModal(false));
+    safeListen(dom.editProfileBtn, 'click', () => toggleProfileEditMode(true));
+    safeListen(dom.cancelEditProfileBtn, 'click', () => toggleProfileEditMode(false));
+    safeListen(dom.saveProfileBtn, 'click', handleSaveProfile);
+    safeListen(dom.radioBtn, 'click', () => dom.radioBannerContainer.classList.toggle('open'));
+    safeListen(dom.radioCloseBtn, 'click', () => dom.radioBannerContainer.classList.remove('open'));
+    safeListen(dom.announcementsBtn, 'click', ui.showAnnouncementsModal);
+    safeListen(dom.messengerBtn, 'click', showMessengerModal);
+    safeListen(dom.sendMessageBtn, 'click', handleSendMessageBtn);
+    safeListen(dom.lectureSearchInput, 'keyup', (e) => renderLectures(e.target.value));
     
-    // البروفايل والرسائل والإعلانات
-    dom.userProfileHeaderBtn.addEventListener('click', () => showUserCardModal(false));
-    dom.editProfileBtn.addEventListener('click', () => toggleProfileEditMode(true));
-    dom.cancelEditProfileBtn.addEventListener('click', () => toggleProfileEditMode(false));
-    dom.saveProfileBtn.addEventListener('click', handleSaveProfile);
-    dom.radioBtn.addEventListener('click', () => dom.radioBannerContainer.classList.toggle('open'));
-    dom.radioCloseBtn.addEventListener('click', () => dom.radioBannerContainer.classList.remove('open'));
-    dom.announcementsBtn.addEventListener('click', ui.showAnnouncementsModal);
-    dom.messengerBtn.addEventListener('click', showMessengerModal);
-    dom.sendMessageBtn.addEventListener('click', handleSendMessageBtn);
-    dom.lectureSearchInput.addEventListener('keyup', (e) => renderLectures(e.target.value));
-    
-    // الملاحظات وسجل النشاط
-    dom.notesBtn.addEventListener('click', showNotesScreen);
-    dom.activityLogBtn.addEventListener('click', showActivityLog);
-    dom.logFilterAll.addEventListener('click', () => renderFilteredLog('all'));
-    dom.logFilterQuizzes.addEventListener('click', () => renderFilteredLog('quizzes'));
-    dom.logFilterLectures.addEventListener('click', () => renderFilteredLog('lectures'));
-    dom.notesFilterQuizzes.addEventListener('click', () => renderNotes('quizzes'));
-    dom.notesFilterLectures.addEventListener('click', () => renderNotes('lectures'));
-    dom.notesFilterTheory.addEventListener('click', () => renderNotes('theory'));
-    dom.noteSaveBtn.addEventListener('click', () => {
+    // Notes & Activity
+    safeListen(dom.notesBtn, 'click', showNotesScreen);
+    safeListen(dom.activityLogBtn, 'click', showActivityLog);
+    safeListen(dom.logFilterAll, 'click', () => renderFilteredLog('all'));
+    safeListen(dom.logFilterQuizzes, 'click', () => renderFilteredLog('quizzes'));
+    safeListen(dom.logFilterLectures, 'click', () => renderFilteredLog('lectures'));
+    safeListen(dom.notesFilterQuizzes, 'click', () => renderNotes('quizzes'));
+    safeListen(dom.notesFilterLectures, 'click', () => renderNotes('lectures'));
+    safeListen(dom.notesFilterTheory, 'click', () => renderNotes('theory'));
+    safeListen(dom.noteSaveBtn, 'click', () => {
         const { type, itemId } = appState.currentNote;
         if (type === 'theory') {
-            logTheoryActivity({
-                questionId: itemId,
-                Notes: dom.noteTextarea.value,
-            });
-            const theoryNoteBtn = document.getElementById('theory-note-btn');
-            if(theoryNoteBtn) theoryNoteBtn.classList.toggle('has-note', dom.noteTextarea.value.length > 0);
+            logTheoryActivity({ questionId: itemId, Notes: dom.noteTextarea.value });
+            if(dom.theoryNoteBtn) dom.theoryNoteBtn.classList.toggle('has-note', dom.noteTextarea.value.length > 0);
              dom.modalBackdrop.classList.add('hidden');
              dom.noteModal.classList.add('hidden');
-        } else {
-            handleSaveNote(); 
-        }
+        } else { handleSaveNote(); }
     });
-    dom.noteCancelBtn.addEventListener('click', () => { dom.noteModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
+    safeListen(dom.noteCancelBtn, 'click', () => { dom.noteModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
     
-    // بنك الأسئلة (QBank)
-    dom.startMockBtn.addEventListener('click', handleMockExamStart);
-    dom.startSimulationBtn.addEventListener('click', handleStartSimulation);
-    dom.qbankSearchBtn.addEventListener('click', handleQBankSearch);
-    dom.qbankStartSearchQuizBtn.addEventListener('click', startSearchedQuiz);
-    dom.qbankClearSearchBtn.addEventListener('click', () => {
+    // QBank
+    safeListen(dom.startMockBtn, 'click', handleMockExamStart);
+    safeListen(dom.startSimulationBtn, 'click', handleStartSimulation);
+    safeListen(dom.qbankSearchBtn, 'click', handleQBankSearch);
+    safeListen(dom.qbankStartSearchQuizBtn, 'click', startSearchedQuiz);
+    safeListen(dom.qbankClearSearchBtn, 'click', () => {
         dom.qbankSearchResultsContainer.classList.add('hidden');
         dom.qbankMainContent.classList.remove('hidden');
         dom.qbankSearchInput.value = '';
     });
-    dom.toggleCustomOptionsBtn.addEventListener('click', () => dom.customExamOptions.classList.toggle('visible'));
-    dom.sourceSelectMock.addEventListener('change', updateChapterFilter);
-    dom.selectAllSourcesMock.addEventListener('change', (e) => {
-        dom.sourceSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
+    safeListen(dom.toggleCustomOptionsBtn, 'click', () => dom.customExamOptions.classList.toggle('visible'));
+    safeListen(dom.sourceSelectMock, 'change', updateChapterFilter);
+    safeListen(dom.selectAllSourcesMock, 'change', (e) => {
+        if(dom.sourceSelectMock) dom.sourceSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
         updateChapterFilter();
     });
-    dom.selectAllChaptersMock.addEventListener('change', (e) => {
-        dom.chapterSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
+    safeListen(dom.selectAllChaptersMock, 'change', (e) => {
+        if(dom.chapterSelectMock) dom.chapterSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
     });
-    dom.practiceMistakesBtn.addEventListener('click', startIncorrectQuestionsQuiz);
-    dom.practiceBookmarkedBtn.addEventListener('click', startBookmarkedQuestionsQuiz);
-    dom.browseByChapterBtn.addEventListener('click', () => startQuizBrowse('chapter'));
-    dom.browseBySourceBtn.addEventListener('click', () => startQuizBrowse('source'));
+    safeListen(dom.practiceMistakesBtn, 'click', startIncorrectQuestionsQuiz);
+    safeListen(dom.practiceBookmarkedBtn, 'click', startBookmarkedQuestionsQuiz);
+    safeListen(dom.browseByChapterBtn, 'click', () => startQuizBrowse('chapter'));
+    safeListen(dom.browseBySourceBtn, 'click', () => startQuizBrowse('source'));
     
+    // Tabs
     const qbankTabs = [dom.qbankTabCreate, dom.qbankTabPractice, dom.qbankTabBrowse];
-    const qbankPanels = [dom.qbankPanelCreate, dom.qbankPanelPractice, dom.qbankPanelBrowse];
-    function switchQBankTab(activeIndex) {
-        qbankTabs.forEach((tab, index) => { if(tab) tab.classList.toggle('active', index === activeIndex); });
-        qbankPanels.forEach((panel, index) => { if(panel) panel.classList.toggle('hidden', index !== activeIndex); });
-        dom.qbankMainContent.classList.remove('hidden');
-        dom.qbankSearchResultsContainer.classList.add('hidden');
-    }
-    qbankTabs.forEach((tab, index) => { if(tab) tab.addEventListener('click', () => switchQBankTab(index)); });
-    if(qbankTabs[0]) switchQBankTab(0);
+    qbankTabs.forEach((tab, index) => { 
+        safeListen(tab, 'click', () => {
+            const panels = [dom.qbankPanelCreate, dom.qbankPanelPractice, dom.qbankPanelBrowse];
+            qbankTabs.forEach((t, i) => t && t.classList.toggle('active', i === index));
+            panels.forEach((p, i) => p && p.classList.toggle('hidden', i !== index));
+            if(dom.qbankMainContent) dom.qbankMainContent.classList.remove('hidden');
+            if(dom.qbankSearchResultsContainer) dom.qbankSearchResultsContainer.classList.add('hidden');
+        }); 
+    });
 
-    // داخل الاختبار (In-Quiz)
-    dom.endQuizBtn.addEventListener('click', triggerEndQuiz);
-    dom.nextSkipBtn.addEventListener('click', handleNextQuestion);
-    dom.previousBtn.addEventListener('click', handlePreviousQuestion);
-    dom.bookmarkBtn.addEventListener('click', toggleBookmark);
-    dom.flagBtn.addEventListener('click', toggleFlag);
-    dom.hintBtn.addEventListener('click', showHint);
-    dom.navigatorBtn.addEventListener('click', showQuestionNavigator);
-    dom.quizNoteBtn.addEventListener('click', () => {
+    // In-Quiz
+    safeListen(dom.endQuizBtn, 'click', triggerEndQuiz);
+    safeListen(dom.nextSkipBtn, 'click', handleNextQuestion);
+    safeListen(dom.previousBtn, 'click', handlePreviousQuestion);
+    safeListen(dom.bookmarkBtn, 'click', toggleBookmark);
+    safeListen(dom.flagBtn, 'click', toggleFlag);
+    safeListen(dom.hintBtn, 'click', showHint);
+    safeListen(dom.navigatorBtn, 'click', showQuestionNavigator);
+    safeListen(dom.quizNoteBtn, 'click', () => {
         const question = appState.currentQuiz.questions[appState.currentQuiz.currentQuestionIndex];
         if (question) openNoteModal('quiz', question.UniqueID, question.question);
     });
-    dom.resultsHomeBtn.addEventListener('click', showMainMenuScreen);
-    dom.restartBtn.addEventListener('click', () => restartCurrentQuiz());
-    dom.reviewIncorrectBtn.addEventListener('click', () => reviewIncorrectAnswers());
+    safeListen(dom.resultsHomeBtn, 'click', showMainMenuScreen);
+    safeListen(dom.restartBtn, 'click', () => restartCurrentQuiz());
+    safeListen(dom.reviewIncorrectBtn, 'click', () => reviewIncorrectAnswers());
     const reviewSimulationBtn = document.getElementById('review-simulation-btn');
-    if(reviewSimulationBtn) reviewSimulationBtn.addEventListener('click', () => startSimulationReview());
+    safeListen(reviewSimulationBtn, 'click', () => startSimulationReview());
 
-    // --- أزرار Matching Bank ---
-    dom.startMatchingBtn.addEventListener('click', handleStartMatchingExam);
-    dom.matchingSubmitBtn.addEventListener('click', () => checkCurrentSetAnswers());
-    dom.matchingNextBtn.addEventListener('click', handleNextMatchingSet);
-    dom.endMatchingBtn.addEventListener('click', () => {
-        ui.showConfirmationModal('End Test', 'Are you sure?', () => showMatchingMenu());
-    });
+    // Matching
+    safeListen(dom.startMatchingBtn, 'click', handleStartMatchingExam);
+    safeListen(dom.matchingSubmitBtn, 'click', () => checkCurrentSetAnswers());
+    safeListen(dom.matchingNextBtn, 'click', handleNextMatchingSet);
+    safeListen(dom.endMatchingBtn, 'click', () => { ui.showConfirmationModal('End Test', 'Are you sure?', () => showMatchingMenu()); });
 
     // OSCE
-    dom.startOsceSlayerBtn.addEventListener('click', startOsceSlayer);
-    dom.startCustomOsceBtn.addEventListener('click', startCustomOsce);
-    dom.toggleOsceOptionsBtn.addEventListener('click', () => dom.customOsceOptions.classList.toggle('visible'));
-    dom.endOsceQuizBtn.addEventListener('click', () => endOsceQuiz(false));
-    dom.osceNextBtn.addEventListener('click', handleOsceNext);
-    dom.oscePreviousBtn.addEventListener('click', handleOscePrevious);
-    dom.osceNavigatorBtn.addEventListener('click', showOsceNavigator);
-    document.getElementById('select-all-chapters-osce').addEventListener('change', (e) => {
-        dom.chapterSelectOsce.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
-    });
-    document.getElementById('select-all-sources-osce').addEventListener('change', (e) => {
-        dom.sourceSelectOsce.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
-    });
+    safeListen(dom.startOsceSlayerBtn, 'click', startOsceSlayer);
+    safeListen(dom.startCustomOsceBtn, 'click', startCustomOsce);
+    safeListen(dom.toggleOsceOptionsBtn, 'click', () => dom.customOsceOptions.classList.toggle('visible'));
+    safeListen(dom.endOsceQuizBtn, 'click', () => endOsceQuiz(false));
+    safeListen(dom.osceNextBtn, 'click', handleOsceNext);
+    safeListen(dom.oscePreviousBtn, 'click', handleOscePrevious);
+    safeListen(dom.osceNavigatorBtn, 'click', showOsceNavigator);
+    if(dom.chapterSelectOsce) safeListen(document.getElementById('select-all-chapters-osce'), 'change', (e) => { dom.chapterSelectOsce.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; }); });
+    if(dom.sourceSelectOsce) safeListen(document.getElementById('select-all-sources-osce'), 'change', (e) => { dom.sourceSelectOsce.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; }); });
     
     // Learning Mode
-    dom.endLearningBtn.addEventListener('click', showLearningModeBrowseScreen);
-    dom.learningNextBtn.addEventListener('click', handleLearningNext);
-    dom.learningPreviousBtn.addEventListener('click', handleLearningPrevious);
-    dom.learningSearchBtn.addEventListener('click', handleLearningSearch);
-    dom.learningBrowseByChapterBtn.addEventListener('click', () => startLearningBrowse('chapter'));
-    dom.learningBrowseBySourceBtn.addEventListener('click', () => startLearningBrowse('source'));
-    const learningMistakesBtn = document.getElementById('learning-mistakes-btn');
-    if(learningMistakesBtn) learningMistakesBtn.addEventListener('click', startLearningMistakes);
-    const learningBookmarkedBtn = document.getElementById('learning-bookmarked-btn');
-    if(learningBookmarkedBtn) learningBookmarkedBtn.addEventListener('click', startLearningBookmarked);
+    safeListen(dom.endLearningBtn, 'click', showLearningModeBrowseScreen);
+    safeListen(dom.learningNextBtn, 'click', handleLearningNext);
+    safeListen(dom.learningPreviousBtn, 'click', handleLearningPrevious);
+    safeListen(dom.learningSearchBtn, 'click', handleLearningSearch);
+    safeListen(dom.learningBrowseByChapterBtn, 'click', () => startLearningBrowse('chapter'));
+    safeListen(dom.learningBrowseBySourceBtn, 'click', () => startLearningBrowse('source'));
+    safeListen(document.getElementById('learning-mistakes-btn'), 'click', startLearningMistakes);
+    safeListen(document.getElementById('learning-bookmarked-btn'), 'click', startLearningBookmarked);
 
-    // Study Planner
-    dom.showCreatePlanModalBtn.addEventListener('click', () => {
-        dom.createPlanModal.classList.remove('hidden');
-        dom.modalBackdrop.classList.remove('hidden');
-    });
-    dom.cancelCreatePlanBtn.addEventListener('click', () => {
-        dom.createPlanModal.classList.add('hidden');
-        dom.modalBackdrop.classList.add('hidden');
-    });
-    dom.confirmCreatePlanBtn.addEventListener('click', handleCreatePlan);
-    dom.backToPlansDashboardBtn.addEventListener('click', () => {
-        dom.activePlanView.classList.add('hidden');
-        dom.plannerDashboard.classList.remove('hidden');
-    });
+    // Planner
+    safeListen(dom.showCreatePlanModalBtn, 'click', () => { dom.createPlanModal.classList.remove('hidden'); dom.modalBackdrop.classList.remove('hidden'); });
+    safeListen(dom.cancelCreatePlanBtn, 'click', () => { dom.createPlanModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
+    safeListen(dom.confirmCreatePlanBtn, 'click', handleCreatePlan);
+    safeListen(dom.backToPlansDashboardBtn, 'click', () => { dom.activePlanView.classList.add('hidden'); dom.plannerDashboard.classList.remove('hidden'); });
 
-    // النوافذ المنبثقة (Modals)
-    dom.modalCancelBtn.addEventListener('click', () => { dom.confirmationModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
-    dom.modalConfirmBtn.addEventListener('click', () => { if (appState.modalConfirmAction) { appState.modalConfirmAction(); dom.confirmationModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');} });
-    dom.imageViewerCloseBtn.addEventListener('click', () => { dom.imageViewerModal.classList.add('hidden'); if(dom.userCardModal.classList.contains('hidden') && dom.createPlanModal.classList.contains('hidden') && dom.announcementsModal.classList.contains('hidden') && dom.messengerModal.classList.contains('hidden')) dom.modalBackdrop.classList.add('hidden');});
-    dom.announcementsCloseBtn.addEventListener('click', () => { dom.announcementsModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
-    dom.userCardCloseBtn.addEventListener('click', () => { dom.userCardModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
-    dom.messengerCloseBtn.addEventListener('click', () => {
-        dom.messengerModal.classList.add('hidden');
-        dom.modalBackdrop.classList.add('hidden');
-        if (appState.messengerPollInterval) clearInterval(appState.messengerPollInterval);
-    });
-    dom.navigatorCloseBtn.addEventListener('click', () => { dom.questionNavigatorModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');});
-    dom.osceNavigatorCloseBtn.addEventListener('click', () => { dom.osceNavigatorModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');});
-    dom.clearLogCancelBtn.addEventListener('click', () => { dom.clearLogModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
-    dom.clearLogBtn.addEventListener('click', () => { dom.clearLogModal.classList.remove('hidden'); dom.modalBackdrop.classList.remove('hidden'); });
-
+    // Modals (General)
+    safeListen(dom.modalCancelBtn, 'click', () => { dom.confirmationModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
+    safeListen(dom.modalConfirmBtn, 'click', () => { if (appState.modalConfirmAction) { appState.modalConfirmAction(); dom.confirmationModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');} });
+    safeListen(dom.imageViewerCloseBtn, 'click', () => { dom.imageViewerModal.classList.add('hidden'); if(dom.userCardModal.classList.contains('hidden') && dom.createPlanModal.classList.contains('hidden') && dom.announcementsModal.classList.contains('hidden') && dom.messengerModal.classList.contains('hidden')) dom.modalBackdrop.classList.add('hidden');});
+    safeListen(dom.announcementsCloseBtn, 'click', () => { dom.announcementsModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
+    safeListen(dom.userCardCloseBtn, 'click', () => { dom.userCardModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
+    safeListen(dom.messengerCloseBtn, 'click', () => { dom.messengerModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); if (appState.messengerPollInterval) clearInterval(appState.messengerPollInterval); });
+    safeListen(dom.navigatorCloseBtn, 'click', () => { dom.questionNavigatorModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');});
+    safeListen(dom.osceNavigatorCloseBtn, 'click', () => { dom.osceNavigatorModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden');});
+    safeListen(dom.clearLogCancelBtn, 'click', () => { dom.clearLogModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
+    safeListen(dom.clearLogBtn, 'click', () => { dom.clearLogModal.classList.remove('hidden'); dom.modalBackdrop.classList.remove('hidden'); });
 
     initializeApp();
 });
