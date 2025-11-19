@@ -1,6 +1,11 @@
-// js/state.js (FINAL CORRECTED VERSION FOR MULTI-PLANNER)
+// js/state.js (UPDATED - With Version Control for Caching)
 
-export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec'; // <-- Don't forget to put your NEW URL here!
+export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
+
+// --- NEW: Version Control ---
+// Change this number (e.g., to '1.1') whenever you update your Google Sheet content.
+// This forces the app to re-download the new data instead of using the cache.
+export const APP_VERSION = '1.0'; 
 
 export const SIMULATION_Q_COUNT = 100;
 export const SIMULATION_TOTAL_TIME_MINUTES = 120;
@@ -19,7 +24,6 @@ export const appState = {
     allAnnouncements: [],
     allRoles: [],
     allChaptersNames: [],
-    // --- NEW: Add theory questions data ---
     allTheoryQuestions: [],
     
     // User Data
@@ -32,11 +36,11 @@ export const appState = {
     userQuizNotes: [],
     userLectureNotes: [],
     userMessages: [],
-    // --- NEW: Add theory logs data ---
     userTheoryLogs: [],
-    // --- MODIFICATION: Updated planner state for multiple plans ---
-    studyPlans: [], // Will hold an array of all user's plans
-    activeStudyPlan: null, // Will hold the currently active plan object
+    
+    // Planner State
+    studyPlans: [], 
+    activeStudyPlan: null, 
 
     // Navigation & UI State
     navigationHistory: [],
@@ -61,6 +65,7 @@ export const appState = {
         isSimulationMode: false,
         isPracticingMistakes: false,
         timePerQuestion: 45,
+        isSimulationReview: false
     },
 
     // Current OSCE State
@@ -81,7 +86,7 @@ export const appState = {
         title: ''
     },
 
-    // --- NEW: Add theory session state ---
+    // Theory Session State
     currentTheorySession: {
         questions: [],
         currentIndex: 0,
@@ -90,6 +95,3 @@ export const appState = {
         timerInterval: null
     },
 };
-
-
-
