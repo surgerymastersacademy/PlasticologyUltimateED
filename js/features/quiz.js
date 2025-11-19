@@ -1,12 +1,11 @@
-// js/features/quiz.js (FINAL VERSION - With Unanswered Sync Fix)
+// js/features/quiz.js (FINAL VERSION - CORS SAFE & SYNC FIXED)
 
-import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
+import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
 import { logUserActivity, logIncorrectAnswer, logCorrectedMistake } from '../api.js';
-import { formatTime, parseQuestions } from '../utils.js';
+import { formatTime } from '../utils.js';
 import { showMainMenuScreen } from '../main.js';
-import { populateFilterOptions } from '../ui.js';
 import { saveUserProgress } from './lectures.js';
 
 // --- HELPER FUNCTIONS ---
@@ -96,7 +95,6 @@ export function startSimulationReview() {
     };
     launchQuiz(appState.currentQuiz.originalQuestions, `Review: ${dom.quizTitle.textContent}`, config);
 }
-
 
 // --- IN-QUIZ BUTTON FUNCTIONS ---
 
@@ -372,7 +370,6 @@ function selectAnswer(e, selectedAnswer) {
     updateScoreBar();
 }
 
-
 function showResults() {
     clearInterval(appState.currentQuiz.timerInterval);
     clearInterval(appState.currentQuiz.simulationTimerInterval);
@@ -425,8 +422,7 @@ function showResults() {
     if (!appState.currentQuiz.isReviewMode && !appState.currentQuiz.isPracticingMistakes) {
         const attemptedQuestions = appState.currentQuiz.originalUserAnswers.filter(a => a !== null).length;
         
-        // --- NEW: Immediate Local Sync ---
-        // Mark answered questions in local state immediately to avoid refresh bug
+        // Update Local State Immediately
         appState.currentQuiz.originalQuestions.forEach((q, index) => {
             const answer = appState.currentQuiz.originalUserAnswers[index];
             if (answer && answer.answer !== 'No Answer') {
@@ -453,7 +449,6 @@ function showResults() {
         }
     }
 }
-
 
 function checkMultipleAnswers() {
     const quizState = appState.currentQuiz;
@@ -624,7 +619,6 @@ function showAnswerResult() {
     });
 }
 
-
 function showSimulationReviewResult() {
     const quizState = appState.currentQuiz;
     const currentQuestion = quizState.questions[quizState.currentQuestionIndex];
@@ -657,7 +651,6 @@ function showSimulationReviewResult() {
         }
     });
 }
-
 
 export function triggerEndQuiz() {
     if (appState.currentQuiz.isReviewMode) {
@@ -805,7 +798,8 @@ export async function startIncorrectQuestionsQuiz() {
     dom.loadingText.textContent = 'Loading your mistakes...';
     dom.loadingText.classList.remove('hidden');
     try {
-        const response = await fetch(`${API_URL}?request=getIncorrectQuestions&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
+        // Use API wrapper logic if possible, but GET is fine here as per API design
+        const response = await fetch(`${API_URL}?request=getIncorrectQuestions&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`, { redirect: 'follow' });
         if (!response.ok) throw new Error('Failed to fetch your mistakes.');
         const data = await response.json();
         if (data.error) throw new Error(data.error);
