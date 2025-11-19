@@ -1,12 +1,4 @@
-// ===========================
-// Update Title: Support Multiple Correct Answers
-// Date: 13/10/2025
-// Version: v1.1
-// Type: إضافة
-// Description: Extending the quiz feature to support questions with multiple correct answers ("multiple" QuestionType) while maintaining full backward compatibility with single-answer questions.
-// Dependencies Impacted: Requires a new "QuestionType" column in the "MCQ Bank" Google Sheet.
-// ===========================
-// js/features/quiz.js (FINAL VERSION - With Simulation Review Mode & Multiple Answers)
+// js/features/quiz.js (FINAL VERSION - With Unanswered Sync Fix)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES, API_URL } from '../state.js';
 import * as dom from '../dom.js';
@@ -20,7 +12,7 @@ import { saveUserProgress } from './lectures.js';
 // --- HELPER FUNCTIONS ---
 
 function getQuestionPool() {
-    const isUnansweredOnly = document.getElementById('scope-unanswered').checked;
+    const isUnansweredOnly = document.getElementById('scope-unanswered') && document.getElementById('scope-unanswered').checked;
     if (isUnansweredOnly) {
         return appState.allQuestions.filter(q => !appState.answeredQuestions.has(q.UniqueID));
     }
@@ -96,13 +88,10 @@ export function reviewIncorrectAnswers() {
     launchQuiz(incorrectQuestions, `Review Incorrect: ${dom.quizTitle.textContent}`);
 }
 
-/**
- * NEW: Launches the dedicated review mode for a completed simulation.
- */
 export function startSimulationReview() {
     const config = {
         isReview: true,
-        isSimulationReview: true, // New flag for the special review mode
+        isSimulationReview: true,
         pastAnswers: appState.currentQuiz.originalUserAnswers
     };
     launchQuiz(appState.currentQuiz.originalQuestions, `Review: ${dom.quizTitle.textContent}`, config);
@@ -185,7 +174,7 @@ export function launchQuiz(questions, title, config = {}) {
         isReview = false,
         isMistakePractice = false,
         isSimulation = false,
-        isSimulationReview = false, // Added new flag
+        isSimulationReview = false,
         totalTimeSeconds = 0,
         pastAnswers = null
     } = config;
@@ -195,7 +184,7 @@ export function launchQuiz(questions, title, config = {}) {
         isReviewMode: isReview, 
         isPracticingMistakes: isMistakePractice, 
         isSimulationMode: isSimulation,
-        isSimulationReview: isSimulationReview // Store the new flag
+        isSimulationReview: isSimulationReview
     };
 
     ui.showScreen(dom.quizContainer);
@@ -208,7 +197,6 @@ export function launchQuiz(questions, title, config = {}) {
         appState.currentQuiz.userAnswers = new Array(questions.length).fill(null);
         appState.currentQuiz.originalUserAnswers = appState.currentQuiz.userAnswers;
     } else {
-        // For both regular review and simulation review, we use past data
         appState.currentQuiz.originalQuestions = [...questions]; 
         appState.currentQuiz.userAnswers = pastAnswers;
         appState.currentQuiz.originalUserAnswers = pastAnswers;
@@ -236,14 +224,6 @@ function showQuestion() {
     const quizState = appState.currentQuiz;
     const currentQuestion = quizState.questions[quizState.currentQuestionIndex];
     
-    // ===========================
-    // Update Title: Support Multiple Correct Answers
-    // Date: 13/10/2025
-    // Version: v1.1
-    // Type: تحسين
-    // Description: Logic to handle UI for multiple-answer questions. Renders checkboxes and a notice.
-    // Dependencies Impacted: None
-    // ===========================
     const isMultipleChoice = currentQuestion.QuestionType?.toLowerCase() === 'multiple';
 
     if (isMultipleChoice) {
@@ -253,7 +233,6 @@ function showQuestion() {
         notice.textContent = '(This question may have more than one correct answer)';
         dom.questionText.parentNode.insertBefore(notice, dom.questionText.nextSibling);
     }
-    // [Modified Section End]
 
     dom.hintBtn.style.display = (quizState.isSimulationMode || quizState.isSimulationReview) ? 'none' : 'block';
 
@@ -271,23 +250,13 @@ function showQuestion() {
     dom.previousBtn.disabled = quizState.currentQuestionIndex === 0;
 
     const isLastQuestion = quizState.currentQuestionIndex === quizState.questions.length - 1;
-    // [Modified Section Start]
-    // ===========================
-    // Update Title: Support Multiple Correct Answers
-    // Date: 13/10/2025
-    // Version: v1.1
-    // Type: تحسين
-    // Description: Changes 'Next' button text to 'Submit Answer' for unanswered multiple-choice questions.
-    // Dependencies Impacted: None
-    // ===========================
     const isAnswered = quizState.userAnswers[quizState.currentQuestionIndex] !== null;
+    
     if (isMultipleChoice && !isAnswered && !quizState.isReviewMode) {
         dom.nextSkipBtn.textContent = 'Submit Answer';
     } else {
         dom.nextSkipBtn.textContent = (isLastQuestion && !quizState.isReviewMode) ? 'Finish' : 'Next';
     }
-    // [Modified Section End]
-
 
     dom.flagBtn.classList.toggle('flagged', quizState.flaggedIndices.has(quizState.currentQuestionIndex));
     dom.bookmarkBtn.classList.toggle('bookmarked', appState.bookmarkedQuestions.has(currentQuestion.UniqueID));
@@ -296,20 +265,11 @@ function showQuestion() {
 
     const shuffledAnswers = (quizState.isReviewMode || quizState.isSimulationMode) ? [...currentQuestion.answerOptions] : [...currentQuestion.answerOptions].sort(() => Math.random() - 0.5);
 
-    // [Modified Section Start]
-    // ===========================
-    // Update Title: Support Multiple Correct Answers
-    // Date: 13/10/2025
-    // Version: v1.1
-    // Type: تحسين
-    // Description: Renders answer options as checkboxes for multiple-choice questions or radios for single-choice.
-    // Dependencies Impacted: None
-    // ===========================
     shuffledAnswers.forEach(answer => {
         const inputType = isMultipleChoice ? 'checkbox' : 'radio';
         const container = document.createElement('div');
         const label = document.createElement('label');
-        label.className = 'answer-label-btn w-full text-left p-4 rounded-lg bg-slate-100 hover:bg-slate-200 border-2 border-transparent flex items-center cursor-pointer';
+        label.className = 'answer-btn w-full text-left p-4 rounded-lg bg-slate-100 hover:bg-slate-200 border-2 border-transparent flex items-center cursor-pointer';
         label.dataset.correct = answer.isCorrect;
         label.dataset.text = answer.text;
 
@@ -337,31 +297,20 @@ function showQuestion() {
         container.appendChild(rationale);
         dom.answerButtons.appendChild(container);
     });
-    // [Modified Section End]
-
 
     const userAnswer = quizState.userAnswers[quizState.currentQuestionIndex];
     if (userAnswer !== null) {
         if (quizState.isSimulationReview) {
             showSimulationReviewResult();
         } else if (quizState.isSimulationMode) {
-            // [Modified Section Start]
-            // ===========================
-            // Update Title: Support Multiple Correct Answers
-            // Date: 13/10/2025
-            // Version: v1.1
-            // Type: تحسين
-            // Description: Highlights selected checkboxes or radio button in simulation mode.
-            // ===========================
             const selectedAnswers = isMultipleChoice ? userAnswer.answer : [userAnswer.answer];
             Array.from(dom.answerButtons.querySelectorAll('label')).forEach(label => {
                 const input = label.querySelector('input');
                 if (selectedAnswers.includes(input.value)) {
-                    label.classList.add('bg-blue-200', 'border-blue-400');
+                    label.classList.add('simulation-selected');
                     if (isMultipleChoice) input.checked = true;
                 }
             });
-            // [Modified Section End]
         } else {
             showAnswerResult();
         }
@@ -382,23 +331,14 @@ function selectAnswer(e, selectedAnswer) {
     const currentQuestionIndex = quizState.currentQuestionIndex;
     const currentQuestion = quizState.questions[currentQuestionIndex];
 
-    // ===========================
-    // Update Title: Support Multiple Correct Answers
-    // Date: 13/10/2025
-    // Version: v1.1
-    // Type: تحسين
-    // Description: Guard clause to ensure this function only handles single-choice questions.
-    // ===========================
     if (currentQuestion.QuestionType?.toLowerCase() === 'multiple') {
-        // For simulation mode with multiple answers, we just record the choice.
         if (quizState.isSimulationMode) {
             const selectedCheckboxes = Array.from(dom.answerButtons.querySelectorAll('input[type="checkbox"]:checked'));
             const selectedAnswersText = selectedCheckboxes.map(cb => cb.value);
-            // In simulation, we store the text array. Correctness is determined at the end.
             quizState.userAnswers[currentQuestionIndex] = { answer: selectedAnswersText, isCorrect: null };
             
-            dom.answerButtons.querySelectorAll('label').forEach(lbl => lbl.classList.remove('bg-blue-200', 'border-blue-400'));
-            selectedCheckboxes.forEach(cb => cb.closest('label').classList.add('bg-blue-200', 'border-blue-400'));
+            dom.answerButtons.querySelectorAll('label').forEach(lbl => lbl.classList.remove('simulation-selected'));
+            selectedCheckboxes.forEach(cb => cb.closest('label').classList.add('simulation-selected'));
             updateScoreBar();
         }
         return; 
@@ -409,8 +349,8 @@ function selectAnswer(e, selectedAnswer) {
     if (quizState.isSimulationMode) {
         quizState.userAnswers[currentQuestionIndex] = { answer: selectedAnswer.text, isCorrect: selectedAnswer.isCorrect };
         
-        dom.answerButtons.querySelectorAll('label').forEach(lbl => lbl.classList.remove('bg-blue-200', 'border-blue-400'));
-        e.target.closest('label').classList.add('bg-blue-200', 'border-blue-400');
+        dom.answerButtons.querySelectorAll('label').forEach(lbl => lbl.classList.remove('simulation-selected'));
+        e.target.closest('label').classList.add('simulation-selected');
         updateScoreBar();
         return;
     }
@@ -446,14 +386,6 @@ function showResults() {
 
     if (appState.currentQuiz.isSimulationMode) {
         finalScore = 0;
-        // [Modified Section Start]
-        // ===========================
-        // Update Title: Support Multiple Correct Answers
-        // Date: 13/10/2025
-        // Version: v1.1
-        // Type: تحسين
-        // Description: Updated scoring logic for simulation mode to handle both single and multiple answer types.
-        // ===========================
         appState.currentQuiz.originalQuestions.forEach((q, index) => {
             const userAnswer = appState.currentQuiz.originalUserAnswers[index];
             if (!userAnswer) return;
@@ -470,10 +402,8 @@ function showResults() {
             }
             
             if(isCorrect) finalScore++;
-            // Update the answer object with the final correct status
             userAnswer.isCorrect = isCorrect;
         });
-        // [Modified Section End]
         appState.currentQuiz.score = finalScore;
     }
 
@@ -494,6 +424,16 @@ function showResults() {
 
     if (!appState.currentQuiz.isReviewMode && !appState.currentQuiz.isPracticingMistakes) {
         const attemptedQuestions = appState.currentQuiz.originalUserAnswers.filter(a => a !== null).length;
+        
+        // --- NEW: Immediate Local Sync ---
+        // Mark answered questions in local state immediately to avoid refresh bug
+        appState.currentQuiz.originalQuestions.forEach((q, index) => {
+            const answer = appState.currentQuiz.originalUserAnswers[index];
+            if (answer && answer.answer !== 'No Answer') {
+                appState.answeredQuestions.add(q.UniqueID);
+            }
+        });
+
         logUserActivity({
             eventType: 'FinishQuiz',
             quizTitle: dom.quizTitle.textContent,
@@ -514,19 +454,13 @@ function showResults() {
     }
 }
 
-// ===========================
-// Update Title: Support Multiple Correct Answers
-// Date: 13/10/2025
-// Version: v1.1
-// Type: إضافة
-// Description: New function to validate multiple-choice answers.
-// ===========================
+
 function checkMultipleAnswers() {
     const quizState = appState.currentQuiz;
     const currentQuestionIndex = quizState.currentQuestionIndex;
     const currentQuestion = quizState.questions[currentQuestionIndex];
     
-    if (quizState.userAnswers[currentQuestionIndex] !== null) return; // Already answered
+    if (quizState.userAnswers[currentQuestionIndex] !== null) return;
 
     const selectedCheckboxes = Array.from(dom.answerButtons.querySelectorAll('input[type="checkbox"]:checked'));
     if (selectedCheckboxes.length === 0 && !quizState.isReviewMode) {
@@ -553,19 +487,11 @@ function checkMultipleAnswers() {
     
     showAnswerResult();
     updateScoreBar();
-    return true; // Indicates submission was successful
+    return true;
 }
 
 
 export function handleNextQuestion() {
-    // [Modified Section Start]
-    // ===========================
-    // Update Title: Support Multiple Correct Answers
-    // Date: 13/10/2025
-    // Version: v1.1
-    // Type: تحسين
-    // Description: Intercepts 'Next' click for multiple-choice questions to validate the answer first.
-    // ===========================
     const quizState = appState.currentQuiz;
     const currentQuestion = quizState.questions[quizState.currentQuestionIndex];
     const isMultipleChoice = currentQuestion.QuestionType?.toLowerCase() === 'multiple';
@@ -573,12 +499,10 @@ export function handleNextQuestion() {
 
     if (isMultipleChoice && !isAnswered && !quizState.isReviewMode && !quizState.isSimulationMode) {
         const submissionSuccessful = checkMultipleAnswers();
-        if (!submissionSuccessful) return; // Stop if validation fails (e.g., no answer selected)
-        // After successful submission, the button text is already updated by showQuestion, but we wait for another click to proceed.
+        if (!submissionSuccessful) return;
         dom.nextSkipBtn.textContent = (quizState.currentQuestionIndex === quizState.questions.length - 1) ? 'Finish' : 'Next';
         return;
     }
-    // [Modified Section End]
 
     if (appState.currentQuiz.currentQuestionIndex < appState.currentQuiz.questions.length - 1) {
         appState.currentQuiz.currentQuestionIndex++;
@@ -668,14 +592,6 @@ function resetQuizState() {
 }
 
 function showAnswerResult() {
-    // [Modified Section Start]
-    // ===========================
-    // Update Title: Support Multiple Correct Answers
-    // Date: 13/10/2025
-    // Version: v1.1
-    // Type: تحسين
-    // Description: Updates feedback logic to correctly display results for both single and multiple answer questions.
-    // ===========================
     const quizState = appState.currentQuiz;
     const currentQuestion = quizState.questions[quizState.currentQuestionIndex];
     const userAnswer = quizState.userAnswers[quizState.currentQuestionIndex];
@@ -706,19 +622,10 @@ function showAnswerResult() {
             }
         }
     });
-    // [Modified Section End]
 }
 
 
 function showSimulationReviewResult() {
-    // [Modified Section Start]
-    // ===========================
-    // Update Title: Support Multiple Correct Answers
-    // Date: 13/10/2025
-    // Version: v1.1
-    // Type: تحسين
-    // Description: Updates simulation review feedback for multiple answer questions.
-    // ===========================
     const quizState = appState.currentQuiz;
     const currentQuestion = quizState.questions[quizState.currentQuestionIndex];
     const userAnswer = quizState.userAnswers[quizState.currentQuestionIndex];
@@ -749,7 +656,6 @@ function showSimulationReviewResult() {
             }
         }
     });
-    // [Modified Section End]
 }
 
 
@@ -802,7 +708,7 @@ export function handleStartSimulation() {
     if (questionPool.length < SIMULATION_Q_COUNT) {
         dom.simulationError.textContent = `Not enough unanswered questions available (${questionPool.length}). Showing from all questions instead.`;
         dom.simulationError.classList.remove('hidden');
-        questionPool = appState.allQuestions; // Fallback to all questions
+        questionPool = appState.allQuestions;
     }
 
     const simulationQuestions = [...questionPool].sort(() => Math.random() - 0.5).slice(0, SIMULATION_Q_COUNT);
