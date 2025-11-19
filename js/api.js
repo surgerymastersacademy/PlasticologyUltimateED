@@ -1,10 +1,9 @@
-// js/api.js (FINAL CORRECTED VERSION)
+// js/api.js (UPDATED - With Smart Caching Logic)
 
-import { API_URL, appState } from './state.js';
-// REMOVED: import { updateStudyPlanProgress } from './features/planner.js';
+import { API_URL, appState, APP_VERSION } from './state.js';
 
 /**
- * --- NEW: Sends registration data to the backend. ---
+ * Sends registration data to the backend.
  * @param {object} registrationData - The user's registration details.
  * @returns {Promise<object>} The JSON response from the server.
  */
@@ -30,7 +29,6 @@ export async function registerUser(registrationData) {
         return { success: false, message: 'An error occurred during registration. Please check your connection and try again.' };
     }
 }
-
 
 /**
  * Logs a user activity event to the backend.
@@ -65,7 +63,6 @@ export function logUserActivity(eventData) {
             total: payload.totalQuestions,
             isReviewable: true
         };
-        // REMOVED: updateStudyPlanProgress('quiz', payload.quizTitle);
 
     } else if (payload.eventType === 'ViewLecture') {
         newLogEntry = {
@@ -73,7 +70,6 @@ export function logUserActivity(eventData) {
             eventType: 'ViewLecture',
             title: payload.lectureName
         };
-        // REMOVED: updateStudyPlanProgress('lecture', payload.lectureName);
     }
 
     fetch(API_URL, {
@@ -85,7 +81,6 @@ export function logUserActivity(eventData) {
         }
     }).catch(error => console.error('Error logging activity:', error));
 }
-
 
 /**
  * Logs a theory question interaction to the backend.
@@ -124,30 +119,67 @@ export function logTheoryActivity(logData) {
     }).catch(error => console.error('Error logging theory activity:', error));
 }
 
-
 /**
- * Fetches the main content data (questions, lectures, etc.) from the backend.
+ * --- NEW: Fetches main content data with Smart Caching ---
+ * Checks LocalStorage first. If data exists and version matches, uses it.
+ * Otherwise, fetches from Google Sheets.
  * @returns {Promise<object|null>}
  */
 export async function fetchContentData() {
+    const CACHE_KEY = 'plasticology_content_data';
+    const VERSION_KEY = 'plasticology_content_version';
+
+    // 1. Check Cache
+    const cachedData = localStorage.getItem(CACHE_KEY);
+    const cachedVersion = localStorage.getItem(VERSION_KEY);
+
+    if (cachedData && cachedVersion === APP_VERSION) {
+        console.log("⚡ Loading content from local cache...");
+        try {
+            return JSON.parse(cachedData);
+        } catch (e) {
+            console.warn("Cache corrupted, fetching fresh data.");
+        }
+    }
+
+    // 2. Fetch from Network
+    console.log("🌐 Fetching fresh content from server...");
     try {
         const response = await fetch(`${API_URL}?request=contentData&t=${new Date().getTime()}`, {
             method: 'GET',
             mode: 'cors',
             redirect: 'follow'
         });
+        
         if (!response.ok) throw new Error(`Network response was not ok. Status: ${response.status}`);
+        
         const data = await response.json();
         if (data.error) throw new Error(data.error);
+
+        // 3. Save to Cache
+        try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+            localStorage.setItem(VERSION_KEY, APP_VERSION);
+        } catch (e) {
+            console.warn("Storage quota exceeded. Data not cached.", e);
+        }
+
         return data;
     } catch (error) {
         console.error("Error loading content data:", error);
+        
+        // Fallback: If network fails but we have old cache, use it even if version mismatch
+        if (cachedData) {
+            console.warn("Network failed. Using outdated cache as fallback.");
+            return JSON.parse(cachedData);
+        }
         return null;
     }
 }
 
 /**
  * Fetches all data specific to the logged-in user (logs, notes, plans).
+ * User data is NOT cached persistently because it changes frequently.
  */
 export async function fetchUserData() {
     if (!appState.currentUser || appState.currentUser.Role === 'Guest') return;
@@ -163,7 +195,7 @@ export async function fetchUserData() {
         appState.answeredQuestions = new Set(data.answeredQuestions || []);
         appState.userTheoryLogs = data.theoryLogs || [];
 
-        return data; // Return data so it can be used by other functions
+        return data; 
     } catch (error) {
         console.error('Error loading user data:', error);
     }
