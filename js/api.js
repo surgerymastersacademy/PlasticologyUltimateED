@@ -1,10 +1,9 @@
-// js/api.js (FINAL COMPLETE VERSION - INCLUDES PLANNER & CORS FIXES)
+// js/api.js (FINAL COMPLETE VERSION - INCLUDES PLANNER & SMART CACHING)
 
 import { API_URL, appState } from './state.js';
 
 /**
- * Helper function to handle POST requests with CORS safeguards for Google Apps Script.
- * Uses 'text/plain' to avoid OPTIONS preflight requests which cause CORS errors.
+ * Helper function to handle POST requests with CORS safeguards.
  */
 async function sendPostRequest(payload) {
     try {
@@ -32,7 +31,6 @@ async function sendPostRequest(payload) {
 /**
  * --- USER & AUTHENTICATION ---
  */
-
 export async function registerUser(registrationData) {
     const payload = {
         eventType: 'registerUser',
@@ -44,7 +42,6 @@ export async function registerUser(registrationData) {
 /**
  * --- ACTIVITY LOGGING ---
  */
-
 export function logUserActivity(eventData) {
     if (!API_URL || !appState.currentUser || appState.currentUser.Role === 'Guest') return;
 
@@ -55,7 +52,6 @@ export function logUserActivity(eventData) {
         userName: appState.currentUser.Name
     };
 
-    // Update Local State Immediately (Optimistic UI)
     let newLogEntry = null;
     if (payload.eventType === 'FinishQuiz') {
         const details = appState.currentQuiz.originalQuestions.map((q, index) => {
@@ -87,7 +83,6 @@ export function logUserActivity(eventData) {
         appState.fullActivityLog.unshift(newLogEntry);
     }
 
-    // Send to Server
     sendPostRequest(payload).catch(err => console.warn("Background logging failed", err));
 }
 
@@ -102,7 +97,6 @@ export function logTheoryActivity(logData) {
         ...logData 
     };
 
-    // Update Local State
     const logIndex = appState.userTheoryLogs.findIndex(log => log.Question_ID === logData.questionId);
     if (logIndex > -1) {
         if (logData.Notes !== undefined) appState.userTheoryLogs[logIndex].Notes = logData.Notes;
@@ -138,7 +132,8 @@ export function logCorrectedMistake(questionId) {
 }
 
 /**
- * --- PLANNER API FUNCTIONS (These were missing causing the error) ---
+ * --- PLANNER API FUNCTIONS ---
+ * هذه الدوال كانت ناقصة وهي سبب خطأ الـ SyntaxError
  */
 
 export async function createStudyPlanAPI(planData) {
@@ -182,7 +177,6 @@ export async function deleteStudyPlanAPI(planId) {
 export async function getAllUserPlansAPI() {
     if (!appState.currentUser) return { success: false };
     try {
-        // GET request logic for fetching plans
         const response = await fetch(`${API_URL}?request=getAllUserPlans&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`, {
             method: 'GET',
             redirect: 'follow'
@@ -196,14 +190,20 @@ export async function getAllUserPlansAPI() {
 }
 
 /**
- * --- DATA FETCHING & SYNC ---
+ * --- DATA FETCHING & SMART SYNC (Fixes 429 Error) ---
  */
 
 export async function fetchContentData() {
     const CACHE_KEY = 'plasticology_content_data';
+    const CACHE_TIMESTAMP_KEY = 'plasticology_last_fetch_time';
+    const CACHE_DURATION = 60 * 60 * 1000; // ساعة واحدة
+
+    // 1. محاولة قراءة الكاش
     const cachedString = localStorage.getItem(CACHE_KEY);
+    const lastFetchTime = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+    const now = new Date().getTime();
+
     let cachedData = null;
-    
     if (cachedString) {
         try {
             cachedData = JSON.parse(cachedString);
@@ -211,33 +211,53 @@ export async function fetchContentData() {
         } catch (e) { console.warn("Cache corrupted"); }
     }
 
-    // Background Fetch
-    const networkPromise = fetch(`${API_URL}?request=contentData&t=${new Date().getTime()}`, {
+    // 2. إذا كان الكاش جديداً (أقل من ساعة)، استخدمه ولا تتصل بالسيرفر
+    if (cachedData && lastFetchTime && (now - parseInt(lastFetchTime) < CACHE_DURATION)) {
+        console.log("🕒 Cache is fresh. Skipping server request to avoid 429 error.");
+        return cachedData;
+    }
+
+    // 3. إذا كان الكاش قديماً، حاول الاتصال بالسيرفر
+    console.log("🔄 Fetching fresh data from server...");
+    
+    try {
+        const response = await fetch(`${API_URL}?request=contentData&t=${now}`, {
             method: 'GET',
             redirect: 'follow'
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.error) throw new Error(data.error);
-            
-            const serverVersion = String(data.version);
-            const localVersion = cachedData ? String(cachedData.version) : null;
-
-            if (serverVersion !== localVersion) {
-                console.log(`✨ Update Available: v${localVersion} -> v${serverVersion}`);
-                localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-                if (cachedData && confirm("🎉 New content available! Update now?")) {
-                    window.location.reload();
-                }
-            }
-            return data;
-        })
-        .catch(err => {
-            console.error("Content fetch failed:", err);
-            return null;
         });
 
-    return cachedData || await networkPromise;
+        if (!response.ok) {
+            // إذا رد السيرفر بخطأ (429 - Too Many Requests)، استخدم الكاش القديم
+            if (response.status === 429 && cachedData) {
+                console.warn("⚠️ Server busy (429). Using cached data.");
+                return cachedData;
+            }
+            throw new Error(`Server Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.error) throw new Error(data.error);
+
+        // تحديث الكاش
+        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        localStorage.setItem(CACHE_TIMESTAMP_KEY, now.toString());
+
+        const serverVersion = String(data.version);
+        const localVersion = cachedData ? String(cachedData.version) : null;
+
+        if (cachedData && serverVersion !== localVersion) {
+            if (confirm("🎉 New content available! Refresh now?")) {
+                window.location.reload();
+            }
+        }
+        return data;
+
+    } catch (err) {
+        console.error("Content fetch failed:", err);
+        // في حالة الفشل التام، استخدم الكاش القديم
+        return cachedData || null;
+    }
 }
 
 export async function fetchUserData() {
