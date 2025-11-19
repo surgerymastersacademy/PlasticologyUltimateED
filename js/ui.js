@@ -1,4 +1,4 @@
-// js/ui.js (FINAL AND COMPLETE VERSION)
+// js/ui.js (UPDATED - With UI Safety Guardrails)
 
 import * as dom from './dom.js';
 import { appState } from './state.js';
@@ -6,35 +6,50 @@ import { applyRolePermissions } from './features/userProfile.js';
 
 /**
  * Hides all main screens and shows the specified one.
+ * Includes Guardrail: Checks if screenToShow exists before manipulating it.
  */
 export function showScreen(screenToShow, isGuest = false) {
-    // Close all modals first
-    [dom.confirmationModal, dom.questionNavigatorModal, dom.imageViewerModal, dom.noteModal, dom.clearLogModal, dom.announcementsModal, dom.userCardModal, dom.messengerModal, dom.osceNavigatorModal].forEach(modal => {
+    // Close all modals first (Safely)
+    const modals = [dom.confirmationModal, dom.questionNavigatorModal, dom.imageViewerModal, dom.noteModal, dom.clearLogModal, dom.announcementsModal, dom.userCardModal, dom.messengerModal, dom.osceNavigatorModal];
+    modals.forEach(modal => {
         if (modal) modal.classList.add('hidden');
     });
-    dom.modalBackdrop.classList.add('hidden');
+    
+    if (dom.modalBackdrop) dom.modalBackdrop.classList.add('hidden');
 
     // Hide all main content containers
-    [dom.loginContainer, dom.mainMenuContainer, dom.lecturesContainer, dom.qbankContainer, dom.listContainer, dom.quizContainer, dom.activityLogContainer, dom.notesContainer, dom.libraryContainer, dom.leaderboardContainer, dom.osceContainer, dom.osceQuizContainer, dom.learningModeContainer, dom.studyPlannerContainer, dom.theoryContainer].forEach(screen => {
+    const screens = [dom.loginContainer, dom.mainMenuContainer, dom.lecturesContainer, dom.qbankContainer, dom.listContainer, dom.quizContainer, dom.activityLogContainer, dom.notesContainer, dom.libraryContainer, dom.leaderboardContainer, dom.osceContainer, dom.osceQuizContainer, dom.learningModeContainer, dom.studyPlannerContainer, dom.theoryContainer];
+    
+    screens.forEach(screen => {
         if (screen) screen.classList.add('hidden');
     });
 
-    if (screenToShow) screenToShow.classList.remove('hidden');
+    // Guardrail: If the requested screen doesn't exist, stop here to prevent crash
+    if (!screenToShow) {
+        console.error("showScreen: Tried to show a screen that does not exist in DOM.");
+        return;
+    }
 
+    screenToShow.classList.remove('hidden');
+
+    // Handle Global Header and Watermark
     const watermarkOverlay = document.getElementById('watermark-overlay');
+    const globalHeader = dom.globalHeader;
+
     if (screenToShow !== dom.loginContainer && !isGuest) {
-        dom.globalHeader.classList.remove('hidden');
-        watermarkOverlay.classList.remove('hidden');
-        dom.userNameDisplay.classList.remove('hidden');
-        dom.logoutBtn.classList.remove('hidden');
-        dom.activityLogBtn.classList.remove('hidden');
-        dom.notesBtn.classList.remove('hidden');
-        dom.userProfileHeaderBtn.classList.remove('hidden');
-        dom.messengerBtn.classList.remove('hidden');
+        if (globalHeader) globalHeader.classList.remove('hidden');
+        if (watermarkOverlay) watermarkOverlay.classList.remove('hidden');
+        if (dom.userNameDisplay) dom.userNameDisplay.classList.remove('hidden');
+        
+        // Re-enable UI elements safely
+        [dom.logoutBtn, dom.activityLogBtn, dom.notesBtn, dom.userProfileHeaderBtn, dom.messengerBtn].forEach(el => {
+            if (el) el.classList.remove('hidden');
+        });
+
         applyRolePermissions();
     } else {
-        dom.globalHeader.classList.add('hidden');
-        watermarkOverlay.classList.add('hidden');
+        if (globalHeader) globalHeader.classList.add('hidden');
+        if (watermarkOverlay) watermarkOverlay.classList.add('hidden');
     }
 }
 
@@ -42,18 +57,25 @@ export function showScreen(screenToShow, isGuest = false) {
  * Displays a confirmation modal.
  */
 export function showConfirmationModal(title, text, onConfirm) {
+    if (!dom.confirmationModal) return; // Guardrail
+    
     appState.modalConfirmAction = onConfirm;
-    dom.confirmationModal.querySelector('#modal-title').textContent = title;
-    dom.confirmationModal.querySelector('#modal-text').textContent = text;
+    const titleEl = dom.confirmationModal.querySelector('#modal-title');
+    const textEl = dom.confirmationModal.querySelector('#modal-text');
+    
+    if (titleEl) titleEl.textContent = title;
+    if (textEl) textEl.textContent = text;
+    
     dom.confirmationModal.classList.remove('hidden');
-    dom.modalBackdrop.classList.remove('hidden');
+    if (dom.modalBackdrop) dom.modalBackdrop.classList.remove('hidden');
 }
 
 /**
  * Displays the image viewer modal.
  */
 export function showImageModal(src) {
-    dom.modalBackdrop.classList.remove('hidden');
+    if (!dom.imageViewerModal || !dom.modalImage) return;
+    if (dom.modalBackdrop) dom.modalBackdrop.classList.remove('hidden');
     dom.imageViewerModal.classList.remove('hidden');
     dom.modalImage.src = src;
 }
@@ -62,8 +84,10 @@ export function showImageModal(src) {
  * Renders the list of books in the library.
  */
 export function renderBooks() {
+    if (!dom.libraryList) return;
     dom.libraryList.innerHTML = '';
-    if (appState.mcqBooks.length === 0) {
+    
+    if (!appState.mcqBooks || appState.mcqBooks.length === 0) {
         dom.libraryList.innerHTML = `<p class="text-center text-slate-500">No books found in the library.</p>`;
         return;
     }
@@ -94,6 +118,8 @@ export function renderBooks() {
  * Renders the leaderboard with top 10 users and current user's rank.
  */
 export function renderLeaderboard(top10, currentUserRank) {
+    if (!dom.leaderboardList || !dom.currentUserRankDiv) return;
+
     dom.leaderboardList.innerHTML = '';
     dom.currentUserRankDiv.innerHTML = '';
 
@@ -152,6 +178,9 @@ export function renderLeaderboard(top10, currentUserRank) {
 export function updateWatermark() {
     const user = appState.currentUser;
     const watermarkOverlay = document.getElementById('watermark-overlay');
+    
+    if (!watermarkOverlay) return; // Guardrail
+
     if (!user || user.Role === 'Guest') {
         watermarkOverlay.classList.add('hidden');
         return;
@@ -174,7 +203,9 @@ export function updateWatermark() {
  */
 export function displayAnnouncement() {
     const banner = document.getElementById('announcement-banner');
-    if (!appState.allAnnouncements.length) {
+    if (!banner) return;
+
+    if (!appState.allAnnouncements || !appState.allAnnouncements.length) {
         banner.classList.add('hidden');
         return;
     }
@@ -197,18 +228,23 @@ export function displayAnnouncement() {
         </div>
     `;
     banner.classList.remove('hidden');
-    document.getElementById('close-announcement-btn').addEventListener('click', () => {
-        banner.classList.add('hidden');
-        localStorage.setItem('seenAnnouncementId', latestAnnouncement.UniqueID);
-    });
+    const closeBtn = document.getElementById('close-announcement-btn');
+    if(closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            banner.classList.add('hidden');
+            localStorage.setItem('seenAnnouncementId', latestAnnouncement.UniqueID);
+        });
+    }
 }
 
 /**
  * Shows the announcements modal with a list of all announcements.
  */
 export function showAnnouncementsModal() {
+    if (!dom.announcementsList || !dom.announcementsModal) return;
+    
     dom.announcementsList.innerHTML = '';
-    if (appState.allAnnouncements.length === 0) {
+    if (!appState.allAnnouncements || appState.allAnnouncements.length === 0) {
         dom.announcementsList.innerHTML = `<p class="text-center text-slate-500">No announcements right now.</p>`;
     } else {
         appState.allAnnouncements.forEach(ann => {
@@ -222,18 +258,18 @@ export function showAnnouncementsModal() {
             dom.announcementsList.appendChild(annItem);
         });
     }
-    dom.modalBackdrop.classList.remove('hidden');
+    
+    if (dom.modalBackdrop) dom.modalBackdrop.classList.remove('hidden');
     dom.announcementsModal.classList.remove('hidden');
 }
 
 /**
- * Populates a container with checkbox filter options. REQUIRED FOR CUSTOM MOCK.
- * @param {HTMLElement} containerElement
- * @param {Array<string>} items
- * @param {string} inputNamePrefix
- * @param {object} counts
+ * Populates a container with checkbox filter options.
+ * Guardrails added for empty containers or null items.
  */
 export function populateFilterOptions(containerElement, items, inputNamePrefix, counts) {
+    if (!containerElement) return;
+    
     containerElement.innerHTML = '';
     if (!items || items.length === 0) {
         containerElement.innerHTML = `<p class="text-slate-400 text-sm">No options available.</p>`;
@@ -241,11 +277,17 @@ export function populateFilterOptions(containerElement, items, inputNamePrefix, 
     }
 
     items.forEach(item => {
+        if (!item) return;
         const div = document.createElement('div');
         div.className = 'flex items-center';
+        // Safe ID generation removing special chars
         const safeId = `${inputNamePrefix}-${item.replace(/[^a-zA-Z0-9]/g, '-')}`;
-        const count = counts[item] || 0;
-        div.innerHTML = `<input id="${safeId}" name="${inputNamePrefix}" value="${item}" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"><label for="${safeId}" class="ml-3 text-sm text-gray-600">${item} ${count > 0 ? `(${count} Qs)` : ''}</label>`;
+        const count = counts ? (counts[item] || 0) : 0;
+        
+        div.innerHTML = `
+            <input id="${safeId}" name="${inputNamePrefix}" value="${item}" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+            <label for="${safeId}" class="ml-3 text-sm text-gray-600">${item} ${count > 0 ? `(${count} Qs)` : ''}</label>
+        `;
         containerElement.appendChild(div);
     });
 }
