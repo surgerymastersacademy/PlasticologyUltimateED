@@ -1,10 +1,10 @@
 // js/features/onboarding.js
+// هذا الملف مسؤول عن جولة الشرح للمستخدمين الجدد
 
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
-import { appState } from '../state.js';
 
-// Define the Tour Steps
+// تعريف خطوات الجولة
 const TOUR_STEPS = [
     {
         elementId: 'streak-container',
@@ -23,7 +23,7 @@ const TOUR_STEPS = [
     },
     {
         elementId: 'matching-btn',
-        title: 'Matching Bank (New!)',
+        title: 'Matching Bank',
         text: 'Test your connections. Match diseases to symptoms or treatments in a fun, interactive way.'
     },
     {
@@ -46,19 +46,19 @@ const TOUR_STEPS = [
 let currentStepIndex = 0;
 
 /**
- * Checks if the user is visiting for the first time (after this update).
+ * يتحقق مما إذا كان المستخدم يزور التطبيق لأول مرة بعد التحديث
  */
 export function checkAndTriggerOnboarding() {
-    const hasSeenTour = localStorage.getItem('plasticology_tour_v1_seen');
+    const hasSeenTour = localStorage.getItem('plasticology_tour_v3_seen');
     
-    // If user hasn't seen tour AND is logged in (Main Menu is visible)
+    // إذا لم ير الجولة من قبل، وكان في القائمة الرئيسية (مسجل الدخول)
     if (!hasSeenTour && !dom.mainMenuContainer.classList.contains('hidden')) {
         showWelcomeModal();
     }
 }
 
 /**
- * Shows the "What's New" Welcome Modal.
+ * يظهر نافذة الترحيب
  */
 export function showWelcomeModal() {
     dom.modalBackdrop.classList.remove('hidden');
@@ -66,80 +66,75 @@ export function showWelcomeModal() {
 }
 
 /**
- * Starts the guided tour.
+ * يبدأ الجولة التعريفية
  */
 export function startTour() {
-    // Close Welcome Modal
+    // إخفاء نافذة الترحيب
     dom.onboardingModal.classList.add('hidden');
-    dom.modalBackdrop.classList.remove('hidden'); // Keep backdrop for focus
+    dom.modalBackdrop.classList.remove('hidden'); // الإبقاء على الخلفية المظلمة للتركيز
     
-    // Mark as seen immediately so it doesn't annoy user next time
-    localStorage.setItem('plasticology_tour_v1_seen', 'true');
+    // تسجيل أن المستخدم رأى الجولة
+    localStorage.setItem('plasticology_tour_v3_seen', 'true');
 
     currentStepIndex = 0;
     highlightStep(currentStepIndex);
 }
 
 /**
- * Skips/Ends the tour.
+ * ينهي الجولة
  */
 export function endTour() {
-    // Remove highlights
+    // إزالة التأثيرات البصرية
     const activeHighlights = document.querySelectorAll('.tour-highlight');
     activeHighlights.forEach(el => el.classList.remove('tour-highlight'));
     
-    // Hide Tooltip
+    // إخفاء العناصر
     dom.tourTooltip.classList.add('hidden');
     dom.modalBackdrop.classList.add('hidden');
     dom.onboardingModal.classList.add('hidden');
     
-    // Mark as seen
-    localStorage.setItem('plasticology_tour_v1_seen', 'true');
+    localStorage.setItem('plasticology_tour_v3_seen', 'true');
 }
 
 function highlightStep(index) {
-    // Remove previous highlight
+    // إزالة التظليل السابق
     const prevHighlights = document.querySelectorAll('.tour-highlight');
     prevHighlights.forEach(el => el.classList.remove('tour-highlight'));
 
+    // إذا انتهت الخطوات
     if (index >= TOUR_STEPS.length) {
         endTour();
-        ui.showConfirmationModal("You're Ready!", "Good luck with your studies!", () => {});
+        ui.showConfirmationModal("You're Ready!", "Good luck with your studies!", () => {
+             dom.modalBackdrop.classList.add('hidden');
+        });
         return;
     }
 
     const step = TOUR_STEPS[index];
     const element = document.getElementById(step.elementId);
 
-    // If element doesn't exist (e.g. Streak hidden on mobile), skip to next
+    // إذا كان العنصر غير موجود (مثلاً الـ Streak مخفي في الموبايل)، انتقل للتالي
     if (!element || element.offsetParent === null) {
         currentStepIndex++;
         highlightStep(currentStepIndex);
         return;
     }
 
-    // 1. Highlight Element
+    // 1. تظليل العنصر
     element.classList.add('tour-highlight');
     element.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-    // 2. Position Tooltip
-    const rect = element.getBoundingClientRect();
+    // 2. عرض صندوق الشرح
     const tooltip = dom.tourTooltip;
     
-    // Content
     dom.tourTitle.textContent = step.title;
     dom.tourText.textContent = step.text;
     dom.tourStepCount.textContent = `${index + 1} / ${TOUR_STEPS.length}`;
 
     tooltip.classList.remove('hidden');
-
-    // Calculate Position (Basic Logic: Center screen, or below element)
-    // For simplicity in this implementation, we fix it to the bottom center or center screen
-    // A truly dynamic positioning system is complex, so we'll use CSS fixed positioning for the tooltip
-    // but purely visual highlighting for the element.
 }
 
-// Navigate
+// الانتقال للخطوة التالية
 export function nextTourStep() {
     currentStepIndex++;
     highlightStep(currentStepIndex);
