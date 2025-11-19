@@ -1,15 +1,20 @@
-// js/dom.js (FINAL VERSION - COMPLETE)
-// يحتوي هذا الملف على مراجع لجميع عناصر HTML المستخدمة في التطبيق
+// js/dom.js (FINAL VERSION - ALL ELEMENTS DEFINED)
+// هذا الملف يحتوي على مراجع لجميع عناصر HTML لمنع أخطاء "Undefined"
 
+// --- الرأس والقائمة العلوية (Header & Nav) ---
 export const globalHeader = document.getElementById('global-header');
 export const globalHomeBtn = document.getElementById('global-home-btn');
 export const logoutBtn = document.getElementById('logout-btn');
 export const activityLogBtn = document.getElementById('activity-log-btn');
 export const notesBtn = document.getElementById('notes-btn');
 export const announcementsBtn = document.getElementById('announcements-btn');
+export const messengerBtn = document.getElementById('messenger-btn');
 export const userNameDisplay = document.getElementById('user-name-display');
 export const headerUserAvatar = document.getElementById('header-user-avatar');
 export const userProfileHeaderBtn = document.getElementById('user-profile-header-btn');
+export const radioBtn = document.getElementById('radio-btn');
+export const radioCloseBtn = document.getElementById('radio-close-btn');
+export const radioBannerContainer = document.getElementById('radio-banner-container');
 
 // --- عناصر Daily Streak ---
 export const streakContainer = document.getElementById('streak-container');
@@ -27,7 +32,7 @@ export const tourNextBtn = document.getElementById('tour-next-btn');
 export const tourEndBtn = document.getElementById('tour-end-btn');
 export const tourStepCount = document.getElementById('tour-step-count');
 
-// --- الحاويات الرئيسية (Containers) ---
+// --- الحاويات الرئيسية (Screens / Containers) ---
 export const loginContainer = document.getElementById('login-container');
 export const mainMenuContainer = document.getElementById('main-menu-container');
 export const lecturesContainer = document.getElementById('lectures-container');
@@ -42,11 +47,10 @@ export const osceContainer = document.getElementById('osce-container');
 export const osceQuizContainer = document.getElementById('osce-quiz-container');
 export const learningModeContainer = document.getElementById('learning-mode-container');
 export const theoryContainer = document.getElementById('theory-container');
-export const studyPlannerContainer = document.getElementById('study-planner-container');
-// --- حاوية Matching الجديدة ---
+export const studyPlannerContainer = document.getElementById('study-planner-container'); // المسؤول عن الخطأ السابق
 export const matchingContainer = document.getElementById('matching-container');
 
-// --- عناصر تسجيل الدخول ---
+// --- شاشة تسجيل الدخول (Login) ---
 export const loginForm = document.getElementById('login-form');
 export const loginLoader = document.getElementById('login-loader');
 export const loginLoadingText = document.getElementById('login-loading-text');
@@ -56,8 +60,10 @@ export const passwordInput = document.getElementById('password');
 export const loginSubmitBtn = document.getElementById('login-submit-btn');
 export const showRegisterLink = document.getElementById('show-register-link');
 export const freeTestBtn = document.getElementById('free-test-btn');
+export const pwaInstallBanner = document.getElementById('pwa-install-banner');
+export const pwaInstallBtn = document.getElementById('pwa-install-btn');
 
-// --- أزرار القائمة الرئيسية ---
+// --- أزرار القائمة الرئيسية (Main Menu Buttons) ---
 export const lecturesBtn = document.getElementById('lectures-btn');
 export const qbankBtn = document.getElementById('qbank-btn');
 export const libraryBtn = document.getElementById('library-btn');
@@ -66,14 +72,13 @@ export const learningModeBtn = document.getElementById('learning-mode-btn');
 export const theoryBtn = document.getElementById('theory-btn');
 export const osceBtn = document.getElementById('osce-btn');
 export const studyPlannerBtn = document.getElementById('study-planner-btn');
-// --- زر Matching الجديد ---
 export const matchingBtn = document.getElementById('matching-btn');
 
-// --- عناصر شرائط النشاط الأخير ---
+// --- شرائط النشاط الأخير ---
 export const lastLectureRibbon = document.getElementById('last-lecture-ribbon');
 export const lastQuizRibbon = document.getElementById('last-quiz-ribbon');
 
-// --- أزرار الرجوع ---
+// --- أزرار الرجوع (Back Buttons) ---
 export const lecturesBackBtn = document.getElementById('lectures-back-btn');
 export const qbankBackBtn = document.getElementById('qbank-back-btn');
 export const libraryBackBtn = document.getElementById('library-back-btn');
@@ -85,7 +90,6 @@ export const osceBackBtn = document.getElementById('osce-back-btn');
 export const learningModeBackBtn = document.getElementById('learning-mode-back-btn');
 export const theoryBackBtn = document.getElementById('theory-back-btn');
 export const studyPlannerBackBtn = document.getElementById('study-planner-back-btn');
-// --- زر رجوع Matching ---
 export const matchingBackBtn = document.getElementById('matching-back-btn');
 
 // --- المكتبة والترتيب ---
@@ -95,7 +99,7 @@ export const leaderboardLoader = document.getElementById('leaderboard-loader');
 export const leaderboardList = document.getElementById('leaderboard-list');
 export const currentUserRankDiv = document.getElementById('current-user-rank');
 
-// --- المحاضرات ---
+// --- المحاضرات (Lectures) ---
 export const lectureSearchInput = document.getElementById('lecture-search-input');
 export const lecturesLoader = document.getElementById('lectures-loader');
 export const lecturesList = document.getElementById('lectures-list');
@@ -191,7 +195,30 @@ export const restartBtn = document.getElementById('restart-btn');
 export const resultsHomeBtn = document.getElementById('results-home-btn');
 export const reviewIncorrectBtn = document.getElementById('review-incorrect-btn');
 
-// --- Matching Bank UI (عناصر المطابقة الجديدة) ---
+// --- Planner (Study Planner Elements) - FIXED ---
+export const studyPlannerLoader = document.getElementById('study-planner-loader'); // ✅ Fixed Crash
+export const plannerDashboard = document.getElementById('planner-dashboard');
+export const activePlanView = document.getElementById('active-plan-view');
+export const performanceInsightsContainer = document.getElementById('performance-insights-container');
+export const strengthsList = document.getElementById('strengths-list');
+export const weaknessesList = document.getElementById('weaknesses-list');
+export const studyPlansList = document.getElementById('study-plans-list');
+export const showCreatePlanModalBtn = document.getElementById('show-create-plan-modal-btn');
+export const activePlanName = document.getElementById('active-plan-name');
+export const backToPlansDashboardBtn = document.getElementById('back-to-plans-dashboard-btn');
+export const planDaysRemaining = document.getElementById('plan-days-remaining');
+export const planTasksToday = document.getElementById('plan-tasks-today');
+export const planProgressBar = document.getElementById('plan-progress-bar');
+export const studyPlanDaysContainer = document.getElementById('study-plan-days-container');
+export const createPlanModal = document.getElementById('create-plan-modal');
+export const newPlanName = document.getElementById('new-plan-name');
+export const newPlanStartDate = document.getElementById('new-plan-start-date');
+export const newPlanEndDate = document.getElementById('new-plan-end-date');
+export const createPlanError = document.getElementById('create-plan-error');
+export const cancelCreatePlanBtn = document.getElementById('cancel-create-plan-btn');
+export const confirmCreatePlanBtn = document.getElementById('confirm-create-plan-btn');
+
+// --- Matching Bank UI ---
 export const matchingMenuContainer = document.getElementById('matching-menu-container');
 export const matchingGameContainer = document.getElementById('matching-game-container');
 export const matchingSetCountInput = document.getElementById('matching-set-count');
@@ -258,18 +285,8 @@ export const cancelEditProfileBtn = document.getElementById('cancel-edit-profile
 export const saveProfileBtn = document.getElementById('save-profile-btn');
 export const cardSubscriptionStatus = document.getElementById('card-subscription-status');
 export const cardSubscriptionExpiry = document.getElementById('card-subscription-expiry');
-export const createPlanModal = document.getElementById('create-plan-modal');
-export const newPlanName = document.getElementById('new-plan-name');
-export const newPlanStartDate = document.getElementById('new-plan-start-date');
-export const newPlanEndDate = document.getElementById('new-plan-end-date');
-export const createPlanError = document.getElementById('create-plan-error');
-export const cancelCreatePlanBtn = document.getElementById('cancel-create-plan-btn');
-export const confirmCreatePlanBtn = document.getElementById('confirm-create-plan-btn');
-export const performanceInsightsContainer = document.getElementById('performance-insights-container');
-export const strengthsList = document.getElementById('strengths-list');
-export const weaknessesList = document.getElementById('weaknesses-list');
 
-// --- Registration ---
+// --- تسجيل الحساب (Registration) ---
 export const registrationModal = document.getElementById('registration-modal');
 export const registrationForm = document.getElementById('registration-form');
 export const registerCancelBtn = document.getElementById('register-cancel-btn');
@@ -309,15 +326,12 @@ export const osceAnswerArea = document.getElementById('osce-answer-area');
 export const osceModelAnswerArea = document.getElementById('osce-model-answer-area');
 export const oscePreviousBtn = document.getElementById('osce-previous-btn');
 export const osceNextBtn = document.getElementById('osce-next-btn');
-export const radioBtn = document.getElementById('radio-btn');
-export const radioCloseBtn = document.getElementById('radio-close-btn');
 export const osceScoreDisplay = document.getElementById('osce-score');
 export const osceNavigatorBtn = document.getElementById('osce-navigator-btn');
 export const osceNavigatorModal = document.getElementById('osce-navigator-modal');
 export const osceNavigatorContent = document.getElementById('osce-navigator-content');
 export const osceNavigatorCloseBtn = document.getElementById('osce-navigator-close-btn');
 export const osceSelfCorrectionArea = document.getElementById('osce-self-correction-area');
-export const radioBannerContainer = document.getElementById('radio-banner-container');
 export const learningModeControls = document.getElementById('learning-mode-controls');
 export const learningModeViewer = document.getElementById('learning-mode-viewer');
 export const learningBrowseByChapterBtn = document.getElementById('learning-browse-by-chapter-btn');
