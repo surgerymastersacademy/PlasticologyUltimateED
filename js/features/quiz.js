@@ -1,10 +1,10 @@
-// js/features/quiz.js (FINAL VERSION - CORS SAFE & SYNC FIXED)
+// js/features/quiz.js (FINAL FIXED VERSION)
 
 import { appState, DEFAULT_TIME_PER_QUESTION, SIMULATION_Q_COUNT, SIMULATION_TOTAL_TIME_MINUTES } from '../state.js';
 import * as dom from '../dom.js';
 import * as ui from '../ui.js';
 import { logUserActivity, logIncorrectAnswer, logCorrectedMistake } from '../api.js';
-import { formatTime } from '../utils.js';
+import { formatTime, parseQuestions } from '../utils.js';
 import { showMainMenuScreen } from '../main.js';
 import { saveUserProgress } from './lectures.js';
 
@@ -95,6 +95,7 @@ export function startSimulationReview() {
     };
     launchQuiz(appState.currentQuiz.originalQuestions, `Review: ${dom.quizTitle.textContent}`, config);
 }
+
 
 // --- IN-QUIZ BUTTON FUNCTIONS ---
 
@@ -370,6 +371,7 @@ function selectAnswer(e, selectedAnswer) {
     updateScoreBar();
 }
 
+
 function showResults() {
     clearInterval(appState.currentQuiz.timerInterval);
     clearInterval(appState.currentQuiz.simulationTimerInterval);
@@ -422,7 +424,7 @@ function showResults() {
     if (!appState.currentQuiz.isReviewMode && !appState.currentQuiz.isPracticingMistakes) {
         const attemptedQuestions = appState.currentQuiz.originalUserAnswers.filter(a => a !== null).length;
         
-        // Update Local State Immediately
+        // Immediate Local Sync
         appState.currentQuiz.originalQuestions.forEach((q, index) => {
             const answer = appState.currentQuiz.originalUserAnswers[index];
             if (answer && answer.answer !== 'No Answer') {
@@ -449,6 +451,7 @@ function showResults() {
         }
     }
 }
+
 
 function checkMultipleAnswers() {
     const quizState = appState.currentQuiz;
@@ -790,7 +793,7 @@ export function updateChapterFilter() {
         chapterCounts[chapter] = (chapterCounts[chapter] || 0) + 1;
     });
 
-    populateFilterOptions(dom.chapterSelectMock, Object.keys(chapterCounts).sort(), 'mock-chapter', chapterCounts);
+    ui.populateFilterOptions(dom.chapterSelectMock, Object.keys(chapterCounts).sort(), 'mock-chapter', chapterCounts);
 }
 
 export async function startIncorrectQuestionsQuiz() {
