@@ -1,6 +1,4 @@
-// js/dom.js (FINAL VERSION - With Daily Streak Elements)
-
-// This file contains references to all DOM elements used in the application.
+// js/dom.js (FINAL VERSION - With Onboarding Elements)
 
 export const globalHeader = document.getElementById('global-header');
 export const globalHomeBtn = document.getElementById('global-home-btn');
@@ -12,10 +10,21 @@ export const userNameDisplay = document.getElementById('user-name-display');
 export const headerUserAvatar = document.getElementById('header-user-avatar');
 export const userProfileHeaderBtn = document.getElementById('user-profile-header-btn');
 
-// --- NEW: Daily Streak Elements ---
+// --- NEW: Help & Onboarding Elements ---
+export const helpBtn = document.getElementById('help-btn'); // The "?" button
+export const onboardingModal = document.getElementById('onboarding-modal'); // The "Welcome" popup
+export const startTourBtn = document.getElementById('start-tour-btn');
+export const skipTourBtn = document.getElementById('skip-tour-btn');
+export const tourTooltip = document.getElementById('tour-tooltip'); // The floating box
+export const tourTitle = document.getElementById('tour-title');
+export const tourText = document.getElementById('tour-text');
+export const tourNextBtn = document.getElementById('tour-next-btn');
+export const tourEndBtn = document.getElementById('tour-end-btn');
+export const tourStepCount = document.getElementById('tour-step-count');
+// ---------------------------------------
+
 export const streakContainer = document.getElementById('streak-container');
 export const streakCount = document.getElementById('streak-count');
-// ----------------------------------
 
 export const loginContainer = document.getElementById('login-container');
 export const mainMenuContainer = document.getElementById('main-menu-container');
@@ -311,7 +320,6 @@ export const registerExamDate = document.getElementById('register-exam-date');
 export const cardSubscriptionStatus = document.getElementById('card-subscription-status');
 export const cardSubscriptionExpiry = document.getElementById('card-subscription-expiry');
 
-// --- Matching Bank Elements ---
 export const matchingBtn = document.getElementById('matching-btn');
 export const matchingContainer = document.getElementById('matching-container');
 export const matchingMenuContainer = document.getElementById('matching-menu-container');
