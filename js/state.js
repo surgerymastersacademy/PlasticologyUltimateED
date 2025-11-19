@@ -1,6 +1,5 @@
-// js/state.js (FINAL)
+// js/state.js (FINAL VERSION)
 
-// ⚠️ هام: استبدل الرابط أدناه بالرابط الجديد الذي نسخته من Google Apps Script
 export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
 
 export const SIMULATION_Q_COUNT = 100;
@@ -23,6 +22,7 @@ export const appState = {
     
     currentUser: null,
     userCardData: null,
+    userRoles: {},
     viewedLectures: new Set(),
     bookmarkedQuestions: new Set(),
     answeredQuestions: new Set(),
@@ -93,4 +93,3 @@ export const appState = {
         selectedAnswerElement: null 
     },
 };
-
