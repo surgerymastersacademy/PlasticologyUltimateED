@@ -1,4 +1,4 @@
-// js/main.js (FINAL VERSION - Includes Matching Bank Logic)
+// js/main.js (FINAL VERSION - Includes Daily Streak Logic)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -20,7 +20,6 @@ import { showLeaderboardScreen } from './features/leaderboard.js';
 import { analyzePerformanceByChapter } from './features/performance.js';
 import { showTheoryMenuScreen, launchTheorySession } from './features/theory.js';
 import { showRegistrationModal, hideRegistrationModal, handleRegistrationSubmit } from './features/registration.js';
-// --- NEW IMPORT ---
 import { showMatchingMenu, handleStartMatchingExam, checkCurrentSetAnswers, handleNextMatchingSet } from './features/matching.js';
 
 
@@ -104,7 +103,6 @@ function handleRouting() {
                 ui.showScreen(dom.quizContainer);
             }
             break;
-        // --- NEW ROUTE ---
         case '#matching': showMatchingMenu(); break;
         default: break;
     }
@@ -162,6 +160,45 @@ function initializePwaFeatures() {
     }
 }
 
+// --- NEW: Daily Streak Logic ---
+function calculateDailyStreak() {
+    if (!dom.streakContainer || !dom.streakCount) return;
+
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const lastVisit = localStorage.getItem('lastVisitDate');
+    let streak = parseInt(localStorage.getItem('dailyStreak') || '0');
+
+    if (lastVisit === today) {
+        // Already visited today, do nothing
+    } else if (lastVisit) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        if (lastVisit === yesterdayStr) {
+            // Consecutive day
+            streak++;
+        } else {
+            // Missed a day, reset
+            streak = 1; 
+        }
+    } else {
+        // First visit ever
+        streak = 1;
+    }
+
+    // Update Storage
+    localStorage.setItem('lastVisitDate', today);
+    localStorage.setItem('dailyStreak', streak);
+
+    // Update UI
+    dom.streakCount.textContent = streak;
+    if (streak > 0) {
+        dom.streakContainer.classList.remove('hidden');
+        dom.streakContainer.classList.add('flex'); // Ensure flex display
+    }
+}
+
 
 // MAIN APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', () => {
@@ -173,6 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('hashchange', handleRouting);
     initializePwaFeatures();
+    calculateDailyStreak(); // <-- Start Streak Calculation
 
     function initializeSettings() {
         const savedTheme = localStorage.getItem('theme') || 'light';
@@ -295,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.studyPlannerBtn.addEventListener('click', () => { if (checkPermission('StudyPlanner')) showStudyPlannerScreen(); });
     dom.leaderboardBtn.addEventListener('click', () => checkPermission('LeadersBoard') && showLeaderboardScreen());
     
-    // --- NEW: Matching Bank Listener ---
+    // Matching Bank Listener
     const matchingBtn = document.getElementById('matching-btn');
     if(matchingBtn) matchingBtn.addEventListener('click', () => showMatchingMenu());
     
@@ -322,7 +360,14 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.noteSaveBtn.addEventListener('click', () => {
         const { type, itemId } = appState.currentNote;
         if (type === 'theory') {
-            // ... (theory note logic) ...
+            logTheoryActivity({
+                questionId: itemId,
+                Notes: dom.noteTextarea.value,
+            });
+            const theoryNoteBtn = document.getElementById('theory-note-btn');
+            if(theoryNoteBtn) theoryNoteBtn.classList.toggle('has-note', dom.noteTextarea.value.length > 0);
+             dom.modalBackdrop.classList.add('hidden');
+             dom.noteModal.classList.add('hidden');
         } else {
             handleSaveNote(); 
         }
@@ -382,14 +427,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const reviewSimulationBtn = document.getElementById('review-simulation-btn');
     if(reviewSimulationBtn) reviewSimulationBtn.addEventListener('click', () => startSimulationReview());
 
-    // --- NEW: Matching Listeners ---
+    // Matching Listeners
     dom.startMatchingBtn.addEventListener('click', handleStartMatchingExam);
     dom.matchingSubmitBtn.addEventListener('click', () => checkCurrentSetAnswers());
     dom.matchingNextBtn.addEventListener('click', handleNextMatchingSet);
     dom.endMatchingBtn.addEventListener('click', () => {
         ui.showConfirmationModal('End Test', 'Are you sure?', () => showMatchingMenu());
     });
-
 
     // OSCE
     dom.startOsceSlayerBtn.addEventListener('click', startOsceSlayer);
