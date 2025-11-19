@@ -1,11 +1,10 @@
-// js/api.js (FINAL - Professional Version Control)
+// js/api.js (FINAL VERSION - Professional Version Control & Auto-Update)
+// مسؤول عن الاتصال بالسيرفر، التخزين المؤقت، والتحديث التلقائي للمحتوى
 
 import { API_URL, appState } from './state.js';
 
 /**
- * Sends registration data to the backend.
- * @param {object} registrationData - The user's registration details.
- * @returns {Promise<object>} The JSON response from the server.
+ * يرسل بيانات التسجيل للسيرفر
  */
 export async function registerUser(registrationData) {
     const payload = {
@@ -31,8 +30,7 @@ export async function registerUser(registrationData) {
 }
 
 /**
- * Logs a user activity event to the backend.
- * @param {object} eventData - The data payload for the event.
+ * يسجل نشاط المستخدم (امتحانات، محاضرات، إلخ)
  */
 export function logUserActivity(eventData) {
     if (!API_URL || !appState.currentUser || appState.currentUser.Role === 'Guest') return;
@@ -45,6 +43,7 @@ export function logUserActivity(eventData) {
         userName: appState.currentUser.Name
     };
 
+    // تجهيز السجل المحلي للعرض الفوري
     if (payload.eventType === 'FinishQuiz') {
         const details = appState.currentQuiz.originalQuestions.map((q, index) => {
             return {
@@ -79,6 +78,7 @@ export function logUserActivity(eventData) {
         };
     }
 
+    // إرسال للسيرفر
     fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify(payload)
@@ -90,8 +90,7 @@ export function logUserActivity(eventData) {
 }
 
 /**
- * Logs a theory question interaction to the backend.
- * @param {object} logData - The data for the theory log.
+ * يسجل نشاط الأسئلة النظرية (Theory)
  */
 export function logTheoryActivity(logData) {
     if (!API_URL || !appState.currentUser || appState.currentUser.Role === 'Guest') return;
@@ -104,6 +103,7 @@ export function logTheoryActivity(logData) {
         ...logData 
     };
 
+    // تحديث الحالة المحلية فوراً
     const logIndex = appState.userTheoryLogs.findIndex(log => log.Question_ID === logData.questionId);
     if (logIndex > -1) {
         if (logData.Notes !== undefined) appState.userTheoryLogs[logIndex].Notes = logData.Notes;
@@ -127,15 +127,15 @@ export function logTheoryActivity(logData) {
 
 
 /**
- * --- UPDATED: Fetches content data using "Stale-While-Revalidate" strategy ---
- * 1. Checks LocalStorage and returns it IMMEDIATELY (Fast start).
- * 2. Checks Google Sheets (Background).
- * 3. If Sheet Version > Local Version -> Updates Cache & Reloads.
+ * --- الوظيفة الجوهرية: جلب المحتوى وتحديثه ---
+ * 1. تفحص الذاكرة المحلية وتعيد البيانات فوراً (للشرعة).
+ * 2. تتصل بالسيرفر في الخلفية.
+ * 3. تقارن رقم الإصدار، وإذا وجدت تحديثاً، تحفظه وتطلب التحديث.
  */
 export async function fetchContentData() {
     const CACHE_KEY = 'plasticology_content_data';
 
-    // 1. Fast Start: Try to load from LocalStorage
+    // 1. البداية السريعة: تحميل من الكاش
     const cachedString = localStorage.getItem(CACHE_KEY);
     let cachedData = null;
     
@@ -148,10 +148,7 @@ export async function fetchContentData() {
         }
     }
 
-    // 2. Background Update: Always fetch from network to check for updates
-    // We don't await this if we have cache, we let it run in background? 
-    // No, main.js awaits this function. We must return something.
-    
+    // 2. التحديث في الخلفية (Background Fetch)
     const networkPromise = fetch(`${API_URL}?request=contentData&t=${new Date().getTime()}`, {
             method: 'GET',
             mode: 'cors',
@@ -164,7 +161,7 @@ export async function fetchContentData() {
         .then(data => {
             if (data.error) throw new Error(data.error);
             
-            // Check Version
+            // مقارنة الإصدارات
             const serverVersion = String(data.version);
             const localVersion = cachedData ? String(cachedData.version) : null;
 
@@ -172,36 +169,36 @@ export async function fetchContentData() {
                 console.log(`✨ New version found! Server: ${serverVersion}, Local: ${localVersion}`);
                 localStorage.setItem(CACHE_KEY, JSON.stringify(data));
                 
-                // If we were using cached data, we need to tell the user to refresh
+                // إذا كنا نستخدم الكاش القديم حالياً، ننبه المستخدم للتحديث
                 if (cachedData) {
-                    // Small delay to ensure UI is rendered before alerting
                     setTimeout(() => {
-                        if(confirm("New content is available! Press OK to refresh.")) {
+                        // يمكن استبدال هذا بنافذة أجمل لاحقاً
+                        if(confirm("🎉 تحديث جديد للمحتوى متاح! اضغط OK للتحميل.")) {
                             window.location.reload();
                         }
-                    }, 1000);
+                    }, 2000); // انتظار ثانيتين حتى لا يظهر التنبيه فور فتح التطبيق
                 }
             }
             return data;
         })
         .catch(error => {
             console.error("Background fetch failed:", error);
-            return null; // Return null to signal failure
+            return null;
         });
 
-    // 3. Decision: What to return to main.js?
+    // 3. القرار: ماذا نعيد للتطبيق الآن؟
     if (cachedData) {
-        // If we have cache, return it immediately so app starts fast.
-        // The network promise runs in the background and will trigger reload if needed.
+        // إذا وجدنا كاش، نستخدمه فوراً (السرعة القصوى)
+        // التحديث سيحدث في الخلفية
         return cachedData;
     } else {
-        // If no cache (first run), we MUST wait for network.
+        // أول مرة يفتح التطبيق: يجب انتظار الشبكة
         return await networkPromise;
     }
 }
 
 /**
- * Fetches all data specific to the logged-in user.
+ * جلب بيانات المستخدم الخاصة (لا يتم تخزينها في الكاش الدائم لأنها تتغير كثيراً)
  */
 export async function fetchUserData() {
     if (!appState.currentUser || appState.currentUser.Role === 'Guest') return;
