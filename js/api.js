@@ -1,6 +1,6 @@
-// js/api.js (UPDATED - With Smart Caching Logic)
+// js/api.js (FINAL - Professional Version Control)
 
-import { API_URL, appState, APP_VERSION } from './state.js';
+import { API_URL, appState } from './state.js';
 
 /**
  * Sends registration data to the backend.
@@ -70,6 +70,13 @@ export function logUserActivity(eventData) {
             eventType: 'ViewLecture',
             title: payload.lectureName
         };
+    } else if (payload.eventType === 'FinishMatchingQuiz') {
+        newLogEntry = {
+            timestamp: now,
+            eventType: 'FinishMatchingQuiz',
+            title: 'Matching Test',
+            score: payload.score
+        };
     }
 
     fetch(API_URL, {
@@ -94,10 +101,9 @@ export function logTheoryActivity(logData) {
         userId: appState.currentUser.UniqueID,
         questionId: logData.questionId,
         logUniqueId: `${appState.currentUser.UniqueID}_${logData.questionId}`,
-        ...logData // This will include 'Notes' or 'Status'
+        ...logData 
     };
 
-    // Optimistically update the local state
     const logIndex = appState.userTheoryLogs.findIndex(log => log.Question_ID === logData.questionId);
     if (logIndex > -1) {
         if (logData.Notes !== undefined) appState.userTheoryLogs[logIndex].Notes = logData.Notes;
@@ -114,72 +120,88 @@ export function logTheoryActivity(logData) {
 
     fetch(API_URL, {
         method: 'POST',
-        mode: 'no-cors', // Use no-cors for "fire and forget" logging
+        mode: 'no-cors', 
         body: JSON.stringify(payload)
     }).catch(error => console.error('Error logging theory activity:', error));
 }
 
+
 /**
- * --- NEW: Fetches main content data with Smart Caching ---
- * Checks LocalStorage first. If data exists and version matches, uses it.
- * Otherwise, fetches from Google Sheets.
- * @returns {Promise<object|null>}
+ * --- UPDATED: Fetches content data using "Stale-While-Revalidate" strategy ---
+ * 1. Checks LocalStorage and returns it IMMEDIATELY (Fast start).
+ * 2. Checks Google Sheets (Background).
+ * 3. If Sheet Version > Local Version -> Updates Cache & Reloads.
  */
 export async function fetchContentData() {
     const CACHE_KEY = 'plasticology_content_data';
-    const VERSION_KEY = 'plasticology_content_version';
 
-    // 1. Check Cache
-    const cachedData = localStorage.getItem(CACHE_KEY);
-    const cachedVersion = localStorage.getItem(VERSION_KEY);
-
-    if (cachedData && cachedVersion === APP_VERSION) {
-        console.log("⚡ Loading content from local cache...");
+    // 1. Fast Start: Try to load from LocalStorage
+    const cachedString = localStorage.getItem(CACHE_KEY);
+    let cachedData = null;
+    
+    if (cachedString) {
         try {
-            return JSON.parse(cachedData);
+            cachedData = JSON.parse(cachedString);
+            console.log(`⚡ Loaded cached version: ${cachedData.version || 'Unknown'}`);
         } catch (e) {
-            console.warn("Cache corrupted, fetching fresh data.");
+            console.warn("Cache corrupted.");
         }
     }
 
-    // 2. Fetch from Network
-    console.log("🌐 Fetching fresh content from server...");
-    try {
-        const response = await fetch(`${API_URL}?request=contentData&t=${new Date().getTime()}`, {
+    // 2. Background Update: Always fetch from network to check for updates
+    // We don't await this if we have cache, we let it run in background? 
+    // No, main.js awaits this function. We must return something.
+    
+    const networkPromise = fetch(`${API_URL}?request=contentData&t=${new Date().getTime()}`, {
             method: 'GET',
             mode: 'cors',
             redirect: 'follow'
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            
+            // Check Version
+            const serverVersion = String(data.version);
+            const localVersion = cachedData ? String(cachedData.version) : null;
+
+            if (serverVersion !== localVersion) {
+                console.log(`✨ New version found! Server: ${serverVersion}, Local: ${localVersion}`);
+                localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+                
+                // If we were using cached data, we need to tell the user to refresh
+                if (cachedData) {
+                    // Small delay to ensure UI is rendered before alerting
+                    setTimeout(() => {
+                        if(confirm("New content is available! Press OK to refresh.")) {
+                            window.location.reload();
+                        }
+                    }, 1000);
+                }
+            }
+            return data;
+        })
+        .catch(error => {
+            console.error("Background fetch failed:", error);
+            return null; // Return null to signal failure
         });
-        
-        if (!response.ok) throw new Error(`Network response was not ok. Status: ${response.status}`);
-        
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
 
-        // 3. Save to Cache
-        try {
-            localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-            localStorage.setItem(VERSION_KEY, APP_VERSION);
-        } catch (e) {
-            console.warn("Storage quota exceeded. Data not cached.", e);
-        }
-
-        return data;
-    } catch (error) {
-        console.error("Error loading content data:", error);
-        
-        // Fallback: If network fails but we have old cache, use it even if version mismatch
-        if (cachedData) {
-            console.warn("Network failed. Using outdated cache as fallback.");
-            return JSON.parse(cachedData);
-        }
-        return null;
+    // 3. Decision: What to return to main.js?
+    if (cachedData) {
+        // If we have cache, return it immediately so app starts fast.
+        // The network promise runs in the background and will trigger reload if needed.
+        return cachedData;
+    } else {
+        // If no cache (first run), we MUST wait for network.
+        return await networkPromise;
     }
 }
 
 /**
- * Fetches all data specific to the logged-in user (logs, notes, plans).
- * User data is NOT cached persistently because it changes frequently.
+ * Fetches all data specific to the logged-in user.
  */
 export async function fetchUserData() {
     if (!appState.currentUser || appState.currentUser.Role === 'Guest') return;
@@ -201,11 +223,6 @@ export async function fetchUserData() {
     }
 }
 
-/**
- * Logs an incorrect answer to the backend for tracking mistakes.
- * @param {string} questionId
- * @param {string} userAnswer
- */
 export function logIncorrectAnswer(questionId, userAnswer) {
     const payload = {
         eventType: 'logIncorrectAnswer',
@@ -217,10 +234,6 @@ export function logIncorrectAnswer(questionId, userAnswer) {
         .catch(err => console.error("Failed to log incorrect answer:", err));
 }
 
-/**
- * Logs that a previously incorrect answer has now been answered correctly.
- * @param {string} questionId
- */
 export function logCorrectedMistake(questionId) {
     const payload = {
         eventType: 'logCorrectedMistake',
