@@ -1,78 +1,81 @@
-// js/features/registration.js (FINAL - CORS FIXED)
+// js/features/registration.js (FINAL VERSION v3.1)
 
-import * as dom from '../dom.js';
-import { registerUser } from '../api.js';
+import { sendPostRequest } from '../api.js';
+import { showToast } from '../ui.js';
 
-export function showRegistrationModal() {
-    dom.registrationForm.reset();
-    dom.registrationError.classList.add('hidden');
-    dom.registrationSuccess.classList.add('hidden');
-    dom.modalBackdrop.classList.remove('hidden');
-    dom.registrationModal.classList.remove('hidden');
+export function initRegistration() {
+    const form = document.getElementById('registration-form');
+    const cancelBtn = document.getElementById('register-cancel-btn');
+    
+    if (form) {
+        form.addEventListener('submit', handleRegistration);
+    }
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            document.getElementById('registration-modal').classList.add('hidden');
+            document.getElementById('modal-backdrop').classList.add('hidden');
+        });
+    }
 }
 
-export function hideRegistrationModal() {
-    dom.modalBackdrop.classList.add('hidden');
-    dom.registrationModal.classList.add('hidden');
-}
-
-export async function handleRegistrationSubmit(event) {
-    event.preventDefault();
-    const errorEl = dom.registrationError;
-    const successEl = dom.registrationSuccess;
-    const submitBtn = dom.registerSubmitBtn;
-
-    errorEl.classList.add('hidden');
-    successEl.classList.add('hidden');
-
-    const formData = {
-        Name: dom.registerName.value.trim(),
-        Username: dom.registerUsername.value.trim(),
-        Email: dom.registerEmail.value.trim(),
-        Password: dom.registerPassword.value,
-        ConfirmPassword: dom.registerConfirmPassword.value,
-        MobileNumber: dom.registerMobile.value.trim(),
-        Country: dom.registerCountry.value.trim(),
-        StudyType: dom.registerStudyType.value.trim(),
-        ExamDate: dom.registerExamDate.value,
+async function handleRegistration(e) {
+    e.preventDefault();
+    
+    const submitBtn = document.getElementById('register-submit-btn');
+    const originalText = submitBtn.textContent;
+    const errorMsg = document.getElementById('registration-error');
+    
+    // Get Values
+    const data = {
+        eventType: 'registerUser',
+        Name: document.getElementById('register-name').value.trim(),
+        Username: document.getElementById('register-username').value.trim(),
+        Email: document.getElementById('register-email').value.trim(),
+        MobileNumber: document.getElementById('register-mobile').value.trim(),
+        Password: document.getElementById('register-password').value,
+        Country: document.getElementById('register-country').value,
+        StudyType: document.getElementById('register-study-type').value,
+        ExamDate: document.getElementById('register-exam-date').value
     };
 
-    if (!formData.Name || !formData.Username || !formData.Email || !formData.Password || !formData.MobileNumber || !formData.Country) {
-        errorEl.textContent = 'Please fill in all required fields.';
-        errorEl.classList.remove('hidden');
+    // Basic Validation
+    const confirmPass = document.getElementById('register-confirm-password').value;
+    if (data.Password !== confirmPass) {
+        showError('Passwords do not match.');
         return;
     }
-    if (formData.Password !== formData.ConfirmPassword) {
-        errorEl.textContent = 'Passwords do not match.';
-        errorEl.classList.remove('hidden');
-        return;
-    }
-    if (formData.Password.length < 6) {
-        errorEl.textContent = 'Password must be at least 6 characters long.';
-        errorEl.classList.remove('hidden');
+    if (data.Password.length < 4) {
+        showError('Password is too short.');
         return;
     }
 
+    // Loading State
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Creating Account...';
+    submitBtn.textContent = 'Registering...';
+    errorMsg.classList.add('hidden');
 
-    delete formData.ConfirmPassword;
+    try {
+        const response = await sendPostRequest(data);
 
-    // استدعاء آمن عبر api.js
-    const result = await registerUser(formData);
-
-    if (result.success) {
-        successEl.textContent = result.message + ' You will be redirected to the login page shortly.';
-        successEl.classList.remove('hidden');
-        dom.registrationForm.reset();
-        setTimeout(() => {
-            hideRegistrationModal();
-        }, 3000);
-    } else {
-        errorEl.textContent = result.message || 'An unknown error occurred.';
-        errorEl.classList.remove('hidden');
+        if (response.success) {
+            showToast('Registration successful! Please log in.', 'success');
+            document.getElementById('registration-modal').classList.add('hidden');
+            document.getElementById('modal-backdrop').classList.add('hidden');
+            document.getElementById('registration-form').reset();
+        } else {
+            showError(response.message || 'Registration failed.');
+        }
+    } catch (error) {
+        console.error(error);
+        showError('Network error occurred.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
     }
 
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Register';
+    function showError(msg) {
+        errorMsg.textContent = msg;
+        errorMsg.classList.remove('hidden');
+    }
 }
