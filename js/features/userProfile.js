@@ -1,335 +1,258 @@
 // js/features/userProfile.js (FINAL - CORS FIXED)
 
-import { API_URL, appState, AVATAR_BASE_URL, AVATAR_OPTIONS } from '../state.js';
-import * as dom from '../dom.js';
-import * as ui from '../ui.js';
-import { fetchUserData } from '../api.js';
-import { calculateDaysLeft } from '../utils.js';
-import { showMainMenuScreen } from '../main.js';
-import { saveUserProgress } from './lectures.js';
+import { createJsonRequest, sendPostRequest } from '../api.js';
+import { showScreen, showLoader, hideLoader, showToast } from '../ui.js';
+import { setCurrentUser, getCurrentUser } from '../state.js';
 
-// --- Helper for Safe Requests ---
-async function sendProfileRequest(payload) {
-    const response = await fetch(API_URL, {
-        method: 'POST',
-        redirect: 'follow',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // CORS Safe
-        body: JSON.stringify(payload)
-    });
-    return await response.json();
-}
+// --- Login Handler ---
+export async function handleLogin(e) {
+    e.preventDefault();
+    
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const errorMsg = document.getElementById('login-error');
+    const loadingText = document.getElementById('login-loading-text');
+    const submitBtn = document.getElementById('login-submit-btn');
 
-export async function handleLogin(event) {
-    event.preventDefault();
-    dom.loginError.classList.add('hidden');
-    dom.loginSubmitBtn.disabled = true;
-    dom.loginSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Logging in...';
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value.trim();
 
-    const payload = {
-        eventType: 'login',
-        username: dom.usernameInput.value,
-        password: dom.passwordInput.value
-    };
+    if (!username || !password) {
+        showToast('Please enter username and password', 'error');
+        return;
+    }
+
+    // UI Loading State
+    errorMsg.classList.add('hidden');
+    showLoader('login-loader'); // تأكد أن هذا العنصر موجود في HTML الجديد
+    if(loadingText) loadingText.classList.remove('hidden');
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
 
     try {
-        // استخدام الدالة الآمنة
-        const result = await sendProfileRequest(payload);
+        // 1. طلب تسجيل الدخول
+        const loginData = { eventType: 'login', username, password };
+        const response = await sendPostRequest(loginData);
 
-        if (result.success) {
-            appState.currentUser = result.user;
-            const userRoleData = appState.allRoles.find(role => role.Role === appState.currentUser.Role);
-            appState.userRoles = userRoleData || {};
+        if (response && response.success) {
+            const user = response.user;
+            setCurrentUser(user);
+            localStorage.setItem('plastico_user', JSON.stringify(user));
 
-            ui.updateWatermark();
-            await fetchUserData();
-            loadUserProgress(); 
+            // 2. طلب بيانات المستخدم الكاملة (عشان نجيب الـ Score والـ Streak)
+            await fetchUserData(user.UniqueID);
+
+            // 3. تحديث الواجهة الجديدة بالكامل
+            updateUserUI(user);
+
+            // 4. الانتقال للداشبورد
+            document.getElementById('login-container').classList.add('hidden');
             
-            // Sync Lecture Views from Log
-            if (appState.fullActivityLog.length > 0) {
-                const lectureLogs = appState.fullActivityLog.filter(log => log.eventType === 'ViewLecture');
-                const lectureLinksMap = new Map();
-                Object.values(appState.groupedLectures).forEach(chapter => {
-                    chapter.topics.forEach(topic => {
-                        lectureLinksMap.set(topic.name, topic.link);
-                    });
-                });
-                lectureLogs.forEach(log => {
-                    if (lectureLinksMap.has(log.title)) {
-                        appState.viewedLectures.add(lectureLinksMap.get(log.title));
-                    }
-                });
-                saveUserProgress();
-            }
+            // إظهار العناصر الأساسية للتصميم الجديد
+            document.getElementById('desktop-sidebar').classList.remove('hidden'); // إظهار القائمة الجانبية
+            document.getElementById('desktop-sidebar').classList.add('flex');
+            
+            document.getElementById('main-menu-container').classList.remove('hidden'); // إظهار الداشبورد
+            document.getElementById('global-header').classList.remove('hidden'); // إظهار الهيدر
+            document.getElementById('global-header').classList.add('flex');
 
-            await showUserCardModal(true);
-            updateUserProfileHeader();
-            showMainMenuScreen();
+            // إظهار شريط الموبايل السفلي
+            const mobileNav = document.getElementById('mobile-bottom-nav');
+            if(mobileNav) mobileNav.classList.remove('hidden');
+
+            showToast(`Welcome back, Dr. ${user.Name.split(' ')[0]}! 👋`, 'success');
+
         } else {
-            dom.loginError.textContent = result.message || "Invalid username or password.";
-            dom.loginError.classList.remove('hidden');
+            throw new Error(response ? response.message : 'Login failed');
         }
     } catch (error) {
-        console.error("Login API Error:", error);
-        dom.loginError.textContent = "Connection error. Please try again.";
-        dom.loginError.classList.remove('hidden');
+        console.error('Login Error:', error);
+        errorMsg.textContent = error.message || 'Invalid username or password.';
+        errorMsg.classList.remove('hidden');
+        showToast(error.message || 'Login Failed', 'error');
     } finally {
-        dom.loginSubmitBtn.disabled = false;
-        dom.loginSubmitBtn.textContent = 'Log In';
+        hideLoader('login-loader');
+        if(loadingText) loadingText.classList.add('hidden');
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 }
 
-export function handleLogout() {
-    ui.showConfirmationModal('Log Out?', 'Are you sure you want to log out?', () => {
-        appState.currentUser = null;
-        appState.navigationHistory = [];
-        dom.usernameInput.value = '';
-        dom.passwordInput.value = '';
-        ui.showScreen(dom.loginContainer);
-        dom.modalBackdrop.classList.add('hidden');
-    });
-}
-
-export function checkPermission(feature) {
-    if (!appState.currentUser || appState.currentUser.Role === 'Guest') {
-        ui.showConfirmationModal('Access Denied', 'Please log in to access this feature.', () => dom.modalBackdrop.classList.add('hidden'));
-        return false;
-    }
-    const userRolePermissions = appState.allRoles.find(role => role.Role === appState.currentUser.Role);
-    if (!userRolePermissions || String(userRolePermissions[feature]).toLowerCase() !== 'true') {
-        ui.showConfirmationModal('Access Denied', `Your current role does not have access to the "${feature}" feature.`, () => dom.modalBackdrop.classList.add('hidden'));
-        return false;
-    }
-    return true;
-}
-
-export function applyRolePermissions() {
-    const rolePermissions = appState.allRoles.find(role => role.Role === appState.currentUser.Role);
-    if (!rolePermissions) return;
-
-    const featureElements = {
-        'Lectures': dom.lecturesBtn,
-        'MCQBank': dom.qbankBtn,
-        'LerningMode': dom.learningModeBtn,
-        'OSCEBank': dom.osceBtn,
-        'LeadersBoard': dom.leaderboardBtn,
-        'Radio': dom.radioBtn,
-        'Library': dom.libraryBtn,
-        'StudyPlanner': dom.studyPlannerBtn,
-        'TheoryBank': dom.theoryBtn,
-    };
-
-    for (const feature in featureElements) {
-        const element = featureElements[feature];
-        if (element) {
-            const hasAccess = String(rolePermissions[feature]).toLowerCase() === 'true';
-            element.disabled = !hasAccess;
-            element.style.opacity = hasAccess ? '1' : '0.5';
-            element.style.cursor = hasAccess ? 'pointer' : 'not-allowed';
-        }
-    }
-}
-
-// --- USER CARD & PROFILE ---
-
-export async function showUserCardModal(isLoginFlow = false) {
-    if (!appState.currentUser || appState.currentUser.Role === 'Guest') {
-        if(!isLoginFlow) ui.showConfirmationModal('Access Denied', 'Please log in.', () => dom.modalBackdrop.classList.add('hidden'));
-        return;
-    }
-    if (!isLoginFlow) dom.modalBackdrop.classList.remove('hidden');
-    dom.userCardModal.classList.remove('hidden');
-    dom.profileEditView.classList.add('hidden');
-    dom.profileDetailsView.classList.remove('hidden');
-    dom.profileEditError.classList.add('hidden');
-
+// --- Fetch Full User Data (Score, Streak, etc.) ---
+async function fetchUserData(userId) {
     try {
-        const response = await fetch(`${API_URL}?request=getUserCardData&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`, { redirect: 'follow' });
-        if (!response.ok) throw new Error('Failed to fetch user card data.');
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
-
-        appState.userCardData = data.cardData;
-        renderUserCard();
-        populateAvatarSelection();
-    } catch (error) {
-        console.error("Error loading user card data:", error);
+        // نستخدم request=getUserCardData لأنها خفيفة وترجع الـ Score
+        const response = await createJsonRequest({ request: 'getUserCardData', userId: userId });
+        if (response && response.success) {
+            const updatedUser = { ...getCurrentUser(), ...response.cardData };
+            setCurrentUser(updatedUser);
+            localStorage.setItem('plastico_user', JSON.stringify(updatedUser));
+            return updatedUser;
+        }
+    } catch (e) {
+        console.warn("Could not fetch latest stats:", e);
     }
 }
 
-function renderUserCard() {
-    if (!appState.currentUser || !appState.userCardData) return;
+// --- THE FIX: Update ALL New UI Elements Safely ---
+export function updateUserUI(user) {
+    if (!user) return;
+
+    const defaultAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${user.Name}`;
+    const userImg = user.User_Img || defaultAvatar;
+    const firstName = user.Name.split(' ')[0];
+
+    // 1. Update Sidebar (Desktop)
+    safeUpdateText('sidebar-user-name', `Dr. ${firstName}`);
+    safeUpdateSrc('sidebar-user-avatar', userImg);
+
+    // 2. Update Dashboard (Welcome Card & Stats)
+    safeUpdateText('dashboard-user-name', `Dr. ${firstName}`);
+    safeUpdateText('dashboard-score', user.QuizScore || 0);
     
-    const cardData = appState.userCardData;
-    const displayName = cardData.Nickname && cardData.Nickname.trim() !== '' ? cardData.Nickname : appState.currentUser.Name;
-    dom.cardUserName.textContent = displayName;
-    dom.cardUserNickname.textContent = cardData.Nickname && cardData.Nickname.trim() !== '' ? `(${appState.currentUser.Name})` : '';
-    dom.cardQuizScore.textContent = cardData.QuizScore !== undefined ? cardData.QuizScore : '0';
-    dom.userAvatar.src = cardData.User_Img || (AVATAR_BASE_URL + appState.currentUser.Name);
-    dom.headerUserAvatar.src = dom.userAvatar.src;
+    // Streak Logic (Simulation for now, needs backend logic later)
+    const streak = localStorage.getItem(`streak_${user.UniqueID}`) || 0;
+    safeUpdateText('dashboard-streak', streak);
     
-    if (cardData.ExamDate) {
-        const examDate = new Date(cardData.ExamDate);
-        if (!isNaN(examDate)) {
-            dom.cardExamDate.textContent = examDate.toLocaleDateString('en-GB');
-            const daysLeft = calculateDaysLeft(examDate);
-            dom.cardDaysLeft.textContent = daysLeft >= 0 ? `${daysLeft} days left` : 'Exam passed';
-        } else {
-            dom.cardExamDate.textContent = 'Invalid Date';
-            dom.cardDaysLeft.textContent = 'N/A';
-        }
+    // Exam Date Logic
+    if (user.ExamDate) {
+        const daysLeft = calculateDaysLeft(user.ExamDate);
+        safeUpdateText('dashboard-exam-date', new Date(user.ExamDate).toLocaleDateString());
+        safeUpdateText('dashboard-days-left', `${daysLeft} Days`);
     } else {
-        dom.cardExamDate.textContent = 'Not Set';
-        dom.cardDaysLeft.textContent = 'N/A';
+        safeUpdateText('dashboard-exam-date', 'Not Set');
+        safeUpdateText('dashboard-days-left', '--');
     }
 
-    const userData = appState.currentUser;
-    dom.cardSubscriptionStatus.textContent = userData.Role || 'N/A';
-    dom.cardSubscriptionStatus.className = userData.Role === 'Trial' ? 'text-orange-500 font-bold' : 'text-green-500 font-bold';
+    // 3. Update Mobile Header
+    safeUpdateSrc('header-user-avatar', userImg);
+    safeUpdateText('streak-count', streak);
 
-    if (userData.SubscriptionEndDate) {
-        const expiryDate = new Date(userData.SubscriptionEndDate);
-        dom.cardSubscriptionExpiry.textContent = !isNaN(expiryDate) ? expiryDate.toLocaleDateString('en-GB') : 'N/A';
-    } else {
-        dom.cardSubscriptionExpiry.textContent = 'N/A';
-    }
-}
-
-export function toggleProfileEditMode(isEditing) {
-    if (isEditing) {
-        dom.profileDetailsView.classList.add('hidden');
-        dom.profileEditView.classList.remove('hidden');
-        dom.editNickname.value = appState.userCardData.Nickname || '';
-        dom.editExamDate.value = appState.userCardData.ExamDate ? new Date(appState.userCardData.ExamDate).toISOString().split('T')[0] : '';
-        dom.avatarSelectionGrid.querySelectorAll('img').forEach(img => {
-            img.classList.remove('border-blue-500', 'border-2');
-            if (img.src === dom.userAvatar.src) img.classList.add('border-blue-500', 'border-2');
-        });
-    } else {
-        dom.profileDetailsView.classList.remove('hidden');
-        dom.profileEditView.classList.add('hidden');
+    // 4. Update User Card Modal (Hidden fields)
+    safeUpdateText('card-user-name', user.Name);
+    safeUpdateText('card-user-nickname', user.Nickname || 'Plastic Surgery Resident');
+    safeUpdateSrc('user-avatar', userImg);
+    safeUpdateText('card-quiz-score', user.QuizScore || 0);
+    
+    // Subscription Check
+    if (user.SubscriptionEndDate) {
+        const expiry = new Date(user.SubscriptionEndDate);
+        const now = new Date();
+        const isActive = expiry > now;
+        safeUpdateText('card-subscription-expiry', isActive ? 'Active' : 'Expired');
+        const statusEl = document.getElementById('card-subscription-expiry');
+        if(statusEl) statusEl.className = isActive ? 'font-bold text-green-600' : 'font-bold text-red-600';
     }
 }
 
-function populateAvatarSelection() {
-    dom.avatarSelectionGrid.innerHTML = '';
-    AVATAR_OPTIONS.forEach(seed => {
-        const img = document.createElement('img');
-        img.src = AVATAR_BASE_URL + seed;
-        img.className = 'w-12 h-12 rounded-full cursor-pointer hover:opacity-80 transition-opacity';
-        img.addEventListener('click', () => {
-            dom.avatarSelectionGrid.querySelectorAll('img').forEach(i => i.classList.remove('border-blue-500', 'border-2'));
-            img.classList.add('border-blue-500', 'border-2');
-            dom.userAvatar.src = img.src;
+// --- Helper Functions to prevent Crashes (The "Null" Fix) ---
+function safeUpdateText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+}
+
+function safeUpdateSrc(id, src) {
+    const el = document.getElementById(id);
+    if (el) el.src = src;
+}
+
+function calculateDaysLeft(dateString) {
+    const examDate = new Date(dateString);
+    const today = new Date();
+    const diffTime = examDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    return diffDays > 0 ? diffDays : 0;
+}
+
+// --- User Card Modal Logic ---
+export function showUserCardModal() {
+    const user = getCurrentUser();
+    if (!user) return;
+
+    updateUserUI(user); // Refresh data before showing
+    
+    const modal = document.getElementById('user-card-modal');
+    const backdrop = document.getElementById('modal-backdrop');
+    
+    if(modal && backdrop) {
+        modal.classList.remove('hidden');
+        backdrop.classList.remove('hidden');
+        
+        // Reset to details view
+        const detailsView = document.getElementById('profile-details-view');
+        const editView = document.getElementById('profile-edit-view');
+        if(detailsView) detailsView.classList.remove('hidden');
+        if(editView) editView.classList.add('hidden');
+    }
+}
+
+export function hideUserCardModal() {
+    const modal = document.getElementById('user-card-modal');
+    const backdrop = document.getElementById('modal-backdrop');
+    if(modal) modal.classList.add('hidden');
+    if(backdrop) backdrop.classList.add('hidden');
+}
+
+// --- Messenger Logic (Simplified) ---
+export function showMessenger() {
+    const modal = document.getElementById('messenger-modal');
+    const backdrop = document.getElementById('modal-backdrop');
+    if(modal && backdrop) {
+        modal.classList.remove('hidden');
+        backdrop.classList.remove('hidden');
+        loadMessages(); // Function to load messages (needs to be implemented or imported)
+    }
+}
+
+// --- Event Listeners Setup ---
+export function setupUserProfileEvents() {
+    // Profile Buttons (Header & Sidebar) -> Show Modal
+    const profileBtns = ['user-profile-header-btn', 'sidebar-profile-btn', 'mobile-profile-btn'];
+    profileBtns.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.addEventListener('click', showUserCardModal);
+    });
+
+    // Modal Close
+    const closeBtn = document.getElementById('user-card-close-btn');
+    if(closeBtn) closeBtn.addEventListener('click', hideUserCardModal);
+
+    // Edit Profile Toggle
+    const editBtn = document.getElementById('edit-profile-btn');
+    if(editBtn) {
+        editBtn.addEventListener('click', () => {
+            document.getElementById('profile-details-view').classList.add('hidden');
+            document.getElementById('profile-edit-view').classList.remove('hidden');
+            // Pre-fill inputs
+            const user = getCurrentUser();
+            if(document.getElementById('edit-nickname')) document.getElementById('edit-nickname').value = user.Nickname || '';
+            if(document.getElementById('edit-exam-date')) document.getElementById('edit-exam-date').value = user.ExamDate || '';
         });
-        dom.avatarSelectionGrid.appendChild(img);
+    }
+
+    // Cancel Edit
+    const cancelBtn = document.getElementById('cancel-edit-profile-btn');
+    if(cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            document.getElementById('profile-edit-view').classList.add('hidden');
+            document.getElementById('profile-details-view').classList.remove('hidden');
+        });
+    }
+
+    // Messenger
+    const messengerBtn = document.getElementById('messenger-btn');
+    if(messengerBtn) messengerBtn.addEventListener('click', showMessenger);
+    
+    const closeMessengerBtn = document.getElementById('messenger-close-btn');
+    if(closeMessengerBtn) closeMessengerBtn.addEventListener('click', () => {
+        document.getElementById('messenger-modal').classList.add('hidden');
+        document.getElementById('modal-backdrop').classList.add('hidden');
     });
 }
 
-export async function handleSaveProfile() {
-    dom.profileEditError.classList.add('hidden');
-    const payload = {
-        eventType: 'updateUserCardData',
-        userId: appState.currentUser.UniqueID,
-        nickname: dom.editNickname.value.trim(),
-        examDate: dom.editExamDate.value,
-        userImg: dom.userAvatar.src
-    };
-
-    try {
-        await sendProfileRequest(payload);
-        appState.userCardData.Nickname = payload.nickname;
-        appState.userCardData.ExamDate = payload.examDate;
-        appState.userCardData.User_Img = payload.userImg;
-        renderUserCard();
-        updateUserProfileHeader();
-        toggleProfileEditMode(false);
-        ui.showConfirmationModal('Success', 'Profile updated!', () => dom.modalBackdrop.classList.add('hidden'));
-    } catch (error) {
-        dom.profileEditError.textContent = `Failed to save profile.`;
-        dom.profileEditError.classList.remove('hidden');
-    }
-}
-
-export function updateUserProfileHeader() {
-    if (appState.currentUser) {
-        const displayName = (appState.userCardData && appState.userCardData.Nickname) ? appState.userCardData.Nickname : appState.currentUser.Name;
-        dom.userNameDisplay.textContent = displayName;
-        dom.headerUserAvatar.src = (appState.userCardData && appState.userCardData.User_Img) ? appState.userCardData.User_Img : (AVATAR_BASE_URL + appState.currentUser.Name);
-    }
-}
-
-// --- MESSENGER ---
-
-export async function showMessengerModal() {
-    if (!appState.currentUser || appState.currentUser.Role === 'Guest') return;
-    dom.modalBackdrop.classList.remove('hidden');
-    dom.messengerModal.classList.remove('hidden');
-    dom.messagesList.innerHTML = '<p class="text-center text-slate-500">Loading...</p>';
-    dom.messengerError.classList.add('hidden');
-    await fetchAndRenderMessages();
-    if (appState.messengerPollInterval) clearInterval(appState.messengerPollInterval);
-    appState.messengerPollInterval = setInterval(fetchAndRenderMessages, 10000);
-}
-
-async function fetchAndRenderMessages() {
-    try {
-        const response = await fetch(`${API_URL}?request=getMessages&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`, { redirect: 'follow' });
-        const data = await response.json();
-        if (JSON.stringify(appState.userMessages) !== JSON.stringify(data.messages)) {
-            appState.userMessages = data.messages || [];
-            renderMessages();
-        }
-    } catch (error) { console.error("Messenger Error:", error); }
-}
-
-function renderMessages() {
-    dom.messagesList.innerHTML = '';
-    if (appState.userMessages.length === 0) {
-        dom.messagesList.innerHTML = `<p class="text-center text-slate-500">No messages yet.</p>`;
-        return;
-    }
-    appState.userMessages.forEach(msg => {
-        const messageDiv = document.createElement('div');
-        const timestamp = new Date(msg.Timestamp).toLocaleString('en-GB');
-        if (msg.UserMessage) {
-            messageDiv.innerHTML += `<div class="flex justify-end mb-2"><div class="bg-blue-500 text-white p-3 rounded-lg max-w-[80%]"><p class="text-sm">${msg.UserMessage}</p><p class="text-xs text-right opacity-80 mt-1">${timestamp}</p></div></div>`;
-        }
-        if (msg.AdminReply) {
-            messageDiv.innerHTML += `<div class="flex justify-start mb-2"><div class="bg-gray-200 text-slate-800 p-3 rounded-lg max-w-[80%]"><p class="text-sm">${msg.AdminReply}</p><p class="text-xs text-left opacity-80 mt-1">${timestamp} (Admin)</p></div></div>`;
-        }
-        dom.messagesList.appendChild(messageDiv);
-    });
-    dom.messagesList.scrollTop = dom.messagesList.scrollHeight;
-}
-
-export async function handleSendMessageBtn() {
-    const messageText = dom.messageInput.value.trim();
-    if (!messageText) return;
-
-    dom.sendMessageBtn.disabled = true;
-    const payload = {
-        eventType: 'sendMessage',
-        userId: appState.currentUser.UniqueID,
-        userName: appState.currentUser.Name,
-        message: messageText
-    };
-
-    try {
-        await sendProfileRequest(payload);
-        await fetchAndRenderMessages();
-        dom.messageInput.value = '';
-    } catch (error) {
-        dom.messengerError.textContent = "Failed to send.";
-        dom.messengerError.classList.remove('hidden');
-    } finally {
-        dom.sendMessageBtn.disabled = false;
-    }
-}
-
-export function loadUserProgress() {
-    if (!appState.currentUser || appState.currentUser.Role === 'Guest') return;
-    const savedLectures = localStorage.getItem(`viewedLectures_${appState.currentUser.UniqueID}`);
-    if (savedLectures) appState.viewedLectures = new Set(JSON.parse(savedLectures));
-    const savedBookmarks = localStorage.getItem(`bookmarkedQuestions_${appState.currentUser.UniqueID}`);
-    if (savedBookmarks) appState.bookmarkedQuestions = new Set(JSON.parse(savedBookmarks));
+// Placeholder for loadMessages if not imported
+function loadMessages() {
+    const list = document.getElementById('messages-list');
+    if(list) list.innerHTML = '<p class="text-center text-gray-500 mt-4">No messages yet.</p>';
+    // Actual implementation should fetch from API
 }
