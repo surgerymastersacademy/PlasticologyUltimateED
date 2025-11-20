@@ -1,196 +1,270 @@
-// js/features/learningMode.js (FINAL VERSION v3.1)
+// js/features/quiz.js (FINAL VERSION v3.1)
 
-import { fetchContentData } from '../api.js';
-import { showScreen, showLoader, hideLoader, updateText, showToast } from '../ui.js';
+import { createJsonRequest, sendPostRequest, fetchContentData } from '../api.js';
+import { showScreen, showLoader, hideLoader, showToast, updateText } from '../ui.js';
+import { getCurrentUser } from '../state.js';
 
-let learningQuestions = [];
-let currentLearningIndex = 0;
+let currentQuestions = [];
+let currentQuestionIndex = 0;
+let quizTimerInterval;
+let userAnswers = []; 
 
-export async function initLearningMode() {
-    // Search Handler
-    const searchBtn = document.getElementById('learning-search-btn');
-    if(searchBtn) searchBtn.addEventListener('click', handleSearch);
+// الدالة التي يبحث عنها main.js
+export async function initQuiz() {
+    // أزرار البدء
+    const startMockBtn = document.getElementById('start-mock-btn');
+    if (startMockBtn) startMockBtn.addEventListener('click', startMockExam);
+
+    const startSimBtn = document.getElementById('start-simulation-btn');
+    if (startSimBtn) startSimBtn.addEventListener('click', startSimulationMode);
+
+    // أزرار التحكم داخل الامتحان
+    const nextBtn = document.getElementById('next-skip-btn');
+    if (nextBtn) nextBtn.addEventListener('click', nextQuestion);
+
+    const prevBtn = document.getElementById('previous-btn');
+    if (prevBtn) prevBtn.addEventListener('click', prevQuestion);
+
+    const endBtn = document.getElementById('end-quiz-btn');
+    if (endBtn) endBtn.addEventListener('click', endQuiz);
+
+    const restartBtn = document.getElementById('restart-btn');
+    if (restartBtn) restartBtn.addEventListener('click', () => showScreen('main-menu-container'));
     
-    // Browse Handlers
-    const browseChapterBtn = document.getElementById('learning-browse-by-chapter-btn');
-    if(browseChapterBtn) browseChapterBtn.addEventListener('click', () => {
-         // For v3.1, we'll auto-search for "General" or show all as a fallback
-         // You can expand this to show a modal with chapters later
-         document.getElementById('learning-search-input').value = ''; 
-         handleSearch(null, true); // true = load all
-    });
+    const homeBtn = document.getElementById('results-home-btn');
+    if (homeBtn) homeBtn.addEventListener('click', () => showScreen('main-menu-container'));
 
-    // Navigation Handlers
-    document.getElementById('learning-next-btn').addEventListener('click', nextQuestion);
-    document.getElementById('learning-previous-btn').addEventListener('click', prevQuestion);
-    
-    document.getElementById('end-learning-btn').addEventListener('click', () => {
-        showScreen('main-menu-container');
-    });
-    
-    document.getElementById('learning-mode-back-btn').addEventListener('click', () => {
-        showScreen('main-menu-container');
+    // تحميل الفلاتر (Sources & Chapters)
+    loadQuizFilters();
+}
+
+async function loadQuizFilters() {
+    try {
+        const data = await fetchContentData();
+        if (!data || !data.questions) return;
+
+        const questions = data.questions;
+        const sources = [...new Set(questions.map(q => q.Source).filter(Boolean))].sort();
+        const chapters = [...new Set(questions.map(q => q.Chapter).filter(Boolean))].sort();
+
+        populateFilter('source-select-mock', sources);
+        populateFilter('chapter-select-mock', chapters);
+        populateFilter('source-select-sim', sources);
+        populateFilter('chapter-select-sim', chapters);
+        
+    } catch (e) {
+        console.warn("Failed to load quiz filters", e);
+    }
+}
+
+function populateFilter(elementId, items) {
+    const container = document.getElementById(elementId);
+    if (!container) return;
+    container.innerHTML = '';
+    items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center space-x-2 mb-1';
+        div.innerHTML = `<input type="checkbox" value="${item}" class="form-checkbox h-4 w-4 text-blue-600"><span class="text-sm text-slate-700 dark:text-slate-300 ml-2">${item}</span>`;
+        container.appendChild(div);
     });
 }
 
-async function handleSearch(e, loadAll = false) {
-    const input = document.getElementById('learning-search-input');
-    const term = input ? input.value.toLowerCase() : '';
-    const errorMsg = document.getElementById('learning-search-error');
-    
-    if (!term && !loadAll) {
-        if(errorMsg) {
-            errorMsg.textContent = "Please enter a topic to search.";
-            errorMsg.classList.remove('hidden');
-        }
-        return;
-    }
-    if(errorMsg) errorMsg.classList.add('hidden');
+// --- EXAM LOGIC ---
 
+async function startMockExam() {
+    const countInput = document.getElementById('mock-q-count');
+    const count = parseInt(countInput ? countInput.value : 10) || 10;
+    
+    const timerInput = document.getElementById('custom-timer-input');
+    const timePerQ = parseInt(timerInput ? timerInput.value : 60) || 60;
+
+    const selectedSources = getSelectedValues('source-select-mock');
+    const selectedChapters = getSelectedValues('chapter-select-mock');
+
+    startQuizSession(count, timePerQ, selectedSources, selectedChapters, "Mock Exam");
+}
+
+async function startSimulationMode() {
+    const selectedSources = getSelectedValues('source-select-sim');
+    const selectedChapters = getSelectedValues('chapter-select-sim');
+    // 100 Questions, 72 seconds each (120 mins total)
+    startQuizSession(100, 72, selectedSources, selectedChapters, "Simulation Mode");
+}
+
+async function startQuizSession(count, timePerQ, sources, chapters, title) {
     showLoader('loader');
     try {
         const data = await fetchContentData();
-        if (!data || !data.questions) throw new Error("No questions data.");
+        let questions = data.questions || [];
 
-        // Filter Questions
-        if (loadAll) {
-             learningQuestions = data.questions; // Load everything (Browse mode)
-             updateText('learning-title', `Browsing All Questions`);
-        } else {
-            learningQuestions = data.questions.filter(q => 
-                (q.Question && q.Question.toLowerCase().includes(term)) ||
-                (q.Chapter && q.Chapter.toLowerCase().includes(term)) ||
-                (q.Tags && q.Tags.toLowerCase().includes(term))
-            );
-            updateText('learning-title', `Study: "${term}"`);
+        // Filter logic
+        if (sources.length > 0) questions = questions.filter(q => sources.includes(q.Source));
+        if (chapters.length > 0) questions = questions.filter(q => chapters.includes(q.Chapter));
+
+        if (questions.length === 0) {
+            showToast("No questions found with these filters.", "error");
+            return;
         }
 
-        if (learningQuestions.length > 0) {
-            // Shuffle for variety
-            learningQuestions = learningQuestions.sort(() => 0.5 - Math.random());
-            currentLearningIndex = 0;
-            
-            showScreen('learning-mode-viewer');
-            renderLearningQuestion();
-        } else {
-            if(errorMsg) {
-                errorMsg.textContent = "No questions found matching your search.";
-                errorMsg.classList.remove('hidden');
-            }
-        }
+        // Randomize and Slice
+        questions = questions.sort(() => 0.5 - Math.random()).slice(0, Math.min(count, questions.length));
+
+        // Setup State
+        currentQuestions = questions;
+        currentQuestionIndex = 0;
+        userAnswers = new Array(questions.length).fill(null);
+
+        // UI Setup
+        updateText('quiz-title', title);
+        updateText('total-questions', questions.length);
+        document.getElementById('results-container').classList.add('hidden');
+        document.getElementById('question-container').classList.remove('hidden');
+        document.getElementById('controls-container').classList.remove('hidden');
+
+        showScreen('quiz-container');
+        renderQuestion();
+        startTimer(questions.length * timePerQ);
+
     } catch (e) {
         console.error(e);
-        showToast("Failed to load learning mode.", "error");
+        showToast("Error starting quiz", "error");
     } finally {
         hideLoader('loader');
     }
 }
 
-function renderLearningQuestion() {
-    const q = learningQuestions[currentLearningIndex];
+function getSelectedValues(containerId) {
+    const container = document.getElementById(containerId);
+    if(!container) return [];
+    return Array.from(container.querySelectorAll('input:checked')).map(cb => cb.value);
+}
+
+function renderQuestion() {
+    const q = currentQuestions[currentQuestionIndex];
     if (!q) return;
 
-    const qText = document.getElementById('learning-question-text');
-    const qImg = document.getElementById('learning-image-container');
-    const answersDiv = document.getElementById('learning-answer-buttons');
+    updateText('score-progress-text', `${currentQuestionIndex + 1}/${currentQuestions.length}`);
+    updateText('source-text', `${q.Source || ''} - ${q.Chapter || ''}`);
     
-    // Progress Info
-    updateText('learning-progress-text', `Question ${currentLearningIndex + 1} of ${learningQuestions.length}`);
-    updateText('learning-source-text', `${q.Source || 'General'} - ${q.Chapter || 'Mixed'}`);
-
-    // Question Content
+    // Question Text & Image
+    const qText = document.getElementById('question-text');
     qText.innerHTML = q.Question;
     
-    // Image Handling
-    qImg.innerHTML = '';
-    if (q.Image_URL) {
-        qImg.innerHTML = `<img src="${q.Image_URL}" class="max-h-64 rounded-lg shadow-md cursor-pointer mx-auto" onclick="viewImage(this.src)">`;
-    }
+    const qImg = document.getElementById('question-image-container');
+    qImg.innerHTML = q.Image_URL ? `<img src="${q.Image_URL}" class="max-h-64 rounded shadow cursor-pointer" onclick="viewImage(this.src)">` : '';
 
-    // Render Options
-    answersDiv.innerHTML = '';
+    // Options
+    const optionsContainer = document.getElementById('answer-buttons-quiz');
+    optionsContainer.innerHTML = '';
     const options = [q.Option_A, q.Option_B, q.Option_C, q.Option_D];
-    // Determine correct index (0=A, 1=B, etc.)
-    const correctChar = (q.Correct_Answer || 'A').trim().toUpperCase().charAt(0); 
-    const correctIdx = correctChar.charCodeAt(0) - 65;
 
     options.forEach((opt, idx) => {
         const btn = document.createElement('button');
-        // Use 'learning-answer-btn' class we defined in style.css
-        btn.className = 'learning-answer-btn w-full text-left p-4 rounded-xl border-2 border-slate-200 mb-3 hover:bg-slate-50 transition-all flex items-start';
-        btn.innerHTML = `
-            <span class="font-bold mr-3 text-slate-500 bg-slate-100 w-8 h-8 flex items-center justify-center rounded-full flex-shrink-0">${String.fromCharCode(65+idx)}</span>
-            <span class="mt-1 text-slate-700 dark:text-slate-800 font-medium">${opt || ''}</span>
-        `;
+        btn.className = 'answer-btn w-full text-left mb-2 p-3 rounded border hover:bg-slate-50';
+        // Highlight if selected previously
+        if (userAnswers[currentQuestionIndex] === idx) {
+            btn.classList.add('user-choice', 'bg-blue-50', 'border-blue-500');
+        }
         
-        // Click Handler (Immediate Feedback)
-        btn.onclick = () => {
-            // Disable all buttons to prevent double guessing
-            const allBtns = answersDiv.querySelectorAll('button');
-            allBtns.forEach(b => b.disabled = true);
-
-            if (idx === correctIdx) {
-                // Correct!
-                btn.classList.remove('border-slate-200');
-                btn.classList.add('correct', 'bg-green-50', 'border-green-500');
-                btn.querySelector('span.font-bold').classList.replace('bg-slate-100', 'bg-green-200');
-                btn.querySelector('span.font-bold').classList.replace('text-slate-500', 'text-green-800');
-            } else {
-                // Incorrect!
-                btn.classList.remove('border-slate-200');
-                btn.classList.add('incorrect', 'bg-red-50', 'border-red-500');
-                btn.querySelector('span.font-bold').classList.replace('bg-slate-100', 'bg-red-200');
-                btn.querySelector('span.font-bold').classList.replace('text-slate-500', 'text-red-800');
-                
-                // Highlight the correct answer automatically
-                const correctBtn = allBtns[correctIdx];
-                if(correctBtn) {
-                    correctBtn.classList.remove('border-slate-200');
-                    correctBtn.classList.add('correct', 'bg-green-50', 'border-green-500');
-                }
-            }
-            
-            // Show Rationale
-            showRationale(q.Rationale, answersDiv);
-        };
-        
-        answersDiv.appendChild(btn);
+        btn.innerHTML = `<span class="font-bold mr-2">${String.fromCharCode(65+idx)}.</span> ${opt || ''}`;
+        btn.onclick = () => selectAnswer(idx, btn);
+        optionsContainer.appendChild(btn);
     });
+
+    // Nav Buttons
+    const prevBtn = document.getElementById('previous-btn');
+    if(prevBtn) prevBtn.disabled = currentQuestionIndex === 0;
+    
+    const nextBtn = document.getElementById('next-skip-btn');
+    if(nextBtn) nextBtn.textContent = currentQuestionIndex === currentQuestions.length - 1 ? 'Finish' : 'Next';
 }
 
-function showRationale(rationaleText, container) {
-    // Remove existing rationale if any
-    const existing = document.getElementById('rationale-box');
-    if (existing) existing.remove();
-
-    const ratDiv = document.createElement('div');
-    ratDiv.id = 'rationale-box';
-    // Use 'rationale visible' class from style.css for animation
-    ratDiv.className = 'rationale visible mt-4 text-sm text-slate-700 dark:text-slate-800';
-    
-    const content = rationaleText || "No explanation provided for this question.";
-    ratDiv.innerHTML = `
-        <h4 class="font-bold text-green-700 mb-1"><i class="fas fa-lightbulb mr-1"></i> Explanation:</h4>
-        <p>${content}</p>
-    `;
-    
-    container.appendChild(ratDiv);
-    // Scroll to explanation
-    ratDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+function selectAnswer(idx, btn) {
+    userAnswers[currentQuestionIndex] = idx;
+    // UI Feedback
+    const all = document.querySelectorAll('#answer-buttons-quiz .answer-btn');
+    all.forEach(b => b.classList.remove('user-choice', 'bg-blue-50', 'border-blue-500'));
+    btn.classList.add('user-choice', 'bg-blue-50', 'border-blue-500');
 }
 
 function nextQuestion() {
-    if (currentLearningIndex < learningQuestions.length - 1) {
-        currentLearningIndex++;
-        renderLearningQuestion();
+    if (currentQuestionIndex < currentQuestions.length - 1) {
+        currentQuestionIndex++;
+        renderQuestion();
     } else {
-        showToast("End of questions.", "info");
+        endQuiz();
     }
 }
 
 function prevQuestion() {
-    if (currentLearningIndex > 0) {
-        currentLearningIndex--;
-        renderLearningQuestion();
+    if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        renderQuestion();
+    }
+}
+
+function startTimer(seconds) {
+    clearInterval(quizTimerInterval);
+    let remaining = seconds;
+    const display = document.getElementById('timer');
+    
+    quizTimerInterval = setInterval(() => {
+        remaining--;
+        if (remaining < 0) {
+            endQuiz();
+            return;
+        }
+        const m = Math.floor(remaining / 60).toString().padStart(2, '0');
+        const s = (remaining % 60).toString().padStart(2, '0');
+        if(display) display.textContent = `${m}:${s}`;
+    }, 1000);
+}
+
+async function endQuiz() {
+    clearInterval(quizTimerInterval);
+    
+    // Calculate Score
+    let correctCount = 0;
+    const details = currentQuestions.map((q, i) => {
+        const userIdx = userAnswers[i];
+        const correctChar = (q.Correct_Answer || 'A').trim().toUpperCase();
+        const correctIdx = correctChar.charCodeAt(0) - 65;
+        const isCorrect = userIdx === correctIdx;
+        if (isCorrect) correctCount++;
+        
+        return {
+            qID: q.UniqueID,
+            ans: userIdx !== null ? String.fromCharCode(65 + userIdx) : 'No Answer',
+            isCorrect: isCorrect
+        };
+    });
+
+    // Update UI
+    document.getElementById('question-container').classList.add('hidden');
+    document.getElementById('controls-container').classList.add('hidden');
+    document.getElementById('results-container').classList.remove('hidden');
+    updateText('score-text', correctCount);
+
+    // Save to Server
+    const user = getCurrentUser();
+    if (user) {
+        try {
+            await sendPostRequest({
+                eventType: 'FinishQuiz',
+                userId: user.UniqueID,
+                userName: user.Name,
+                quizTitle: document.getElementById('quiz-title').textContent,
+                score: correctCount,
+                totalQuestions: currentQuestions.length,
+                details: JSON.stringify(details)
+            });
+            
+            // Update local score immediately
+            user.QuizScore = (parseInt(user.QuizScore) || 0) + correctCount;
+            localStorage.setItem('plastico_user', JSON.stringify(user));
+            
+        } catch (e) {
+            console.error("Save Score Error:", e);
+        }
     }
 }
