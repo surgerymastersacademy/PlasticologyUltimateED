@@ -7,6 +7,7 @@ import { getCurrentUser } from '../state.js';
 export async function initLeaderboard() {
     const container = document.getElementById('leaderboard-list');
     const userRankContainer = document.getElementById('current-user-rank');
+    
     if (!container) return;
 
     const user = getCurrentUser();
@@ -36,7 +37,7 @@ function renderLeaderboard(topUsers, currentUserRank) {
     const container = document.getElementById('leaderboard-list');
     const userRankContainer = document.getElementById('current-user-rank');
 
-    // 1. Render Top 10
+    // 1. عرض التوب 10
     if (topUsers.length === 0) {
         container.innerHTML = '<p class="text-center text-gray-500">No data yet.</p>';
     } else {
@@ -46,7 +47,7 @@ function renderLeaderboard(topUsers, currentUserRank) {
             const bgClass = isTop3 ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-slate-100';
             
             const item = document.createElement('div');
-            item.className = `flex items-center justify-between p-3 rounded-lg border ${bgClass} dark:bg-slate-800 dark:border-slate-700 mb-2`;
+            item.className = `flex items-center justify-between p-3 rounded-lg border ${bgClass} dark:bg-slate-800 dark:border-slate-700 mb-2 shadow-sm`;
             item.innerHTML = `
                 <div class="flex items-center gap-3">
                     <span class="font-bold text-lg w-8 text-center">${medal}</span>
@@ -58,14 +59,14 @@ function renderLeaderboard(topUsers, currentUserRank) {
         });
     }
 
-    // 2. Render Current User Rank
+    // 2. عرض ترتيب المستخدم الحالي
     if (currentUserRank && userRankContainer) {
         userRankContainer.innerHTML = `
             <div class="flex items-center justify-between text-blue-900">
                 <span class="font-bold">Your Rank: #${currentUserRank.rank}</span>
                 <span class="font-bold">${currentUserRank.score} pts</span>
             </div>
-            <p class="text-xs text-blue-600 mt-1">Keep pushing, Dr. ${currentUserRank.name}!</p>
+            <p class="text-xs text-blue-600 mt-1 text-center">Keep pushing, Dr. ${currentUserRank.name}!</p>
         `;
         userRankContainer.classList.remove('hidden');
     }
