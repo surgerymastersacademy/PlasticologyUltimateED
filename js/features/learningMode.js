@@ -1,158 +1,121 @@
-// js/features/learningMode.js (With Mistakes & Bookmarked logic)
+// js/features/learningMode.js (FINAL VERSION v3.1)
 
-import { appState, API_URL } from '../state.js';
-import * as dom from '../dom.js';
-import * as ui from '../ui.js';
-import { parseQuestions } from '../utils.js';
+import { fetchContentData } from '../api.js';
+import { showScreen, showLoader, hideLoader, updateText } from '../ui.js';
 
-export function showLearningModeBrowseScreen() {
-    ui.showScreen(dom.learningModeContainer);
-    dom.learningModeControls.classList.remove('hidden');
-    dom.learningModeViewer.classList.add('hidden');
-    appState.navigationHistory.push(showLearningModeBrowseScreen);
-}
+let learningQuestions = [];
+let currentLearningIndex = 0;
 
-function launchLearningMode(title, questions) {
-    if (questions.length === 0) {
-        ui.showConfirmationModal('No Questions', `No questions found for "${title}".`, () => dom.modalBackdrop.classList.add('hidden'));
-        return;
-    }
-    ui.showScreen(dom.learningModeContainer);
-    appState.currentLearning = { questions, currentIndex: 0, title };
-    dom.learningModeControls.classList.add('hidden');
-    dom.learningModeViewer.classList.remove('hidden');
-    dom.learningTitle.textContent = `Studying: ${title}`;
-    appState.navigationHistory.push(() => launchLearningMode(title, questions));
-    showLearningQuestion();
-}
-
-function showLearningQuestion() {
-    const { questions, currentIndex } = appState.currentLearning;
-    const currentQuestion = questions[currentIndex];
-
-    dom.learningImageContainer.innerHTML = currentQuestion.ImageURL ? `<img src="${currentQuestion.ImageURL}" class="max-h-48 rounded-lg mx-auto mb-4 cursor-pointer" onclick="ui.showImageModal('${currentQuestion.ImageURL}')">` : '';
-    dom.learningQuestionText.textContent = currentQuestion.question;
-    dom.learningProgressText.textContent = `Question ${currentIndex + 1} of ${questions.length}`;
-    dom.learningSourceText.textContent = `Source: ${currentQuestion.source || 'N/A'} | Chapter: ${currentQuestion.chapter || 'N/A'}`;
-    dom.learningAnswerButtons.innerHTML = '';
-
-    currentQuestion.answerOptions.forEach(answer => {
-        const answerDiv = document.createElement('div');
-        const button = document.createElement('button');
-        button.innerHTML = answer.text;
-        button.className = 'learning-answer-btn w-full text-left p-4 rounded-lg';
-        button.disabled = true;
-
-        if (answer.isCorrect) {
-            button.classList.add('correct');
-            const rationale = document.createElement('p');
-            rationale.className = 'learning-rationale';
-            rationale.innerHTML = answer.rationale || 'No rationale provided.';
-            answerDiv.appendChild(button);
-            answerDiv.appendChild(rationale);
-        } else {
-            answerDiv.appendChild(button);
-        }
-        dom.learningAnswerButtons.appendChild(answerDiv);
-    });
-
-    dom.learningPreviousBtn.disabled = currentIndex === 0;
-    dom.learningNextBtn.disabled = currentIndex === questions.length - 1;
-}
-
-export function handleLearningNext() {
-    if (appState.currentLearning.currentIndex < appState.currentLearning.questions.length - 1) {
-        appState.currentLearning.currentIndex++;
-        showLearningQuestion();
-    }
-}
-
-export function handleLearningPrevious() {
-    if (appState.currentLearning.currentIndex > 0) {
-        appState.currentLearning.currentIndex--;
-        showLearningQuestion();
-    }
-}
-
-export function handleLearningSearch() {
-    const searchTerm = dom.learningSearchInput.value.trim().toLowerCase();
-    if (searchTerm.length < 3) {
-        dom.learningSearchError.textContent = 'Please enter at least 3 characters.';
-        dom.learningSearchError.classList.remove('hidden');
-        return;
-    }
-    dom.learningSearchError.classList.add('hidden');
-
-    const filteredQuestions = appState.allQuestions.filter(q =>
-        q.question.toLowerCase().includes(searchTerm) ||
-        q.answerOptions.some(opt => opt.text.toLowerCase().includes(searchTerm))
-    );
-
-    launchLearningMode(`Search: "${dom.learningSearchInput.value}"`, filteredQuestions);
-}
-
-export function startLearningBrowse(browseBy) {
-    const isChapter = browseBy === 'chapter';
-    const title = isChapter ? 'Browse by Chapter' : 'Browse by Source';
+export async function initLearningMode() {
+    // Search Handler
+    document.getElementById('learning-search-btn').addEventListener('click', handleSearch);
     
-    const itemCounts = appState.allQuestions.reduce((acc, q) => {
-        const item = isChapter ? (q.chapter || 'Uncategorized') : (q.source || 'Uncategorized');
-        acc[item] = (acc[item] || 0) + 1;
-        return acc;
-    }, {});
+    // Navigation Handlers
+    document.getElementById('learning-next-btn').addEventListener('click', nextQuestion);
+    document.getElementById('learning-previous-btn').addEventListener('click', prevQuestion);
+    document.getElementById('end-learning-btn').addEventListener('click', () => showScreen('main-menu-container'));
 
-    const items = Object.keys(itemCounts).sort();
-    dom.listTitle.textContent = title;
-    dom.listItems.innerHTML = '';
-
-    if (items.length === 0) {
-        dom.listItems.innerHTML = `<p class="text-slate-500 col-span-full text-center">No ${browseBy}s found.</p>`;
-    } else {
-        items.forEach(item => {
-            const button = document.createElement('button');
-            button.className = 'action-btn p-4 bg-white rounded-lg shadow-sm text-center hover:bg-slate-50';
-            button.innerHTML = `<h3 class="font-bold text-slate-800">${item}</h3><p class="text-sm text-slate-500">${itemCounts[item]} Questions</p>`;
-            button.addEventListener('click', () => {
-                const questions = appState.allQuestions.filter(q => {
-                    const qItem = isChapter ? (q.chapter || 'Uncategorized') : (q.source || 'Uncategorized');
-                    return qItem === item;
-                });
-                launchLearningMode(item, questions);
-            });
-            dom.listItems.appendChild(button);
-        });
-    }
-
-    ui.showScreen(dom.listContainer);
-    appState.navigationHistory.push(() => startLearningBrowse(browseBy));
+    // Browse Buttons
+    document.getElementById('learning-browse-by-chapter-btn').addEventListener('click', () => alert("Browse feature coming in v3.2")); 
+    // You can implement browse logic similar to Quiz filters if needed
 }
 
-// --- NEW FUNCTIONS FOR MISTAKES & BOOKMARKED ---
+async function handleSearch() {
+    const term = document.getElementById('learning-search-input').value.toLowerCase();
+    const errorMsg = document.getElementById('learning-search-error');
+    
+    if (!term) {
+        errorMsg.textContent = "Please enter a topic.";
+        errorMsg.classList.remove('hidden');
+        return;
+    }
+    errorMsg.classList.add('hidden');
 
-export async function startLearningMistakes() {
-    ui.showConfirmationModal('Loading...', 'Fetching your mistakes, please wait.', () => {});
-    dom.modalConfirmBtn.classList.add('hidden'); // Hide confirm button
-    dom.modalCancelBtn.classList.add('hidden'); // Hide cancel button
+    showLoader('loader');
     try {
-        const response = await fetch(`${API_URL}?request=getIncorrectQuestions&userId=${appState.currentUser.UniqueID}&t=${new Date().getTime()}`);
-        if (!response.ok) throw new Error('Failed to fetch your mistakes.');
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
+        const data = await fetchContentData();
+        if (!data || !data.questions) return;
 
-        const mistakeQuestions = parseQuestions(data.questions);
-        dom.modalBackdrop.classList.add('hidden'); // Hide modal before launching
-        launchLearningMode("Study Mistakes", mistakeQuestions);
+        // Filter Questions
+        learningQuestions = data.questions.filter(q => 
+            (q.Question && q.Question.toLowerCase().includes(term)) ||
+            (q.Tags && q.Tags.toLowerCase().includes(term))
+        );
 
-    } catch (error) {
-        console.error("Error fetching mistakes:", error);
-        dom.modalConfirmBtn.classList.remove('hidden');
-        dom.modalCancelBtn.classList.remove('hidden');
-        ui.showConfirmationModal('Error', error.message, () => dom.modalBackdrop.classList.add('hidden'));
+        if (learningQuestions.length > 0) {
+            currentLearningIndex = 0;
+            updateText('learning-title', `Study: "${term}"`);
+            showScreen('learning-mode-viewer');
+            renderLearningQuestion();
+        } else {
+            errorMsg.textContent = "No questions found for this topic.";
+            errorMsg.classList.remove('hidden');
+        }
+    } catch (e) {
+        console.error(e);
+    } finally {
+        hideLoader('loader');
     }
 }
 
-export function startLearningBookmarked() {
-    const bookmarkedIds = Array.from(appState.bookmarkedQuestions);
-    const bookmarkedQuestions = appState.allQuestions.filter(q => bookmarkedIds.includes(q.UniqueID));
-    launchLearningMode("Study Bookmarked", bookmarkedQuestions);
+function renderLearningQuestion() {
+    const q = learningQuestions[currentLearningIndex];
+    const qText = document.getElementById('learning-question-text');
+    const qImg = document.getElementById('learning-image-container');
+    const answersDiv = document.getElementById('learning-answer-buttons');
+    
+    // Progress
+    updateText('learning-progress-text', `Question ${currentLearningIndex + 1} of ${learningQuestions.length}`);
+    updateText('learning-source-text', `${q.Source || ''} - ${q.Chapter || ''}`);
+
+    // Content
+    qText.innerHTML = q.Question;
+    qImg.innerHTML = q.Image_URL ? `<img src="${q.Image_URL}" class="max-h-64 rounded shadow cursor-pointer" onclick="viewImage(this.src)">` : '';
+
+    // Options (Immediate Feedback Logic)
+    answersDiv.innerHTML = '';
+    const options = [q.Option_A, q.Option_B, q.Option_C, q.Option_D];
+    const correctChar = q.Correct_Answer.trim().toUpperCase(); // 'A'
+    const correctIdx = correctChar.charCodeAt(0) - 65;
+
+    options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'learning-answer-btn w-full text-left p-3 rounded border border-slate-200 mb-2 hover:bg-slate-50';
+        btn.innerHTML = `<span class="font-bold">${String.fromCharCode(65+idx)}.</span> ${opt}`;
+        
+        btn.onclick = () => {
+            // Show Result immediately
+            if (idx === correctIdx) {
+                btn.classList.add('correct', 'bg-green-100', 'border-green-500');
+            } else {
+                btn.classList.add('incorrect', 'bg-red-100', 'border-red-500');
+                // Highlight correct one automatically
+                answersDiv.children[correctIdx].classList.add('correct', 'bg-green-100', 'border-green-500');
+            }
+            
+            // Show Rationale if exists
+            if (q.Rationale && !document.getElementById('rationale-box')) {
+                const ratDiv = document.createElement('div');
+                ratDiv.id = 'rationale-box';
+                ratDiv.className = 'mt-4 p-4 bg-blue-50 text-blue-900 rounded border-l-4 border-blue-500 text-sm animate-fadeIn';
+                ratDiv.innerHTML = `<strong>💡 Explanation:</strong><br>${q.Rationale}`;
+                answersDiv.appendChild(ratDiv);
+            }
+        };
+        answersDiv.appendChild(btn);
+    });
+}
+
+function nextQuestion() {
+    if (currentLearningIndex < learningQuestions.length - 1) {
+        currentLearningIndex++;
+        renderLearningQuestion();
+    }
+}
+
+function prevQuestion() {
+    if (currentLearningIndex > 0) {
+        currentLearningIndex--;
+        renderLearningQuestion();
+    }
 }
