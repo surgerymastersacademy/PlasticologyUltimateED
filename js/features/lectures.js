@@ -1,171 +1,150 @@
-// js/features/lectures.js (FINAL - VERIFIED)
+// js/features/lectures.js (FINAL VERSION v3.1)
 
-import { appState } from '../state.js';
-import * as dom from '../dom.js';
-import * as ui from '../ui.js';
-import { logUserActivity } from '../api.js';
-import { startChapterQuiz } from './quiz.js';
-import { openNoteModal } from '../main.js';
+import { createJsonRequest, sendPostRequest, fetchContentData } from '../api.js';
+import { showLoader, hideLoader, showToast } from '../ui.js';
+import { getCurrentUser } from '../state.js';
 
-export function saveUserProgress() {
-    if (!appState.currentUser || appState.currentUser.Role === 'Guest') return;
-    localStorage.setItem(`viewedLectures_${appState.currentUser.UniqueID}`, JSON.stringify(Array.from(appState.viewedLectures)));
-    localStorage.setItem(`bookmarkedQuestions_${appState.currentUser.UniqueID}`, JSON.stringify(Array.from(appState.bookmarkedQuestions)));
-}
+let allLectures = [];
 
-function toggleLectureViewed(lectureLink, lectureName) {
-    if (appState.viewedLectures.has(lectureLink)) {
-        appState.viewedLectures.delete(lectureLink);
-    } else {
-        appState.viewedLectures.add(lectureLink);
-        logUserActivity({
-            eventType: 'ViewLecture',
-            lectureName: lectureName
+export async function initLectures() {
+    const container = document.getElementById('lectures-list');
+    const searchInput = document.getElementById('lecture-search-input');
+    
+    if (!container) return;
+
+    showLoader('lectures-loader');
+    container.innerHTML = ''; // Clear previous content
+
+    try {
+        // 1. Get Content (Smart Cache)
+        const data = await fetchContentData();
+        
+        if (data && data.lectures) {
+            allLectures = data.lectures;
+            
+            // 2. Get User Progress (Optional: to show what's watched)
+            // We could fetch logs here, but for speed, we'll render first
+            renderLectures(allLectures);
+        } else {
+            container.innerHTML = '<p class="text-center text-gray-500">No lectures found.</p>';
+        }
+    } catch (error) {
+        console.error("Lectures Init Error:", error);
+        container.innerHTML = '<p class="text-center text-red-500">Failed to load lectures.</p>';
+    } finally {
+        hideLoader('lectures-loader');
+    }
+
+    // Search Listener
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = allLectures.filter(l => 
+                (l.Topic && l.Topic.toLowerCase().includes(term)) || 
+                (l.Chapter && l.Chapter.toLowerCase().includes(term))
+            );
+            renderLectures(filtered);
         });
     }
-    saveUserProgress();
-    renderLectures(dom.lectureSearchInput.value);
 }
 
-export function renderLectures(filterText = '') {
-    dom.lecturesList.innerHTML = '';
-    const lowerCaseFilter = filterText.toLowerCase();
-    const chapterNames = Object.keys(appState.groupedLectures).sort();
-    let chaptersFound = 0;
+function renderLectures(lectures) {
+    const container = document.getElementById('lectures-list');
+    container.innerHTML = '';
 
-    if (Object.keys(appState.groupedLectures).length === 0) {
-        dom.lecturesLoader.classList.remove('hidden');
+    if (lectures.length === 0) {
+        container.innerHTML = '<p class="text-center text-gray-400 mt-4">No matching lectures found.</p>';
         return;
     }
-    dom.lecturesLoader.classList.add('hidden');
 
-    chapterNames.forEach(chapterName => {
-        const chapterData = appState.groupedLectures[chapterName];
-        const isChapterMatch = chapterName.toLowerCase().includes(lowerCaseFilter);
-        const isTopicMatch = chapterData.topics.some(topic => topic.name.toLowerCase().includes(lowerCaseFilter));
-        if (filterText && !isChapterMatch && !isTopicMatch) return;
-        chaptersFound++;
-        
-        const details = document.createElement('details');
-        details.className = 'bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm';
-        details.open = !!filterText;
-        const summary = document.createElement('summary');
-        summary.className = 'p-4 cursor-pointer hover:bg-slate-50';
-
-        const totalTopics = chapterData.topics.length;
-        const viewedTopics = chapterData.topics.filter(topic => appState.viewedLectures.has(topic.link)).length;
-        const progressPercentage = totalTopics > 0 ? (viewedTopics / totalTopics) * 100 : 0;
-
-        summary.innerHTML = `
-            <div class="flex justify-between items-center">
-                <span class="flex items-center font-bold text-slate-800 text-lg">
-                    <i class="${chapterData.icon || 'fas fa-layer-group'} mr-3 text-cyan-600 w-5 text-center"></i>
-                    ${chapterName}
-                </span>
-                <div class="flex items-center gap-4">
-                    <i class="fas fa-chevron-down transition-transform duration-300 text-slate-500"></i>
-                </div>
-            </div>
-            <div class="mt-2 flex items-center gap-2">
-                <div class="w-full bg-slate-200 rounded-full h-2.5">
-                    <div class="bg-cyan-600 h-2.5 rounded-full" style="width: ${progressPercentage}%"></div>
-                </div>
-                <span class="text-xs font-semibold text-slate-500">${viewedTopics}/${totalTopics}</span>
-            </div>
-        `;
-
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'p-4 bg-slate-50 border-t border-slate-200';
-        const topicList = document.createElement('ul');
-        topicList.className = 'space-y-2';
-        
-        chapterData.topics.forEach(topic => {
-            const listItem = document.createElement('li');
-            listItem.className = 'flex items-center justify-between p-3 rounded-md hover:bg-blue-100 transition-colors group';
-            const isViewed = appState.viewedLectures.has(topic.link);
-            if (isViewed) listItem.classList.add('lecture-viewed');
-
-            const controls = document.createElement('div');
-            controls.className = 'flex items-center gap-3';
-            const icon = document.createElement('i');
-            icon.className = `fas ${isViewed ? 'fa-check-circle' : 'fa-play-circle'} mr-3 text-blue-500 view-toggle-icon`;
-            icon.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleLectureViewed(topic.link, topic.name);
-            });
-            const noteIcon = document.createElement('i');
-            const hasNote = appState.userLectureNotes.some(note => note.LectureID === topic.id);
-            noteIcon.className = `fas fa-sticky-note text-slate-400 hover:text-amber-500 note-icon ${hasNote ? 'has-note' : ''}`;
-            noteIcon.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                openNoteModal('lecture', topic.id, topic.name);
-            });
-            controls.appendChild(icon);
-            controls.appendChild(noteIcon);
-
-            const content = document.createElement('div');
-            content.className = "flex-grow";
-            const link = document.createElement('a');
-            link.href = topic.link;
-            link.target = '_blank';
-            link.className = "lecture-name text-slate-800 font-medium";
-            link.textContent = topic.name;
-            content.appendChild(link);
-            listItem.appendChild(controls);
-            listItem.appendChild(content);
-            topicList.appendChild(listItem);
-        });
-        contentDiv.appendChild(topicList);
-
-        const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'mt-4 pt-4 border-t border-slate-200 flex flex-col sm:flex-row gap-3';
-        const relevantQuestions = appState.allQuestions.filter(q => q.chapter.trim().toLowerCase() === chapterName.trim().toLowerCase());
-        if (relevantQuestions.length > 0) {
-            const quizButton = document.createElement('button');
-            quizButton.className = 'w-full action-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2';
-            quizButton.innerHTML = `<i class="fas fa-pencil-alt"></i> Test Chapter (${relevantQuestions.length} Qs)`;
-            quizButton.addEventListener('click', () => startChapterQuiz(chapterName, relevantQuestions));
-            actionsDiv.appendChild(quizButton);
-        }
-        if (chapterData.mock && chapterData.mock.link) {
-            const mockButton = document.createElement('a');
-            mockButton.href = chapterData.mock.link;
-            mockButton.target = '_blank';
-            mockButton.className = 'w-full action-btn bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2';
-            mockButton.innerHTML = `<i class="fas fa-vial"></i> ${chapterData.mock.name}`;
-            actionsDiv.appendChild(mockButton);
-        }
-        if (actionsDiv.hasChildNodes()) {
-            contentDiv.appendChild(actionsDiv);
-        }
-
-        details.appendChild(summary);
-        details.appendChild(contentDiv);
-        dom.lecturesList.appendChild(details);
+    // Group by Chapter
+    const grouped = {};
+    lectures.forEach(lecture => {
+        const chapter = lecture.Chapter || 'General';
+        if (!grouped[chapter]) grouped[chapter] = [];
+        grouped[chapter].push(lecture);
     });
 
-    if (chaptersFound === 0) {
-        dom.lecturesList.innerHTML = `<p class="text-center text-slate-500">No lectures found.</p>`;
-    }
+    // Render Groups
+    Object.keys(grouped).forEach(chapter => {
+        // Create Chapter Header (Accordion Style)
+        const chapterDiv = document.createElement('details');
+        chapterDiv.className = 'bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden group mb-4';
+        chapterDiv.open = false; // Collapsed by default
+
+        const summary = document.createElement('summary');
+        summary.className = 'p-4 cursor-pointer flex justify-between items-center font-bold text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors select-none';
+        summary.innerHTML = `
+            <div class="flex items-center gap-3">
+                <span class="bg-teal-100 text-teal-700 text-xs px-2 py-1 rounded uppercase font-bold">${grouped[chapter].length} Videos</span>
+                <span>${chapter}</span>
+            </div>
+            <i class="fas fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform"></i>
+        `;
+
+        const listDiv = document.createElement('div');
+        listDiv.className = 'p-2 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30 space-y-2';
+
+        grouped[chapter].forEach(lec => {
+            const item = document.createElement('div');
+            item.className = 'flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-md transition-all cursor-pointer group/item';
+            
+            // Determine Icon (Video or Link)
+            const iconClass = lec.Link.includes('youtu') ? 'fa-youtube text-red-600' : 'fa-play-circle text-teal-600';
+            
+            item.innerHTML = `
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0 group-hover/item:bg-teal-50 dark:group-hover/item:bg-teal-900/20 transition-colors">
+                        <i class="fab ${iconClass} text-lg"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">${lec.Topic}</h4>
+                        <p class="text-xs text-slate-400 truncate">Tap to watch</p>
+                    </div>
+                </div>
+                <i class="fas fa-external-link-alt text-slate-300 group-hover/item:text-blue-500"></i>
+            `;
+
+            item.addEventListener('click', () => openLecture(lec));
+            listDiv.appendChild(item);
+        });
+
+        chapterDiv.appendChild(summary);
+        chapterDiv.appendChild(listDiv);
+        container.appendChild(chapterDiv);
+    });
 }
 
-export async function fetchAndShowLastActivity() {
-    if (!appState.currentUser || appState.currentUser.Role === 'Guest' || appState.fullActivityLog.length === 0) {
-        dom.lastLectureRibbon.classList.add('hidden');
-        dom.lastQuizRibbon.classList.add('hidden');
+async function openLecture(lecture) {
+    if (!lecture.Link) {
+        showToast('No link available for this lecture', 'error');
         return;
     }
-    const lastLecture = appState.fullActivityLog.find(log => log.eventType === 'ViewLecture');
-    const lastQuiz = appState.fullActivityLog.find(log => log.eventType === 'FinishQuiz');
 
-    if (lastLecture) {
-        dom.lastLectureRibbon.innerHTML = `<i class="fas fa-video mr-2"></i> Last Lecture Viewed: <strong>${lastLecture.title}</strong>`;
-        dom.lastLectureRibbon.classList.remove('hidden');
-    }
-    if (lastQuiz) {
-        dom.lastQuizRibbon.innerHTML = `<i class="fas fa-check-double mr-2"></i> Last Quiz: <strong>${lastQuiz.title}</strong> (Score: ${lastQuiz.score}/${lastQuiz.total})`;
-        dom.lastQuizRibbon.classList.remove('hidden');
+    // 1. Open Link
+    window.open(lecture.Link, '_blank');
+
+    // 2. Log View (Silently)
+    const user = getCurrentUser();
+    if (user) {
+        try {
+            // Update "Last Activity" in UI immediately (Optimistic UI)
+            const ribbon = document.getElementById('last-lecture-ribbon');
+            if (ribbon) {
+                ribbon.innerHTML = `<i class="fas fa-play mr-1"></i> Resume: ${lecture.Topic.substring(0, 15)}...`;
+                ribbon.classList.remove('hidden');
+            }
+
+            // Send to Backend
+            await sendPostRequest({
+                eventType: 'ViewLecture',
+                userId: user.UniqueID,
+                userName: user.Name,
+                lectureName: lecture.Topic
+            });
+            console.log("Lecture view logged");
+        } catch (e) {
+            console.warn("Failed to log lecture view", e);
+        }
     }
 }
