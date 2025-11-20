@@ -4,7 +4,7 @@ import { showLoader, hideLoader, showToast } from './ui.js';
 
 // ⚠️ هام: استبدل هذا الرابط برابط السكربت الخاص بك إذا لم يكن موجوداً
 // Web App URL from Google Apps Script Deployment
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzVzJ-s4g_M-k3v-TzX3j2gJ1x4kL5mN6oP7qR8s9tU0vW1x2y3z/exec"; 
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec"; 
 // ملاحظة: إذا كان الرابط موجوداً في config.js أو main.js، تأكد من استخدامه هنا. 
 // في هذا الهيكل، سنفترض أن الرابط يتم تمريره أو تحديده هنا.
 // للأمان، يفضل وضع رابطك الحقيقي هنا مكان الرابط الافتراضي أعلاه.
@@ -119,3 +119,4 @@ export async function fetchContentData() {
         throw error;
     }
 }
+
