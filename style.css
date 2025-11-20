@@ -1,19 +1,44 @@
-/* style.css (Updated for v3.1 Modern Layout) */
+/* style.css (FINAL MASTER VERSION v3.1) */
 
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
+/* --- 1. Global Variables & Reset --- */
 :root {
     --primary-color: #2563eb;
+    --bg-color: #f8fafc;
+    --text-color: #1e293b;
     --sidebar-width: 16rem;
     --bottom-nav-height: 4rem;
 }
 
-body {
-    font-family: 'Inter', 'Cairo', sans-serif;
-    -webkit-tap-highlight-color: transparent;
+html.dark {
+    --bg-color: #0f172a;
+    --text-color: #f1f5f9;
 }
 
-/* --- Scrollbar Customization --- */
+body {
+    font-family: 'Inter', 'Cairo', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    -webkit-tap-highlight-color: transparent;
+    overflow: hidden; /* Prevents double scrolling with the new layout */
+}
+
+/* --- 2. Login Animation Canvas (RESTORED) --- */
+#login-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* Ensures it stays behind the login form */
+    background: linear-gradient(to bottom right, #e0e7ff, #f0f4f8);
+}
+html.dark #login-canvas {
+    background: linear-gradient(to bottom right, #0f172a, #1e293b);
+}
+
+/* --- 3. Scrollbar Customization --- */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -28,8 +53,11 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
+html.dark ::-webkit-scrollbar-thumb {
+    background: #475569;
+}
 
-/* --- Loader Animation --- */
+/* --- 4. Loader Animation --- */
 .loader {
     border: 4px solid #f3f3f3;
     border-top: 4px solid #3498db;
@@ -41,7 +69,7 @@ body {
 }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-/* --- Mobile Drawer Animation --- */
+/* --- 5. Animations (Slide & Fade) --- */
 @keyframes slideLeft {
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
@@ -50,7 +78,15 @@ body {
     animation: slideLeft 0.3s ease-out forwards;
 }
 
-/* --- Floating Settings Button --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.login-card {
+    animation: fadeIn 0.6s ease-out;
+}
+
+/* --- 6. Floating Settings Button --- */
 #settings-container {
     position: fixed;
     top: 1rem;
@@ -65,21 +101,82 @@ body {
     gap: 10px;
 }
 #settings-container button {
-    color: #fff;
+    color: #64748b;
     font-size: 1.2rem;
     transition: transform 0.2s;
+    background: transparent;
+    border: none;
+    cursor: pointer;
 }
-#settings-container button:hover { transform: scale(1.1); }
+#settings-container button:hover { transform: scale(1.1); color: var(--primary-color); }
+html.dark #settings-container button { color: #cbd5e1; }
 
-/* --- Nav Item Active State --- */
-.nav-item.active {
-    color: var(--primary-color);
-}
-.nav-item.active span {
-    font-weight: 700;
+/* Icons toggle logic */
+html.light .moon-icon { display: block; } html.light .sun-icon { display: none; }
+html.dark .sun-icon { display: block; } html.dark .moon-icon { display: none; }
+html:not(.animation-off) .animation-off-icon { display: block; }
+html:not(.animation-off) .animation-on-icon { display: none; }
+html.animation-off .animation-on-icon { display: block; }
+html.animation-off .animation-off-icon { display: none; }
+
+/* --- 7. Input Icons --- */
+.input-with-icon-container { position: relative; }
+.input-with-icon-container .input-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    pointer-events: none;
 }
 
-/* --- Matching Game Styles --- */
+/* --- 8. Q-Bank & Exam Styles (CRITICAL) --- */
+.answer-btn {
+    display: flex;
+    padding: 1rem;
+    border: 2px solid transparent;
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%; /* Ensure full width */
+    text-align: left;
+    align-items: flex-start;
+}
+.answer-btn:hover { background: #f8fafc; }
+.answer-btn.correct { border-color: #10b981; background: #ecfdf5; }
+.answer-btn.incorrect { border-color: #ef4444; background: #fef2f2; }
+.answer-btn.user-choice { border-width: 2px; border-color: #3b82f6; }
+
+/* Rationale (Explanation) Animation */
+.rationale { 
+    visibility: hidden; 
+    opacity: 0; 
+    max-height: 0; 
+    transition: all 0.3s ease-in-out; 
+    overflow: hidden; 
+    background: #f0fdf4;
+    border-left: 4px solid #10b981;
+    padding: 0;
+    margin-top: 0;
+    border-radius: 0.5rem;
+}
+.rationale.visible { 
+    visibility: visible; 
+    opacity: 1; 
+    max-height: 500px; /* Enough for long text */
+    padding: 1rem;
+    margin-top: 1rem;
+}
+html.dark .rationale { background: rgba(16, 185, 129, 0.1); }
+
+/* Question Status Buttons (Flag/Bookmark) */
+.flag-btn.flagged { color: #f59e0b; }
+.bookmark-btn.bookmarked { color: #3b82f6; }
+.note-icon.has-note { color: #f59e0b; }
+
+/* --- 9. Matching Game Styles --- */
 .matching-container-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -91,6 +188,7 @@ body {
     border-radius: 8px;
     margin-bottom: 10px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
 }
 .premise-drop-zone {
     border: 2px dashed #cbd5e1;
@@ -101,6 +199,7 @@ body {
     justify-content: center;
     margin-top: 5px;
     background: #f8fafc;
+    transition: background 0.2s;
 }
 .answer-draggable {
     background: #fff;
@@ -109,44 +208,51 @@ body {
     border-radius: 8px;
     margin-bottom: 8px;
     cursor: pointer;
-    transition: transform 0.1s;
+    transition: transform 0.1s, background-color 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
+.answer-draggable:hover { transform: translateY(-2px); }
 .answer-draggable.answer-selected {
     border-color: var(--primary-color);
     background: #eff6ff;
 }
-.correct-match {
-    border-color: #10b981;
-    background: #dcfce7;
+.premise-drop-zone.correct-match { border-color: #10b981; background: #dcfce7; }
+.premise-drop-zone.incorrect-match { border-color: #ef4444; background: #fee2e2; }
+
+/* --- 10. Navigation Styles (New UI) --- */
+.sidebar-link.active {
+    background-color: #1e293b; /* slate-800 */
+    border-right: 4px solid #3b82f6;
 }
-.incorrect-match {
-    border-color: #ef4444;
-    background: #fee2e2;
+.nav-item.active {
+    color: var(--primary-color);
+}
+.nav-item.active span {
+    font-weight: 700;
 }
 
-/* --- Q-Bank Custom Styles --- */
-.answer-btn {
-    display: flex;
-    padding: 1rem;
-    border: 2px solid transparent;
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    cursor: pointer;
-    transition: all 0.2s;
+/* --- 11. Watermark Overlay --- */
+#watermark-overlay {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    opacity: 0.1;
+    pointer-events: none;
+    z-index: 9999;
+    font-size: 0.8rem;
+    color: #000;
 }
-.answer-btn:hover { background: #f8fafc; }
-.answer-btn.correct { border-color: #10b981; background: #ecfdf5; }
-.answer-btn.incorrect { border-color: #ef4444; background: #fef2f2; }
-.answer-btn.user-choice { border-width: 2px; border-color: #3b82f6; }
+html.dark #watermark-overlay { color: #fff; }
 
-/* Dark Mode Overrides */
+/* --- 12. Dark Mode Overrides (Global) --- */
 html.dark .app-shell { background: #0f172a; }
 html.dark .sidebar-link:hover { background: #1e293b; }
 html.dark .answer-btn { background: #1e293b; color: white; border-color: #334155; }
 html.dark .answer-btn:hover { background: #334155; }
-html.light .moon-icon { display: block; } html.light .sun-icon { display: none; }
-html.dark .sun-icon { display: block; } html.dark .moon-icon { display: none; }
+html.dark .premise-card, 
+html.dark .answer-draggable { background: #1e293b; border-color: #334155; color: white; }
+html.dark .premise-drop-zone { background: #0f172a; border-color: #475569; }
+html.dark .answer-draggable.answer-selected { background: #1e3a8a; border-color: #3b82f6; }
 
-/* Safe Area for iPhone X+ */
+/* --- 13. Safe Area (iPhone X+) --- */
 .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
