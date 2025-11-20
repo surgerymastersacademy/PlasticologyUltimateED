@@ -1,95 +1,100 @@
-// js/state.js (FINAL VERSION)
+// js/state.js (FINAL VERSION v3.1)
 
-export const API_URL = 'https://script.google.com/macros/s/AKfycbzx8gRgbYZw8Rrg348q2dlsRd7yQ9IXUNUPBDUf-Q5Wb9LntLuKY-ozmnbZOOuQsDU_3w/exec';
-
-export const SIMULATION_Q_COUNT = 100;
-export const SIMULATION_TOTAL_TIME_MINUTES = 120;
-export const DEFAULT_TIME_PER_QUESTION = 45;
-export const AVATAR_BASE_URL = "https://api.dicebear.com/7.x/initials/svg?seed=";
-export const AVATAR_OPTIONS = [ "User", "Avatar", "Profile", "Person", "Guest", "Student", "Doctor", "Nurse", "Medical", "Health", "Science", "Knowledge", "Book", "Study", "Exam", "Quiz", "Success", "Champion", "Winner", "Learner" ];
-
-export const appState = {
-    allQuestions: [],
-    allFreeTestQuestions: [],
-    allOsceCases: [],
-    allOsceQuestions: [],
-    groupedLectures: {},
-    mcqBooks: [],
-    allAnnouncements: [],
-    allRoles: [],
-    allChaptersNames: [],
-    allTheoryQuestions: [],
-    
-    currentUser: null,
-    userCardData: null,
-    userRoles: {},
-    viewedLectures: new Set(),
-    bookmarkedQuestions: new Set(),
-    answeredQuestions: new Set(),
-    fullActivityLog: [],
-    userQuizNotes: [],
-    userLectureNotes: [],
-    userMessages: [],
-    userTheoryLogs: [],
-    
-    studyPlans: [], 
-    activeStudyPlan: null, 
-
-    navigationHistory: [],
-    activityChartInstance: null,
-    currentNote: { type: null, itemId: null, itemTitle: null },
-    modalConfirmAction: null,
-    qbankSearchResults: [],
-    messengerPollInterval: null,
-
-    currentQuiz: {
-        questions: [],
-        originalQuestions: [],
-        userAnswers: [],
-        originalUserAnswers: [],
-        currentQuestionIndex: 0,
-        score: 0,
-        timerInterval: null,
-        simulationTimerInterval: null,
-        flaggedIndices: new Set(),
-        isReviewMode: false,
-        isSimulationMode: false,
-        isPracticingMistakes: false,
-        timePerQuestion: 45,
-        isSimulationReview: false
-    },
-
-    currentOsce: {
-        cases: [],
-        caseIndex: 0,
-        questionIndex: 0,
-        timerInterval: null,
-        userAnswers: {},
-        score: 0,
-        totalQuestions: 0,
-    },
-
-    currentLearning: {
-        questions: [],
-        currentIndex: 0,
-        title: ''
-    },
-
-    currentTheorySession: {
-        questions: [],
-        currentIndex: 0,
-        isExamMode: false,
-        title: '',
-        timerInterval: null
-    },
-
-    currentMatching: {
-        allSets: [], 
-        currentSetIndex: 0,
-        userMatches: {}, 
-        score: 0,
-        timerInterval: null,
-        timePerSet: 60,
-        selectedAnswerElement: null 
-    },
+// 1. Internal State Variables
+let currentUser = null;
+let currentQuiz = null;
+let appSettings = {
+    theme: 'light',
+    animationEnabled: true
 };
+
+// =========================================
+// USER STATE MANAGEMENT
+// =========================================
+
+/**
+ * Sets the current active user in memory.
+ * @param {Object} user - The user object returned from API.
+ */
+export function setCurrentUser(user) {
+    currentUser = user;
+    // We don't save to localStorage here to keep this function pure.
+    // localStorage handling is done in userProfile.js logic usually, 
+    // but getCurrentUser below handles the retrieval fallback.
+}
+
+/**
+ * Gets the current user. 
+ * Auto-restores from localStorage if memory is empty (e.g., after refresh).
+ * @returns {Object|null} The user object or null if not logged in.
+ */
+export function getCurrentUser() {
+    // 1. Return from memory if available
+    if (currentUser) {
+        return currentUser;
+    }
+
+    // 2. Fallback: Try to restore from localStorage
+    const storedUser = localStorage.getItem('plastico_user');
+    if (storedUser) {
+        try {
+            currentUser = JSON.parse(storedUser);
+            return currentUser;
+        } catch (e) {
+            console.error("Error parsing stored user:", e);
+            // If corrupted, clear it
+            localStorage.removeItem('plastico_user');
+            return null;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Checks if a user is currently logged in.
+ * @returns {boolean}
+ */
+export function isAuthenticated() {
+    return !!getCurrentUser();
+}
+
+/**
+ * Clears user state (Logout).
+ */
+export function clearUserState() {
+    currentUser = null;
+    localStorage.removeItem('plastico_user');
+    // Optional: Clear streak or other session-specific items if needed
+    // localStorage.removeItem('plastico_content_v3'); // Usually we keep content cache
+}
+
+// =========================================
+// QUIZ STATE MANAGEMENT
+// =========================================
+
+export function setCurrentQuiz(quiz) {
+    currentQuiz = quiz;
+}
+
+export function getCurrentQuiz() {
+    return currentQuiz;
+}
+
+// =========================================
+// APP SETTINGS (Theme/Animation)
+// =========================================
+
+export function getAppSettings() {
+    // Try to load from local storage first
+    const storedSettings = localStorage.getItem('plastico_settings');
+    if (storedSettings) {
+        appSettings = { ...appSettings, ...JSON.parse(storedSettings) };
+    }
+    return appSettings;
+}
+
+export function updateAppSetting(key, value) {
+    appSettings[key] = value;
+    localStorage.setItem('plastico_settings', JSON.stringify(appSettings));
+}
