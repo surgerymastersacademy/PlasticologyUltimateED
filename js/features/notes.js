@@ -1,73 +1,107 @@
-// js/features/leaderboard.js (FINAL VERSION v3.1)
+// js/features/notes.js (FINAL VERSION v3.1)
 
-import { createJsonRequest } from '../api.js';
-import { showLoader, hideLoader } from '../ui.js';
+import { createJsonRequest, sendPostRequest } from '../api.js';
+import { showLoader, hideLoader, showToast } from '../ui.js';
 import { getCurrentUser } from '../state.js';
 
-export async function initLeaderboard() {
-    const container = document.getElementById('leaderboard-list');
-    const userRankContainer = document.getElementById('current-user-rank');
-    
+export async function initNotes() {
+    const container = document.getElementById('notes-list');
+    // فحص وجود الكونتينر (مهم لتفادي الأخطاء إذا كنا في صفحة أخرى)
     if (!container) return;
 
     const user = getCurrentUser();
-    if (!user) return;
+    if (!user) {
+        container.innerHTML = '<p class="text-center text-red-500">Please log in to view notes.</p>';
+        return;
+    }
 
-    showLoader('leaderboard-loader');
+    showLoader('loader'); // استخدام اللودر العام
     container.innerHTML = '';
-    if(userRankContainer) userRankContainer.innerHTML = '';
 
     try {
-        const response = await createJsonRequest({ request: 'leaderboard', userId: user.UniqueID });
+        // جلب بيانات المستخدم التي تحتوي على الملاحظات
+        const response = await createJsonRequest({ request: 'userData', userId: user.UniqueID });
         
-        if (response && response.success) {
-            renderLeaderboard(response.leaderboard, response.currentUserRank);
+        // دمج ملاحظات الامتحانات والمحاضرات
+        if (response && (response.quizNotes || response.lectureNotes)) {
+            const allNotes = [...(response.quizNotes || []), ...(response.lectureNotes || [])];
+            renderNotes(allNotes);
         } else {
-            container.innerHTML = '<p class="text-center text-gray-500">Leaderboard unavailable.</p>';
+            container.innerHTML = '<p class="text-center text-gray-500">No notes found.</p>';
         }
     } catch (error) {
-        console.error("Leaderboard Error:", error);
-        container.innerHTML = '<p class="text-center text-red-500">Failed to load leaderboard.</p>';
+        console.error("Notes Error:", error);
+        container.innerHTML = '<p class="text-center text-red-500">Failed to load notes.</p>';
     } finally {
-        hideLoader('leaderboard-loader');
+        hideLoader('loader');
     }
 }
 
-function renderLeaderboard(topUsers, currentUserRank) {
-    const container = document.getElementById('leaderboard-list');
-    const userRankContainer = document.getElementById('current-user-rank');
+function renderNotes(notes) {
+    const container = document.getElementById('notes-list');
+    container.innerHTML = '';
 
-    // 1. عرض التوب 10
-    if (topUsers.length === 0) {
-        container.innerHTML = '<p class="text-center text-gray-500">No data yet.</p>';
-    } else {
-        topUsers.forEach((u, index) => {
-            const isTop3 = index < 3;
-            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
-            const bgClass = isTop3 ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-slate-100';
-            
-            const item = document.createElement('div');
-            item.className = `flex items-center justify-between p-3 rounded-lg border ${bgClass} dark:bg-slate-800 dark:border-slate-700 mb-2 shadow-sm`;
-            item.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <span class="font-bold text-lg w-8 text-center">${medal}</span>
-                    <span class="font-semibold text-slate-700 dark:text-slate-200">${u.name}</span>
-                </div>
-                <div class="text-blue-600 font-bold text-sm">${u.score || 0} pts</div>
-            `;
-            container.appendChild(item);
-        });
+    if (notes.length === 0) {
+        container.innerHTML = '<p class="text-center text-gray-500">You haven\'t written any notes yet.</p>';
+        return;
     }
 
-    // 2. عرض ترتيب المستخدم الحالي
-    if (currentUserRank && userRankContainer) {
-        userRankContainer.innerHTML = `
-            <div class="flex items-center justify-between text-blue-900">
-                <span class="font-bold">Your Rank: #${currentUserRank.rank}</span>
-                <span class="font-bold">${currentUserRank.score} pts</span>
+    // ترتيب الملاحظات من الأحدث للأقدم
+    notes.sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+
+    notes.forEach(note => {
+        const card = document.createElement('div');
+        card.className = 'bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 mb-3';
+        
+        const date = new Date(note.Timestamp).toLocaleDateString();
+        const type = note.QuizID ? 'Quiz Note' : 'Lecture Note';
+        const typeColor = note.QuizID ? 'text-indigo-600 bg-indigo-50' : 'text-teal-600 bg-teal-50';
+
+        card.innerHTML = `
+            <div class="flex justify-between items-start mb-2">
+                <span class="text-xs font-bold px-2 py-1 rounded ${typeColor}">${type}</span>
+                <span class="text-xs text-slate-400">${date}</span>
             </div>
-            <p class="text-xs text-blue-600 mt-1 text-center">Keep pushing, Dr. ${currentUserRank.name}!</p>
+            <p class="text-slate-700 dark:text-slate-300 whitespace-pre-wrap mb-3 text-sm">${note.NoteText}</p>
+            <div class="flex justify-end">
+                <button class="text-red-500 text-xs hover:underline delete-note-btn" data-id="${note.UniqueID}" data-type="${note.QuizID ? 'quiz' : 'lecture'}">
+                    <i class="fas fa-trash-alt mr-1"></i> Delete
+                </button>
+            </div>
         `;
-        userRankContainer.classList.remove('hidden');
+        
+        // ربط زر الحذف
+        card.querySelector('.delete-note-btn').addEventListener('click', (e) => deleteNote(e, note.UniqueID));
+        container.appendChild(card);
+    });
+}
+
+async function deleteNote(e, uniqueId) {
+    if(!confirm('Are you sure you want to delete this note?')) return;
+
+    const btn = e.currentTarget;
+    const originalText = btn.innerHTML;
+    btn.textContent = 'Deleting...';
+    
+    // تحديد نوع الحدث بناءً على البيانات
+    const type = btn.dataset.type === 'quiz' ? 'deleteQuizNote' : 'deleteLectureNote';
+
+    try {
+        const response = await sendPostRequest({
+            eventType: type,
+            uniqueId: uniqueId
+        });
+
+        if(response.success) {
+            showToast('Note deleted', 'success');
+            btn.closest('div.bg-white').remove(); // إزالة الكارت من الشاشة
+        } else {
+            showToast('Failed to delete', 'error');
+            btn.innerHTML = originalText;
+        }
+    } catch (error) {
+        console.error(error);
+        showToast('Error deleting note', 'error');
+        btn.innerHTML = originalText;
     }
 }
