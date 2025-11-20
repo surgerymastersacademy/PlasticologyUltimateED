@@ -1,7 +1,7 @@
 {
   "name": "Plasticology Ultimate",
   "short_name": "Plasticology",
-  "start_url": "./index.html",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#eef2f7",
   "theme_color": "#1e293b",
