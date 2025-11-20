@@ -1,17 +1,58 @@
-// js/api.js (FINAL COMPLETE VERSION - INCLUDES PLANNER & SMART CACHING)
+// js/api.js (FINAL UPGRADED VERSION - IndexedDB SUPPORT)
 
 import { API_URL, appState } from './state.js';
 
-/**
- * Helper function to handle POST requests with CORS safeguards.
- */
+// --- 1. INDEXED DB ENGINE (DATABASE HANDLER) ---
+// This replaces localStorage for heavy content to fix QuotaExceededError
+const DB_NAME = 'PlasticologyDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'content_store';
+
+function openDatabase() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME);
+            }
+        };
+        request.onsuccess = (event) => resolve(event.target.result);
+        request.onerror = (event) => reject(event.target.error);
+    });
+}
+
+async function dbSet(key, value) {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.put(value, key);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function dbGet(key) {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.get(key);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+// --- 2. API HELPERS ---
+
 async function sendPostRequest(payload) {
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
             redirect: 'follow',
             headers: {
-                'Content-Type': 'text/plain;charset=utf-8', // Critical for GAS CORS
+                'Content-Type': 'text/plain;charset=utf-8',
             },
             body: JSON.stringify(payload)
         });
@@ -28,9 +69,8 @@ async function sendPostRequest(payload) {
     }
 }
 
-/**
- * --- USER & AUTHENTICATION ---
- */
+// --- 3. USER & AUTHENTICATION ---
+
 export async function registerUser(registrationData) {
     const payload = {
         eventType: 'registerUser',
@@ -39,9 +79,8 @@ export async function registerUser(registrationData) {
     return await sendPostRequest(payload);
 }
 
-/**
- * --- ACTIVITY LOGGING ---
- */
+// --- 4. ACTIVITY LOGGING ---
+
 export function logUserActivity(eventData) {
     if (!API_URL || !appState.currentUser || appState.currentUser.Role === 'Guest') return;
 
@@ -52,6 +91,7 @@ export function logUserActivity(eventData) {
         userName: appState.currentUser.Name
     };
 
+    // Optimistic UI Update
     let newLogEntry = null;
     if (payload.eventType === 'FinishQuiz') {
         const details = appState.currentQuiz.originalQuestions.map((q, index) => {
@@ -110,7 +150,6 @@ export function logTheoryActivity(logData) {
             Status: logData.Status || ''
         });
     }
-
     sendPostRequest(payload);
 }
 
@@ -131,10 +170,7 @@ export function logCorrectedMistake(questionId) {
     });
 }
 
-/**
- * --- PLANNER API FUNCTIONS ---
- * هذه الدوال كانت ناقصة وهي سبب خطأ الـ SyntaxError
- */
+// --- 5. PLANNER API FUNCTIONS ---
 
 export async function createStudyPlanAPI(planData) {
     const payload = {
@@ -189,35 +225,34 @@ export async function getAllUserPlansAPI() {
     }
 }
 
-/**
- * --- DATA FETCHING & SMART SYNC (Fixes 429 Error) ---
- */
+// --- 6. DATA FETCHING (UPGRADED TO INDEXED DB) ---
 
 export async function fetchContentData() {
     const CACHE_KEY = 'plasticology_content_data';
     const CACHE_TIMESTAMP_KEY = 'plasticology_last_fetch_time';
-    const CACHE_DURATION = 60 * 60 * 1000; // ساعة واحدة
+    const CACHE_DURATION = 60 * 60 * 1000; // 1 Hour
 
-    // 1. محاولة قراءة الكاش
-    const cachedString = localStorage.getItem(CACHE_KEY);
+    // 1. Try to load from IndexedDB first (Large Storage)
+    let cachedData = null;
+    try {
+        cachedData = await dbGet(CACHE_KEY); // Async call to DB
+        if (cachedData) {
+            console.log(`⚡ Loaded cached content v${cachedData.version || '?'}`);
+        }
+    } catch (e) {
+        console.warn("DB Read Error:", e);
+    }
+
     const lastFetchTime = localStorage.getItem(CACHE_TIMESTAMP_KEY);
     const now = new Date().getTime();
 
-    let cachedData = null;
-    if (cachedString) {
-        try {
-            cachedData = JSON.parse(cachedString);
-            console.log(`⚡ Loaded cached content v${cachedData.version || '?'}`);
-        } catch (e) { console.warn("Cache corrupted"); }
-    }
-
-    // 2. إذا كان الكاش جديداً (أقل من ساعة)، استخدمه ولا تتصل بالسيرفر
+    // 2. If cache is fresh, skip network
     if (cachedData && lastFetchTime && (now - parseInt(lastFetchTime) < CACHE_DURATION)) {
-        console.log("🕒 Cache is fresh. Skipping server request to avoid 429 error.");
+        console.log("🕒 Cache is fresh. Skipping server request.");
         return cachedData;
     }
 
-    // 3. إذا كان الكاش قديماً، حاول الاتصال بالسيرفر
+    // 3. If stale, fetch from server
     console.log("🔄 Fetching fresh data from server...");
     
     try {
@@ -227,7 +262,6 @@ export async function fetchContentData() {
         });
 
         if (!response.ok) {
-            // إذا رد السيرفر بخطأ (429 - Too Many Requests)، استخدم الكاش القديم
             if (response.status === 429 && cachedData) {
                 console.warn("⚠️ Server busy (429). Using cached data.");
                 return cachedData;
@@ -236,12 +270,15 @@ export async function fetchContentData() {
         }
 
         const data = await response.json();
-        
         if (data.error) throw new Error(data.error);
 
-        // تحديث الكاش
-        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-        localStorage.setItem(CACHE_TIMESTAMP_KEY, now.toString());
+        // Save to IndexedDB (No Quota Limit)
+        try {
+            await dbSet(CACHE_KEY, data); 
+            localStorage.setItem(CACHE_TIMESTAMP_KEY, now.toString());
+        } catch (dbError) {
+            console.error("Failed to save to DB:", dbError);
+        }
 
         const serverVersion = String(data.version);
         const localVersion = cachedData ? String(cachedData.version) : null;
@@ -255,8 +292,7 @@ export async function fetchContentData() {
 
     } catch (err) {
         console.error("Content fetch failed:", err);
-        // في حالة الفشل التام، استخدم الكاش القديم
-        return cachedData || null;
+        return cachedData || null; // Fallback
     }
 }
 
