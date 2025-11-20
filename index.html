@@ -12,9 +12,7 @@
     <link rel="apple-touch-icon" href="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
@@ -38,12 +36,12 @@
         
         <aside id="desktop-sidebar" class="hidden md:flex flex-col w-64 bg-slate-900 text-white h-screen shadow-2xl z-50 transition-all duration-300">
             <div class="p-6 flex items-center justify-center border-b border-slate-700">
-                 <img src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-12">
+                 <img src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-12 invert">
             </div>
             
             <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1">
                 <p class="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mt-2 mb-1">Main</p>
-                <button id="sidebar-home-btn" class="sidebar-link active w-full text-left px-4 py-3 rounded-lg flex items-center hover:bg-slate-800 transition-colors">
+                <button id="sidebar-home-btn" class="sidebar-link w-full text-left px-4 py-3 rounded-lg flex items-center hover:bg-slate-800 transition-colors">
                     <i class="fas fa-home w-6 text-center mr-3"></i> Dashboard
                 </button>
                 <button id="sidebar-lectures-btn" class="sidebar-link w-full text-left px-4 py-3 rounded-lg flex items-center hover:bg-slate-800 transition-colors">
@@ -99,34 +97,25 @@
         <div class="flex-1 flex flex-col h-screen overflow-hidden relative bg-slate-50 dark:bg-slate-900 transition-colors">
             
             <header id="global-header" class="hidden h-16 bg-white dark:bg-slate-800 shadow-sm z-20 px-4 md:px-8 flex items-center justify-between transition-colors">
-                 <div class="md:hidden flex items-center">
+                <div class="md:hidden flex items-center">
                     <img src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" class="h-8 invert dark:invert-0">
                 </div>
-
                 <div class="flex-1 max-w-xl mx-4 hidden sm:block">
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                            <i class="fas fa-search"></i>
-                        </span>
-                        <input type="text" class="w-full py-2 pl-10 pr-4 bg-slate-100 dark:bg-slate-700 border-none rounded-full text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-600 transition-all" placeholder="Search lectures, questions, or topics...">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><i class="fas fa-search"></i></span>
+                        <input type="text" class="w-full py-2 pl-10 pr-4 bg-slate-100 dark:bg-slate-700 border-none rounded-full text-sm focus:ring-2 focus:ring-blue-500 dark:text-white transition-all" placeholder="Search...">
                     </div>
                 </div>
-
                 <div class="flex items-center gap-3">
                      <div id="streak-container" class="hidden md:flex items-center bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-3 py-1 rounded-full text-sm font-bold border border-orange-200 dark:border-orange-800">
-                        <i class="fas fa-fire mr-1.5"></i>
-                        <span id="streak-count">0</span>
+                        <i class="fas fa-fire mr-1.5"></i><span id="streak-count">0</span>
                     </div>
-
                     <button id="announcements-btn" class="relative p-2 text-slate-500 hover:text-blue-600 dark:text-slate-300 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
                         <i class="fas fa-bell text-xl"></i>
-                        <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
                     </button>
-                    
                     <button id="messenger-btn" class="relative p-2 text-slate-500 hover:text-blue-600 dark:text-slate-300 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
                         <i class="fas fa-comment-alt text-xl"></i>
                     </button>
-
                     <button id="mobile-profile-btn" class="md:hidden ml-1">
                         <img id="header-user-avatar" src="https://api.dicebear.com/7.x/initials/svg?seed=User" class="w-8 h-8 rounded-full border border-slate-300">
                     </button>
@@ -143,159 +132,107 @@
                             <h1 class="text-2xl font-bold text-slate-800 dark:text-white">Plasticology</h1>
                             <p class="text-slate-500 dark:text-slate-400 mt-1 text-sm">Ultimate Edition v3.1</p>
                         </div>
-
                         <div id="pwa-install-banner" class="hidden mb-6 p-3 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-xl text-center">
-                            <p class="text-xs text-indigo-700 dark:text-indigo-300 mb-2 font-semibold">Install App for best experience</p>
-                            <button id="pwa-install-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg text-xs">Install Now</button>
+                            <button id="pwa-install-btn" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg text-xs">Install App</button>
                         </div>
-
                         <div id="login-loader" class="loader hidden"></div>
                         <p id="login-loading-text" class="text-center text-slate-500 text-sm hidden mb-4">Authenticating...</p>
-                        
                         <form id="login-form" class="space-y-5">
                             <div class="input-with-icon-container">
                                 <i class="fas fa-user input-icon z-10"></i>
-                                <input type="text" id="username" autocomplete="off" class="input-with-icon pl-10 shadow-sm appearance-none border rounded-lg w-full py-3 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="Username" required>
+                                <input type="text" id="username" autocomplete="off" class="input-with-icon pl-10 shadow-sm border rounded-lg w-full py-3 px-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="Username" required>
                             </div>
                             <div class="input-with-icon-container">
                                 <i class="fas fa-lock input-icon z-10"></i>
-                                <input type="password" id="password" autocomplete="off" class="input-with-icon pl-10 shadow-sm appearance-none border rounded-lg w-full py-3 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="Password" required>
+                                <input type="password" id="password" autocomplete="off" class="input-with-icon pl-10 shadow-sm border rounded-lg w-full py-3 px-3 dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="Password" required>
                             </div>
                             <p id="login-error" class="text-red-500 text-xs italic hidden text-center">Invalid username or password.</p>
-                            <button type="submit" id="login-submit-btn" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform active:scale-95 transition-all">
-                                Log In
-                            </button>
+                            <button type="submit" id="login-submit-btn" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg">Log In</button>
                         </form>
-                        
                         <div class="mt-6 text-center space-y-3">
-                             <a href="#" id="show-register-link" class="text-sm text-blue-600 hover:underline dark:text-blue-400">Create Account</a>
+                             <a href="#" id="show-register-link" class="text-sm text-blue-600 dark:text-blue-400">Create Account</a>
                              <div class="grid grid-cols-2 gap-3 mt-4">
-                                <button type="button" id="free-test-btn" class="text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-semibold py-2 px-3 rounded-lg transition-colors">
-                                    <i class="fas fa-vial mr-1"></i> Free Test
-                                </button>
-                                <a href="https://www.youtube.com/playlist?list=PLVUDV5bqFz4jabLMYet03YmJknm8jA-wG" target="_blank" class="text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-semibold py-2 px-3 rounded-lg flex items-center justify-center">
-                                    <i class="fab fa-youtube mr-1 text-red-600"></i> Samples
-                                </a>
+                                <button type="button" id="free-test-btn" class="text-xs bg-slate-100 dark:bg-slate-700 py-2 px-3 rounded-lg">Free Test</button>
+                                <a href="https://www.youtube.com/playlist?list=PLVUDV5bqFz4jabLMYet03YmJknm8jA-wG" target="_blank" class="text-xs bg-slate-100 dark:bg-slate-700 py-2 px-3 rounded-lg">Samples</a>
                             </div>
                         </div>
                      </div>
                  </div>
 
                  <div id="main-menu-container" class="hidden p-4 md:p-8 max-w-6xl mx-auto space-y-6 pb-24 md:pb-8">
-                    
                     <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-                        <div class="absolute top-0 right-0 opacity-10 transform translate-x-10 -translate-y-10">
-                            <i class="fas fa-user-md text-9xl"></i>
-                        </div>
+                        <div class="absolute top-0 right-0 opacity-10 transform translate-x-10 -translate-y-10"><i class="fas fa-user-md text-9xl"></i></div>
                         <div class="relative z-10">
                             <h2 class="text-2xl md:text-3xl font-bold mb-2">Good Morning, <span id="dashboard-user-name">Doctor</span>! 👋</h2>
-                            <p class="text-blue-100 mb-4 text-sm md:text-base">Ready to master Plastic Surgery today?</p>
                             <div id="last-activity-container" class="flex flex-wrap gap-2 mt-2">
-                                <div id="last-lecture-ribbon" class="hidden bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium border border-white/30 hover:bg-white/30 cursor-pointer transition">
-                                    <i class="fas fa-play mr-1"></i> Resume Lecture
-                                </div>
-                                <div id="last-quiz-ribbon" class="hidden bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium border border-white/30 hover:bg-white/30 cursor-pointer transition">
-                                    <i class="fas fa-history mr-1"></i> Review Last Quiz
-                                </div>
+                                <div id="last-lecture-ribbon" class="hidden bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs border border-white/30 cursor-pointer">Resume Lecture</div>
+                                <div id="last-quiz-ribbon" class="hidden bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs border border-white/30 cursor-pointer">Review Quiz</div>
                             </div>
                         </div>
                     </div>
-
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                          <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
-                            <div class="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase mb-1">Daily Streak</div>
-                            <div class="flex items-center text-orange-500">
-                                <i class="fas fa-fire text-xl mr-2"></i>
-                                <span class="text-2xl font-bold text-slate-800 dark:text-white" id="dashboard-streak">0</span>
-                            </div>
+                            <div class="text-xs font-bold uppercase mb-1 text-slate-500">Streak</div>
+                            <div class="flex items-center text-orange-500"><i class="fas fa-fire text-xl mr-2"></i><span class="text-2xl font-bold text-slate-800 dark:text-white" id="dashboard-streak">0</span></div>
                         </div>
                          <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
-                            <div class="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase mb-1">Quiz Score</div>
-                            <div class="flex items-center text-blue-500">
-                                <i class="fas fa-star text-xl mr-2"></i>
-                                <span class="text-2xl font-bold text-slate-800 dark:text-white" id="dashboard-score">0</span>
-                            </div>
+                            <div class="text-xs font-bold uppercase mb-1 text-slate-500">Score</div>
+                            <div class="flex items-center text-blue-500"><i class="fas fa-star text-xl mr-2"></i><span class="text-2xl font-bold text-slate-800 dark:text-white" id="dashboard-score">0</span></div>
                         </div>
                         <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 col-span-2 md:col-span-2">
-                             <div class="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase mb-1">Next Exam</div>
+                             <div class="text-xs font-bold uppercase mb-1 text-slate-500">Next Exam</div>
                              <div class="flex items-center justify-between">
                                 <div class="text-lg font-bold text-slate-800 dark:text-white truncate" id="dashboard-exam-date">Not Set</div>
                                 <div class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded font-bold" id="dashboard-days-left">-- Days</div>
                              </div>
                         </div>
                     </div>
-
                     <h3 class="text-lg font-bold text-slate-800 dark:text-white mt-4">Study Areas</h3>
                     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        <button id="lectures-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center text-center group transition-all">
-                            <div class="w-14 h-14 bg-teal-100 dark:bg-teal-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-video text-2xl text-teal-600 dark:text-teal-400"></i>
-                            </div>
+                        <button id="lectures-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center text-center group hover:shadow-md">
+                            <div class="w-14 h-14 bg-teal-100 dark:bg-teal-900/30 rounded-full flex items-center justify-center mb-3"><i class="fas fa-video text-2xl text-teal-600 dark:text-teal-400"></i></div>
                             <span class="font-bold text-slate-700 dark:text-slate-200">Lectures</span>
-                            <span class="text-xs text-slate-400 mt-1">Watch & Learn</span>
                         </button>
-
-                        <button id="qbank-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center text-center group transition-all">
-                            <div class="w-14 h-14 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-question-circle text-2xl text-indigo-600 dark:text-indigo-400"></i>
-                            </div>
+                        <button id="qbank-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center text-center group hover:shadow-md">
+                            <div class="w-14 h-14 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mb-3"><i class="fas fa-question-circle text-2xl text-indigo-600 dark:text-indigo-400"></i></div>
                             <span class="font-bold text-slate-700 dark:text-slate-200">Q-Bank</span>
-                            <span class="text-xs text-slate-400 mt-1">Exam Mode</span>
                         </button>
-
-                         <button id="study-planner-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center text-center group transition-all">
-                            <div class="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-calendar-alt text-2xl text-purple-600 dark:text-purple-400"></i>
-                            </div>
+                         <button id="study-planner-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center text-center group hover:shadow-md">
+                            <div class="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-3"><i class="fas fa-calendar-alt text-2xl text-purple-600 dark:text-purple-400"></i></div>
                             <span class="font-bold text-slate-700 dark:text-slate-200">Study Plan</span>
-                            <span class="text-xs text-slate-400 mt-1">Stay Organized</span>
                         </button>
-
-                         <button id="matching-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center text-center group transition-all">
-                            <div class="w-14 h-14 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-puzzle-piece text-2xl text-pink-600 dark:text-pink-400"></i>
-                            </div>
+                         <button id="matching-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center text-center group hover:shadow-md">
+                            <div class="w-14 h-14 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center mb-3"><i class="fas fa-puzzle-piece text-2xl text-pink-600 dark:text-pink-400"></i></div>
                             <span class="font-bold text-slate-700 dark:text-slate-200">Matching</span>
-                            <span class="text-xs text-slate-400 mt-1">Connect Concepts</span>
                         </button>
-
-                        <button id="osce-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center text-center group transition-all">
-                            <div class="w-14 h-14 bg-sky-100 dark:bg-sky-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-user-md text-2xl text-sky-600 dark:text-sky-400"></i>
-                            </div>
+                        <button id="osce-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center text-center group hover:shadow-md">
+                            <div class="w-14 h-14 bg-sky-100 dark:bg-sky-900/30 rounded-full flex items-center justify-center mb-3"><i class="fas fa-user-md text-2xl text-sky-600 dark:text-sky-400"></i></div>
                             <span class="font-bold text-slate-700 dark:text-slate-200">OSCE</span>
-                            <span class="text-xs text-slate-400 mt-1">Clinical Cases</span>
                         </button>
-
-                        <button id="learning-mode-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center text-center group transition-all">
-                            <div class="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-book-reader text-2xl text-green-600 dark:text-green-400"></i>
-                            </div>
+                        <button id="learning-mode-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center text-center group hover:shadow-md">
+                            <div class="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-3"><i class="fas fa-book-reader text-2xl text-green-600 dark:text-green-400"></i></div>
                             <span class="font-bold text-slate-700 dark:text-slate-200">Learning</span>
-                            <span class="text-xs text-slate-400 mt-1">Study Qs</span>
                         </button>
-                        
-                        <button id="leaderboard-btn" class="md:flex hidden bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 flex-col items-center justify-center text-center group transition-all">
-                            <div class="w-14 h-14 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-trophy text-2xl text-rose-600 dark:text-rose-400"></i>
-                            </div>
+                        <button id="leaderboard-btn" class="md:flex hidden bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex-col items-center text-center hover:shadow-md">
+                            <div class="w-14 h-14 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mb-3"><i class="fas fa-trophy text-2xl text-rose-600 dark:text-rose-400"></i></div>
                             <span class="font-bold text-slate-700 dark:text-slate-200">Leaderboard</span>
                         </button>
-
-                        <button id="library-btn" class="md:flex hidden bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 flex-col items-center justify-center text-center group transition-all">
-                            <div class="w-14 h-14 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-book-bookmark text-2xl text-amber-600 dark:text-amber-400"></i>
-                            </div>
+                        <button id="library-btn" class="md:flex hidden bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex-col items-center text-center hover:shadow-md">
+                            <div class="w-14 h-14 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-3"><i class="fas fa-book-bookmark text-2xl text-amber-600 dark:text-amber-400"></i></div>
                             <span class="font-bold text-slate-700 dark:text-slate-200">Library</span>
                         </button>
-                        
                         <button id="theory-btn" class="hidden"></button> 
+                        <button id="activity-log-btn" class="hidden"></button>
+                        <button id="notes-btn" class="hidden"></button>
+                        <button id="radio-btn" class="hidden"></button>
+                        <button id="user-profile-header-btn" class="hidden"></button>
+                        <button id="global-home-btn" class="hidden"></button>
                     </div>
                  </div>
 
                  <div id="lectures-container" class="w-full hidden pb-20">
                     <div class="sticky top-0 z-10 p-4 bg-white dark:bg-slate-800 border-b dark:border-slate-700 flex justify-between items-center shadow-sm">
-                        <button id="lectures-back-btn" class="text-slate-600 dark:text-slate-300 hover:text-blue-600 transition-colors"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                        <button id="lectures-back-btn" class="text-slate-600 dark:text-slate-300 hover:text-blue-600"><i class="fas fa-arrow-left mr-2"></i> Back</button>
                         <h2 class="text-xl font-bold text-slate-800 dark:text-white">Lectures</h2>
                         <div class="w-16"></div>
                     </div>
@@ -329,14 +266,13 @@
                                     <button id="qbank-start-search-quiz-btn" class="bg-emerald-600 text-white px-4 py-2 rounded-lg">Start</button>
                                 </div>
                              </div>
+                             <button id="qbank-clear-search-btn" class="hidden"></button>
                         </div>
-
                         <div class="flex border-b border-slate-200 dark:border-slate-700 mb-4">
                             <button id="qbank-tab-create" class="tab-btn active px-4 py-2 font-bold text-indigo-600 border-b-2 border-indigo-600">Create Exam</button>
                             <button id="qbank-tab-practice" class="tab-btn px-4 py-2 text-slate-500">Practice</button>
                             <button id="qbank-tab-browse" class="tab-btn px-4 py-2 text-slate-500">Browse</button>
                         </div>
-
                         <div id="qbank-panel-create" class="qbank-panel space-y-4">
                             <details class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden group">
                                 <summary class="p-4 cursor-pointer flex justify-between items-center font-bold text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700">
@@ -349,52 +285,46 @@
                                         <input type="number" id="mock-q-count" class="p-3 rounded-lg border dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="# Questions">
                                         <input type="number" id="custom-timer-input" class="p-3 rounded-lg border dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="Sec/Question">
                                     </div>
-                                    
                                     <button id="toggle-custom-options-btn" class="text-sm text-blue-600 font-bold mb-3">Customize Sources & Chapters <i class="fas fa-chevron-down"></i></button>
                                     <div id="custom-exam-options" class="custom-exam-options hidden mb-4">
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                              <div class="bg-white dark:bg-slate-700 p-3 rounded-lg h-40 overflow-y-auto border">
                                                  <p class="text-xs font-bold text-slate-500 mb-2">Sources</p>
                                                  <div id="source-select-mock">Loading...</div>
+                                                 <input id="select-all-sources-mock" type="checkbox" class="hidden">
                                              </div>
                                              <div class="bg-white dark:bg-slate-700 p-3 rounded-lg h-40 overflow-y-auto border">
                                                  <p class="text-xs font-bold text-slate-500 mb-2">Chapters</p>
                                                  <div id="chapter-select-mock">Loading...</div>
+                                                 <input id="select-all-chapters-mock" type="checkbox" class="hidden">
                                              </div>
                                         </div>
                                     </div>
-                                    
                                     <button id="start-mock-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg shadow-md transition-transform active:scale-95">Start Exam</button>
                                     <p id="mock-error" class="text-red-500 text-xs mt-2 hidden"></p>
                                 </div>
                             </details>
 
-                            <details class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden group">
+                             <details class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden group">
                                 <summary class="p-4 cursor-pointer flex justify-between items-center font-bold text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700">
                                     <div class="flex items-center"><i class="fas fa-flag-checkered text-rose-500 mr-3"></i> Full Simulation Mode</div>
                                     <i class="fas fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform"></i>
                                 </summary>
                                 <div class="p-4 border-t dark:border-slate-700 bg-rose-50 dark:bg-rose-900/10">
-                                    <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">Real exam experience: 100 Questions in 120 Minutes. No feedback until the end.</p>
+                                    <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">Real exam experience: 100 Questions in 120 Minutes.</p>
                                     <button id="toggle-simulation-options-btn" class="text-sm text-blue-600 font-bold mb-3">Filter Scope (Optional)</button>
-                                    
                                     <div id="simulation-custom-options" class="hidden mb-4">
                                          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                             <div class="bg-white dark:bg-slate-700 p-3 rounded-lg h-40 overflow-y-auto border">
-                                                 <div id="source-select-sim">Loading...</div>
-                                             </div>
-                                             <div class="bg-white dark:bg-slate-700 p-3 rounded-lg h-40 overflow-y-auto border">
-                                                 <div id="chapter-select-sim">Loading...</div>
-                                             </div>
+                                             <div class="bg-white dark:bg-slate-700 p-3 rounded-lg h-40 overflow-y-auto border"><div id="source-select-sim">Loading...</div></div>
+                                             <div class="bg-white dark:bg-slate-700 p-3 rounded-lg h-40 overflow-y-auto border"><div id="chapter-select-sim">Loading...</div></div>
+                                             <input id="select-all-sources-sim" type="checkbox" class="hidden"><input id="select-all-chapters-sim" type="checkbox" class="hidden">
                                         </div>
                                     </div>
-
                                     <button id="start-simulation-btn" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-lg shadow-md">Start Simulation</button>
                                     <p id="simulation-error" class="text-red-500 text-xs mt-2 hidden"></p>
                                 </div>
                              </details>
                         </div>
-                        
                         <div id="qbank-panel-practice" class="qbank-panel hidden space-y-4">
                              <button id="practice-mistakes-btn" class="w-full bg-orange-100 text-orange-800 font-bold py-4 rounded-xl hover:bg-orange-200">Practice Mistakes</button>
                              <button id="practice-bookmarked-btn" class="w-full bg-blue-100 text-blue-800 font-bold py-4 rounded-xl hover:bg-blue-200">Practice Bookmarked</button>
@@ -409,13 +339,12 @@
                  <div id="quiz-container" class="w-full hidden flex flex-col h-full bg-white dark:bg-slate-900 z-50 absolute inset-0">
                     <div class="p-4 bg-slate-100 dark:bg-slate-800 border-b dark:border-slate-700 flex justify-between items-center shadow-sm">
                         <button id="end-quiz-btn" class="text-red-500 hover:text-red-700 text-lg"><i class="fas fa-stop-circle mr-1"></i> End</button>
+                        <h2 id="quiz-title" class="hidden md:block font-bold">Quiz</h2>
                         <div id="timer" class="font-mono font-bold text-slate-800 dark:text-white bg-slate-200 dark:bg-slate-700 px-3 py-1 rounded">00:00</div>
                     </div>
                     <div class="flex-1 overflow-y-auto p-4 md:p-8 pb-24">
-                        <div class="mb-4">
-                            <div class="flex justify-between text-xs font-bold text-slate-500 mb-1">
-                                <span>Progress</span> <span id="score-progress-text">0/0</span>
-                            </div>
+                         <div class="mb-4">
+                            <div class="flex justify-between text-xs font-bold text-slate-500 mb-1"><span>Progress</span> <span id="score-progress-text">0/0</span></div>
                             <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
                                 <div class="flex h-full">
                                     <div id="score-bar-correct" class="bg-emerald-500 w-0 transition-all"></div>
@@ -423,15 +352,14 @@
                                 </div>
                             </div>
                          </div>
-                         
                          <div id="question-container" class="max-w-3xl mx-auto">
                              <p id="source-text" class="text-xs text-slate-400 mb-2 text-center"></p>
                              <div id="question-image-container" class="mb-4 flex justify-center"></div>
                              <h2 id="question-text" class="text-lg md:text-xl font-bold text-slate-800 dark:text-white mb-6 leading-relaxed">Loading...</h2>
                              <div id="answer-buttons-quiz" class="grid grid-cols-1 gap-3"></div>
                              <div id="hint-text" class="hidden mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 text-sm rounded"></div>
+                             <p id="progress-text" class="hidden"></p>
                          </div>
-
                          <div id="results-container" class="hidden text-center py-10">
                              <i class="fas fa-trophy text-6xl text-yellow-400 mb-4"></i>
                              <h2 id="results-title" class="text-3xl font-bold text-slate-800 dark:text-white mb-2">Quiz Complete!</h2>
@@ -440,6 +368,7 @@
                                  <button id="results-home-btn" class="bg-slate-600 text-white py-3 rounded-lg font-bold">Dashboard</button>
                                  <button id="restart-btn" class="bg-blue-600 text-white py-3 rounded-lg font-bold">Restart</button>
                                  <button id="review-incorrect-btn" class="bg-red-100 text-red-600 py-3 rounded-lg font-bold hidden">Review Mistakes</button>
+                                 <button id="review-simulation-btn" class="hidden"></button>
                              </div>
                          </div>
                     </div>
@@ -450,6 +379,7 @@
                              <button id="flag-btn"><i class="far fa-flag"></i></button>
                              <button id="quiz-note-btn"><i class="fas fa-sticky-note"></i></button>
                              <button id="hint-btn"><i class="fas fa-lightbulb"></i></button>
+                             <button id="navigator-btn"><i class="fas fa-th"></i></button>
                          </div>
                          <button id="next-skip-btn" class="bg-blue-600 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-blue-700">Next</button>
                     </div>
@@ -465,12 +395,18 @@
                          <div class="max-w-md mx-auto bg-white dark:bg-slate-800 p-6 rounded-xl shadow">
                              <label class="block text-sm font-bold mb-2">Number of Sets</label>
                              <input type="number" id="matching-set-count" class="w-full p-2 border rounded mb-4" placeholder="10">
+                             <label class="block text-sm font-bold mb-2">Time (Sec)</label>
+                             <input type="number" id="matching-timer-input" class="w-full p-2 border rounded mb-4" placeholder="60">
+                             <div id="chapter-select-matching" class="hidden"></div>
+                             <div id="source-select-matching" class="hidden"></div>
                              <button id="start-matching-btn" class="w-full bg-pink-600 text-white py-3 rounded-lg font-bold">Start Game</button>
+                             <p id="matching-error" class="hidden text-red-500"></p>
                          </div>
                      </div>
                      <div id="matching-game-container" class="hidden h-full flex flex-col p-4">
                           <div class="flex justify-between items-center mb-4">
                               <div id="matching-score" class="font-bold text-blue-600">Score: 0</div>
+                              <span id="matching-progress"></span>
                               <div id="matching-timer" class="font-mono bg-slate-200 px-2 rounded">00:00</div>
                               <button id="end-matching-btn" class="text-red-500"><i class="fas fa-stop"></i></button>
                           </div>
@@ -494,13 +430,18 @@
                          <div class="text-center text-slate-400 font-bold">- OR -</div>
                          <div class="flex gap-2">
                              <input type="number" id="osce-case-count" class="flex-1 p-3 border rounded-lg" placeholder="# Cases">
-                             <button id="start-custom-osce-btn" class="flex-1 bg-sky-600 text-white font-bold rounded-lg">Custom Session</button>
+                             <input type="number" id="osce-time-per-q" class="flex-1 p-3 border rounded-lg" placeholder="Min/Q">
+                             <button id="start-custom-osce-btn" class="flex-1 bg-sky-600 text-white font-bold rounded-lg">Custom</button>
+                             <button id="toggle-osce-options-btn" class="hidden"></button>
                          </div>
+                         <div id="custom-osce-options" class="hidden"><div id="chapter-select-osce"></div><div id="source-select-osce"></div></div>
+                         <p id="osce-error" class="hidden text-red-500"></p>
                     </div>
                     <div id="osce-quiz-container" class="hidden h-full flex flex-col">
                          <div class="p-2 bg-slate-100 flex justify-between">
                              <button id="end-osce-quiz-btn" class="text-red-500">Exit</button>
-                             <div id="osce-timer">00:00</div>
+                             <h2 id="osce-quiz-title" class="font-bold"></h2>
+                             <div class="flex gap-2"><div id="osce-score"></div><div id="osce-timer">00:00</div></div>
                          </div>
                          <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 p-4 overflow-y-auto">
                              <div class="bg-slate-50 p-4 rounded">
@@ -509,10 +450,15 @@
                                  <p id="osce-case-description" class="text-sm mt-2"></p>
                              </div>
                              <div>
+                                 <p id="osce-progress-text"></p>
+                                 <div id="osce-question-image-container"></div>
                                  <h3 id="osce-question-text" class="font-bold mb-4">Question...</h3>
                                  <div id="osce-answer-area"></div>
+                                 <div id="osce-model-answer-area" class="hidden"></div>
+                                 <div id="osce-self-correction-area" class="hidden"></div>
                                  <div id="osce-controls-container" class="flex justify-between mt-4">
                                      <button id="osce-previous-btn" class="bg-gray-300 px-4 py-2 rounded">Prev</button>
+                                     <button id="osce-navigator-btn"><i class="fas fa-list"></i></button>
                                      <button id="osce-next-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Next</button>
                                  </div>
                              </div>
@@ -527,12 +473,15 @@
                         <button id="show-create-plan-modal-btn"><i class="fas fa-plus"></i></button>
                      </div>
                      <div class="p-4">
+                         <div id="study-planner-loader" class="loader hidden"></div>
+                         <details id="performance-insights-container" class="hidden mb-4 bg-white p-2 rounded"><summary>Insights</summary><ul id="strengths-list"></ul><ul id="weaknesses-list"></ul></details>
                          <div id="planner-dashboard">
                              <div id="study-plans-list" class="space-y-3"></div>
                          </div>
                          <div id="active-plan-view" class="hidden">
                              <button id="back-to-plans-dashboard-btn" class="text-xs text-blue-500 mb-2">Back</button>
                              <h3 id="active-plan-name" class="text-xl font-bold mb-4">My Plan</h3>
+                             <div id="study-plan-summary" class="mb-4"><p id="plan-days-remaining"></p><p id="plan-tasks-today"></p><div id="plan-progress-bar"></div></div>
                              <div id="study-plan-days-container" class="space-y-3"></div>
                          </div>
                      </div>
@@ -541,19 +490,25 @@
                  <div id="learning-mode-container" class="w-full hidden pb-20">
                      <div class="p-4 border-b bg-white dark:bg-slate-800 flex justify-between">
                          <button id="learning-mode-back-btn"><i class="fas fa-arrow-left"></i></button>
-                         <h2 class="font-bold">Learning</h2>
+                         <h2 id="learning-title" class="font-bold">Learning</h2>
                          <div></div>
                      </div>
                      <div id="learning-mode-controls" class="p-6 max-w-xl mx-auto space-y-4">
                          <input type="text" id="learning-search-input" class="w-full p-3 border rounded" placeholder="Search Topic...">
                          <button id="learning-search-btn" class="w-full bg-blue-600 text-white py-3 rounded font-bold">Search</button>
+                         <p id="learning-search-error" class="hidden text-red-500"></p>
                          <button id="learning-browse-by-chapter-btn" class="w-full bg-slate-100 text-slate-800 py-3 rounded font-bold">Browse Chapters</button>
+                         <button id="learning-browse-by-source-btn" class="w-full bg-slate-100 text-slate-800 py-3 rounded font-bold">Browse Sources</button>
+                         <button id="learning-mistakes-btn" class="w-full bg-orange-500 text-white py-3 rounded font-bold">Study Mistakes</button>
+                         <button id="learning-bookmarked-btn" class="w-full bg-sky-500 text-white py-3 rounded font-bold">Study Bookmarked</button>
                      </div>
                      <div id="learning-mode-viewer" class="hidden h-full flex flex-col p-4">
                          <div class="flex justify-end"><button id="end-learning-btn" class="text-red-500">Exit</button></div>
                          <div class="flex-1 overflow-y-auto">
+                             <p id="learning-progress-text" class="text-center text-gray-500">Loading...</p>
+                             <p id="learning-source-text" class="text-center text-gray-400 text-xs"></p>
+                             <div id="learning-image-container" class="flex justify-center"></div>
                              <h2 id="learning-question-text" class="text-lg font-bold mb-4">Question...</h2>
-                             <div id="learning-image-container"></div>
                              <div id="learning-answer-buttons" class="space-y-3"></div>
                          </div>
                          <div class="flex justify-between pt-4 border-t">
@@ -563,6 +518,34 @@
                      </div>
                  </div>
 
+                 <div id="theory-container" class="w-full hidden pb-20">
+                    <div id="theory-controls" class="p-4">
+                         <div class="flex justify-between mb-4"><button id="theory-back-btn">Back</button> <h2>Theory</h2></div>
+                         <input id="theory-search-input" class="border p-2 w-full mb-2"> <button id="theory-search-btn" class="bg-yellow-500 text-white p-2 w-full mb-2">Search</button>
+                         <button id="theory-flashcard-mode-btn" class="bg-orange-500 text-white p-2 w-full mb-2">Flashcard</button>
+                         <button id="theory-exam-mode-btn" class="bg-red-500 text-white p-2 w-full mb-2">Exam Mode</button>
+                         <button id="theory-browse-by-chapter-btn" class="bg-gray-200 p-2 w-full mb-2">Chapters</button>
+                         <button id="theory-browse-by-source-btn" class="bg-gray-200 p-2 w-full mb-2">Sources</button>
+                    </div>
+                    <div id="theory-viewer" class="hidden p-4">
+                         <div class="flex justify-between"><button id="theory-end-btn">End</button> <h2 id="theory-title"></h2> <div id="theory-timer"></div></div>
+                         <p id="theory-progress-text"></p>
+                         <p id="theory-source-text"></p>
+                         <div id="theory-img-container"></div>
+                         <h3 id="theory-question-text" class="font-bold text-xl mb-4"></h3>
+                         <button id="theory-show-answer-btn" class="bg-blue-600 text-white p-2 rounded w-full mb-4">Show Answer</button>
+                         <div id="theory-answer-container" class="hidden bg-green-50 p-4 border-l-4 border-green-500"> <p id="theory-answer-text"></p> </div>
+                         <div class="flex justify-between mt-4">
+                             <button id="theory-prev-btn" class="bg-gray-300 p-2 rounded">Prev</button>
+                             <div class="flex gap-2">
+                                <button id="theory-note-btn"><i class="fas fa-sticky-note"></i></button>
+                                <button id="theory-status-btn"><i class="fas fa-check"></i></button>
+                             </div>
+                             <button id="theory-next-btn" class="bg-blue-600 text-white p-2 rounded">Next</button>
+                         </div>
+                    </div>
+                 </div>
+
                  <div id="activity-log-container" class="w-full hidden pb-20">
                      <div class="p-4 border-b flex justify-between">
                          <button id="activity-back-btn"><i class="fas fa-arrow-left"></i></button>
@@ -570,6 +553,16 @@
                          <button id="clear-log-btn" class="text-red-500 text-xs">Clear</button>
                      </div>
                      <div class="p-4">
+                         <div id="all-summary" class="hidden">
+                            <p id="all-lectures-progress"></p><p id="all-questions-progress"></p>
+                         </div>
+                         <div id="quiz-summary" class="hidden">
+                            <p id="total-correct-answers"></p><p id="total-incorrect-answers"></p><p id="overall-accuracy"></p>
+                         </div>
+                         <div id="lecture-summary" class="hidden">
+                             <p id="lectures-viewed-count"></p><p id="chapters-started-count"></p>
+                         </div>
+                         <button id="log-filter-all" class="hidden"></button><button id="log-filter-quizzes" class="hidden"></button><button id="log-filter-lectures" class="hidden"></button>
                          <canvas id="activity-chart" class="mb-4"></canvas>
                          <div id="activity-log-list" class="space-y-2"></div>
                      </div>
@@ -593,6 +586,7 @@
                          <h2>Library</h2>
                          <div></div>
                      </div>
+                     <div id="library-loader" class="loader hidden"></div>
                      <div id="library-list" class="p-4 grid grid-cols-2 gap-4"></div>
                  </div>
 
@@ -603,27 +597,9 @@
                          <div></div>
                      </div>
                      <div class="p-4">
+                         <div id="leaderboard-loader" class="loader hidden"></div>
                          <div id="current-user-rank" class="mb-4 p-3 bg-blue-50 rounded border border-blue-100"></div>
                          <div id="leaderboard-list" class="space-y-2"></div>
-                     </div>
-                 </div>
-
-                 <div id="theory-container" class="w-full hidden pb-20">
-                     <div id="theory-controls">
-                         <button id="theory-back-btn">Back</button>
-                         <input id="theory-search-input"> <button id="theory-search-btn">Search</button>
-                         <button id="theory-flashcard-mode-btn">Flashcard</button>
-                         <button id="theory-exam-mode-btn">Exam</button>
-                         <button id="theory-browse-by-chapter-btn">Chapter</button>
-                         <button id="theory-browse-by-source-btn">Source</button>
-                     </div>
-                     <div id="theory-viewer" class="hidden">
-                         <button id="theory-end-btn">End</button>
-                         <div id="theory-question-text"></div>
-                         <button id="theory-show-answer-btn">Show</button>
-                         <div id="theory-answer-container"> <p id="theory-answer-text"></p> </div>
-                         <button id="theory-prev-btn">Prev</button> <button id="theory-next-btn">Next</button>
-                         <button id="theory-note-btn">Note</button> <button id="theory-status-btn">Check</button>
                      </div>
                  </div>
 
@@ -683,11 +659,11 @@
                      </div>
                  </div>
             </div>
-
         </div>
     </div>
 
     <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-[100]">
+        
         <div id="user-card-modal" class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl max-w-md w-full hidden relative">
             <button id="user-card-close-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">&times;</button>
             <div class="text-center">
@@ -701,9 +677,14 @@
                 <div class="flex justify-between"><span class="text-slate-500">Subscription</span> <span id="card-subscription-expiry" class="font-bold text-green-600">Active</span></div>
             </div>
             <button id="edit-profile-btn" class="w-full mt-4 border border-blue-500 text-blue-500 py-2 rounded-lg hover:bg-blue-50">Edit Profile</button>
-             <div id="profile-edit-view" class="hidden">
-                <input id="edit-nickname"><input id="edit-exam-date"><div id="avatar-selection-grid"></div>
-                <button id="save-profile-btn">Save</button> <button id="cancel-edit-profile-btn">Cancel</button>
+            <div id="profile-edit-view" class="hidden mt-4">
+                <input id="edit-nickname" class="w-full border p-2 mb-2 rounded" placeholder="Nickname">
+                <input type="date" id="edit-exam-date" class="w-full border p-2 mb-2 rounded">
+                <div id="avatar-selection-grid" class="grid grid-cols-5 gap-2 mb-4"></div>
+                <div class="flex gap-2">
+                    <button id="save-profile-btn" class="flex-1 bg-blue-600 text-white py-2 rounded">Save</button> 
+                    <button id="cancel-edit-profile-btn" class="flex-1 bg-gray-300 py-2 rounded">Cancel</button>
+                </div>
             </div>
         </div>
 
@@ -719,91 +700,82 @@
             </div>
         </div>
 
-        <div id="image-viewer-modal" class="hidden fixed inset-0 bg-black z-[200] flex items-center justify-center">
-            <button id="image-viewer-close-btn" class="absolute top-4 right-4 text-white text-4xl">&times;</button>
-            <img id="modal-image" class="max-h-screen max-w-full object-contain">
+        <div id="onboarding-modal" class="bg-white p-6 rounded-lg hidden max-w-sm"> 
+            <button id="start-tour-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Start</button> 
+            <button id="skip-tour-btn" class="ml-2 text-gray-500">Skip</button> 
         </div>
-        
-        <div id="note-modal" class="hidden bg-white p-6 rounded-lg w-96">
-            <h3 id="note-modal-title" class="font-bold mb-2">Note</h3>
-            <textarea id="note-textarea" class="w-full border p-2 h-32"></textarea>
-            <button id="note-save-btn" class="bg-blue-600 text-white px-4 py-2 mt-2 rounded">Save</button>
-            <button id="note-cancel-btn" class="text-gray-500 ml-2">Cancel</button>
+        <div id="registration-modal" class="bg-white p-6 rounded-lg hidden max-w-md"> 
+            <form id="registration-form">
+                <input id="register-name" class="w-full border p-2 mb-2" placeholder="Name" required>
+                <input id="register-username" class="w-full border p-2 mb-2" placeholder="Username" required>
+                <input id="register-email" class="w-full border p-2 mb-2" placeholder="Email" required>
+                <input id="register-mobile" class="w-full border p-2 mb-2" placeholder="Mobile" required>
+                <input id="register-password" type="password" class="w-full border p-2 mb-2" placeholder="Password" required>
+                <input id="register-confirm-password" type="password" class="w-full border p-2 mb-2" placeholder="Confirm Password" required>
+                <input id="register-country" class="w-full border p-2 mb-2" placeholder="Country" required>
+                <input id="register-study-type" class="w-full border p-2 mb-2" placeholder="Study Type">
+                <input type="date" id="register-exam-date" class="w-full border p-2 mb-2">
+                <button type="submit" id="register-submit-btn" class="bg-green-600 text-white px-4 py-2 rounded w-full">Register</button>
+                <button type="button" id="register-cancel-btn" class="mt-2 text-gray-500 w-full">Cancel</button>
+                <p id="registration-error" class="text-red-500 hidden"></p>
+            </form> 
         </div>
-
-        <div id="onboarding-modal" class="hidden"> <button id="start-tour-btn"></button> <button id="skip-tour-btn"></button> </div>
-        <div id="registration-modal" class="hidden"> <form id="registration-form"></form> </div>
-        <div id="create-plan-modal" class="hidden"> <button id="confirm-create-plan-btn"></button> <button id="cancel-create-plan-btn"></button> </div>
-        <div id="confirmation-modal" class="hidden"> <button id="modal-confirm-btn"></button> <button id="modal-cancel-btn"></button> </div>
-        <div id="clear-log-modal" class="hidden"> <button id="clear-quiz-logs-btn"></button> <button id="clear-lecture-logs-btn"></button> <button id="clear-all-logs-btn"></button> </div>
-        <div id="announcements-modal" class="hidden"> <div id="announcements-list"></div> <button id="announcements-close-btn"></button> </div>
-        <div id="question-navigator-modal" class="hidden"> <div id="navigator-grid"></div> <button id="navigator-close-btn"></button> </div>
-        <div id="osce-navigator-modal" class="hidden"> <div id="osce-navigator-content"></div> <button id="osce-navigator-close-btn"></button> </div>
-        <div id="ios-install-modal" class="hidden"> <button id="ios-install-close-btn"></button> </div>
-        <div id="radio-banner-container" class="hidden"> <iframe src=""></iframe> <button id="radio-close-btn"></button> </div>
-        <button id="radio-btn" class="hidden"></button> <div id="tour-tooltip" class="hidden"> <button id="tour-next-btn"></button> <button id="tour-end-btn"></button> </div>
+        <div id="create-plan-modal" class="bg-white p-6 rounded-lg hidden max-w-sm">
+             <input id="new-plan-name" class="w-full border p-2 mb-2" placeholder="Plan Name">
+             <input type="date" id="new-plan-start-date" class="w-full border p-2 mb-2">
+             <input type="date" id="new-plan-end-date" class="w-full border p-2 mb-2">
+             <button id="confirm-create-plan-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Create</button>
+             <button id="cancel-create-plan-btn" class="ml-2 text-gray-500">Cancel</button>
+             <p id="create-plan-error" class="text-red-500 hidden"></p>
+        </div>
+        <div id="confirmation-modal" class="bg-white p-6 rounded-lg hidden"> <h3 id="modal-title"></h3> <p id="modal-text"></p> <button id="modal-confirm-btn">Yes</button> <button id="modal-cancel-btn">No</button> </div>
+        <div id="clear-log-modal" class="bg-white p-6 rounded-lg hidden"> <button id="clear-quiz-logs-btn">Quiz Logs</button> <button id="clear-lecture-logs-btn">Lecture Logs</button> <button id="clear-all-logs-btn">All</button> <button id="clear-log-cancel-btn">Cancel</button> </div>
+        <div id="announcements-modal" class="bg-white p-6 rounded-lg hidden"> <div id="announcements-list"></div> <button id="announcements-close-btn">Close</button> </div>
+        <div id="question-navigator-modal" class="bg-white p-6 rounded-lg hidden"> <div id="navigator-grid"></div> <button id="navigator-close-btn">Close</button> </div>
+        <div id="osce-navigator-modal" class="bg-white p-6 rounded-lg hidden"> <div id="osce-navigator-content"></div> <button id="osce-navigator-close-btn">Close</button> </div>
+        <div id="ios-install-modal" class="bg-white p-6 rounded-lg hidden relative"> <button id="ios-install-close-btn" class="absolute top-2 right-2">&times;</button> Install on iOS instructions... </div>
+        <div id="note-modal" class="bg-white rounded-lg p-6 shadow-xl max-w-lg w-full hidden"> <h3 id="note-modal-title"></h3> <textarea id="note-textarea"></textarea> <button id="note-save-btn">Save</button> <button id="note-cancel-btn">Cancel</button> </div>
+        <div id="tour-tooltip" class="bg-white p-4 shadow-lg rounded absolute hidden z-[200] w-64"> <h3 id="tour-title" class="font-bold"></h3> <p id="tour-text"></p> <button id="tour-next-btn" class="bg-blue-600 text-white px-2 py-1 rounded text-xs">Next</button> <button id="tour-end-btn" class="text-gray-500 text-xs">End</button> <span id="tour-step-count"></span> </div>
     </div>
 
+    <div id="image-viewer-modal" class="hidden fixed inset-0 bg-black z-[200] flex items-center justify-center">
+        <button id="image-viewer-close-btn" class="absolute top-4 right-4 text-white text-4xl">&times;</button>
+        <img id="modal-image" class="max-h-screen max-w-full object-contain">
+    </div>
+
+    <div id="radio-banner-container" class="hidden"> <iframe src=""></iframe> <button id="radio-close-btn"></button> </div>
+
     <script>
-        // Mobile Menu Logic
-        document.getElementById('nav-menu-btn').addEventListener('click', () => {
-            document.getElementById('mobile-menu-drawer').classList.remove('hidden');
-        });
-        document.getElementById('close-menu-btn').addEventListener('click', () => {
-            document.getElementById('mobile-menu-drawer').classList.add('hidden');
-        });
-        document.getElementById('mobile-menu-drawer').addEventListener('click', (e) => {
-            if(e.target === document.getElementById('mobile-menu-drawer')) {
-                document.getElementById('mobile-menu-drawer').classList.add('hidden');
-            }
-        });
+        // Sidebar & Navigation Mapping Logic
+        document.getElementById('nav-menu-btn').addEventListener('click', () => document.getElementById('mobile-menu-drawer').classList.remove('hidden'));
+        document.getElementById('close-menu-btn').addEventListener('click', () => document.getElementById('mobile-menu-drawer').classList.add('hidden'));
+        document.getElementById('mobile-menu-drawer').addEventListener('click', (e) => { if(e.target === document.getElementById('mobile-menu-drawer')) document.getElementById('mobile-menu-drawer').classList.add('hidden'); });
         
-        // Sidebar Navigation Logic (Connects Sidebar buttons to original Main Menu logic)
         const mapSidebarToMain = {
-            'sidebar-lectures-btn': 'lectures-btn',
-            'sidebar-qbank-btn': 'qbank-btn',
-            'sidebar-planner-btn': 'study-planner-btn',
-            'sidebar-learning-btn': 'learning-mode-btn',
-            'sidebar-matching-btn': 'matching-btn',
-            'sidebar-osce-btn': 'osce-btn',
-            'sidebar-theory-btn': 'theory-btn',
-            'sidebar-library-btn': 'library-btn',
-            'sidebar-notes-btn': 'notes-btn',
-            'sidebar-activity-btn': 'activity-log-btn',
-            'sidebar-radio-btn': 'radio-btn',
-            'sidebar-profile-btn': 'user-profile-header-btn', // Maps to profile
-            'mobile-profile-btn': 'user-profile-header-btn',
-            'nav-home-btn': 'global-home-btn',
-            'sidebar-home-btn': 'global-home-btn',
-            'nav-lectures-btn': 'lectures-btn',
-            'nav-qbank-btn': 'qbank-btn',
-            'nav-planner-btn': 'study-planner-btn',
-            // Mobile Drawer Map
-            'drawer-learning-btn': 'learning-mode-btn',
-            'drawer-matching-btn': 'matching-btn',
-            'drawer-osce-btn': 'osce-btn',
-            'drawer-library-btn': 'library-btn',
-            'drawer-notes-btn': 'notes-btn',
-            'drawer-activity-btn': 'activity-log-btn',
-            'drawer-leaderboard-btn': 'leaderboard-btn',
-            'drawer-radio-btn': 'radio-btn'
+            'sidebar-lectures-btn': 'lectures-btn', 'sidebar-qbank-btn': 'qbank-btn', 'sidebar-planner-btn': 'study-planner-btn',
+            'sidebar-learning-btn': 'learning-mode-btn', 'sidebar-matching-btn': 'matching-btn', 'sidebar-osce-btn': 'osce-btn',
+            'sidebar-theory-btn': 'theory-btn', 'sidebar-library-btn': 'library-btn', 'sidebar-notes-btn': 'notes-btn',
+            'sidebar-activity-btn': 'activity-log-btn', 'sidebar-radio-btn': 'radio-btn', 'sidebar-profile-btn': 'user-profile-header-btn',
+            'mobile-profile-btn': 'user-profile-header-btn', 'nav-home-btn': 'global-home-btn', 'sidebar-home-btn': 'global-home-btn',
+            'nav-lectures-btn': 'lectures-btn', 'nav-qbank-btn': 'qbank-btn', 'nav-planner-btn': 'study-planner-btn',
+            'drawer-learning-btn': 'learning-mode-btn', 'drawer-matching-btn': 'matching-btn', 'drawer-osce-btn': 'osce-btn',
+            'drawer-library-btn': 'library-btn', 'drawer-notes-btn': 'notes-btn', 'drawer-activity-btn': 'activity-log-btn',
+            'drawer-leaderboard-btn': 'leaderboard-btn', 'drawer-radio-btn': 'radio-btn'
         };
 
-        // Attach clicks dynamically
         Object.keys(mapSidebarToMain).forEach(sidebarId => {
             const sidebarEl = document.getElementById(sidebarId);
             if(sidebarEl) {
                 sidebarEl.addEventListener('click', () => {
                     const targetId = mapSidebarToMain[sidebarId];
-                    // If mapped to an existing button, trigger it.
-                    // If mapped to 'global-home-btn' (which we removed from header), handle manually
                     if (targetId === 'global-home-btn') {
-                        // Custom logic to go home:
-                        document.querySelectorAll('[id$="-container"]').forEach(el => el.classList.add('hidden'));
+                        document.querySelectorAll('[id$="-container"]').forEach(el => { if(el.id !== 'main-menu-container' && el.id !== 'login-container') el.classList.add('hidden'); });
                         document.getElementById('main-menu-container').classList.remove('hidden');
                         document.getElementById('global-header').classList.remove('hidden');
-                        // Close mobile drawer
                         document.getElementById('mobile-menu-drawer').classList.add('hidden');
+                        // Reset Nav Active State
+                        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                        document.getElementById('nav-home-btn').classList.add('active');
                     } else {
                         const targetEl = document.getElementById(targetId);
                         if(targetEl) targetEl.click();
@@ -812,12 +784,7 @@
             }
         });
 
-        // Service Worker Registration
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js');
-            });
-        }
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js'); }); }
     </script>
 
     <script type="module" src="js/main.js"></script>
