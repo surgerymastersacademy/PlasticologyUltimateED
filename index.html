@@ -19,835 +19,808 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="flex items-center justify-center min-h-screen bg-slate-100 text-slate-800 overflow-hidden">
 
     <canvas id="login-canvas"></canvas>
 
-    <div id="login-container-wrapper">
-        <div id="login-container" class="w-full">
-             <div class="login-card-box">
-                <img id="login-logo" src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-20 mx-auto mb-4">
-                <div class="text-center mb-6">
-                    <h1 class="text-2xl font-bold text-slate-800 dark:text-white">Welcome To Plasticology</h1>
-                    <p class="text-slate-500 mt-1">Ultimate Edition v4.0</p>
-                </div>
-                
-                <div id="pwa-install-banner" class="hidden mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-center shadow-sm">
-                    <button id="pwa-install-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm shadow-md">
-                        Install App
-                    </button>
-                </div>
-
-                <div id="login-loader" class="loader hidden"></div>
-                <p id="login-loading-text" class="text-center text-slate-500 hidden">Loading...</p>
-                
-                <form id="login-form" class="space-y-5">
-                    <div class="relative">
-                        <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <input type="text" id="username" class="w-full pl-10 py-3" placeholder="Username" required autocomplete="off">
-                    </div>
-                    <div class="relative">
-                        <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <input type="password" id="password" class="w-full pl-10 py-3" placeholder="Password" required>
-                    </div>
-                    <p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
-                    <button type="submit" id="login-submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg transition transform hover:-translate-y-1">
-                        Log In
-                    </button>
-                </form>
-                
-                <div class="mt-6 text-center space-y-2">
-                    <a href="#" id="show-register-link" class="text-sm text-blue-600 hover:underline">Create New Account</a>
-                    <button type="button" id="free-test-btn" class="block w-full text-center text-sm text-slate-500 hover:text-slate-700">Try Free Test</button>
-                </div>
-            </div>
-        </div>
+    <div id="settings-container">
+        <button id="toggle-animation-btn" title="Toggle Animation">
+            <i class="fas fa-play-circle animation-on-icon"></i>
+            <i class="fas fa-pause-circle animation-off-icon"></i>
+        </button>
+        <button id="toggle-theme-btn" title="Toggle Theme">
+            <i class="fas fa-sun sun-icon"></i>
+            <i class="fas fa-moon moon-icon"></i>
+        </button>
     </div>
 
-    <div id="app-shell" class="hidden">
+    <div class="app-shell w-full h-full flex flex-col md:flex-row overflow-hidden">
         
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <img src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-8 w-auto">
-                <span class="font-bold text-lg tracking-wide">Plasticology</span>
+        <aside id="desktop-sidebar" class="hidden md:flex flex-col w-64 bg-slate-900 text-white h-screen shadow-2xl z-50 transition-all duration-300">
+            <div class="p-6 flex items-center justify-center border-b border-slate-700">
+                 <img src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-12">
             </div>
             
-            <nav class="sidebar-nav">
-                <a class="nav-item active" data-target="home"><i class="fas fa-home"></i> Dashboard</a>
-                <a class="nav-item" data-target="lectures"><i class="fas fa-play-circle"></i> Lectures</a>
-                <a class="nav-item" data-target="exams"><i class="fas fa-question-circle"></i> QBank & Exams</a>
-                <a class="nav-item" data-target="osce"><i class="fas fa-user-md"></i> OSCE</a>
-                <a class="nav-item" data-target="planner"><i class="fas fa-calendar-alt"></i> Study Planner</a>
-                <div class="my-2 border-t border-slate-700"></div>
-                <a class="nav-item" data-target="notes"><i class="fas fa-sticky-note"></i> My Notes</a>
-                <a class="nav-item" data-target="activity"><i class="fas fa-chart-line"></i> History</a>
+            <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1">
+                <p class="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mt-2 mb-1">Main</p>
+                <button id="sidebar-home-btn" class="sidebar-link active w-full text-left px-4 py-3 rounded-lg flex items-center hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-home w-6 text-center mr-3"></i> Dashboard
+                </button>
+                <button id="sidebar-lectures-btn" class="sidebar-link w-full text-left px-4 py-3 rounded-lg flex items-center hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-video w-6 text-center mr-3 text-teal-400"></i> Lectures
+                </button>
+                <button id="sidebar-qbank-btn" class="sidebar-link w-full text-left px-4 py-3 rounded-lg flex items-center hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-question-circle w-6 text-center mr-3 text-indigo-400"></i> Exams & QBank
+                </button>
+                <button id="sidebar-planner-btn" class="sidebar-link w-full text-left px-4 py-3 rounded-lg flex items-center hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-calendar-alt w-6 text-center mr-3 text-purple-400"></i> Study Planner
+                </button>
+
+                <p class="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mt-6 mb-1">Practice</p>
+                <button id="sidebar-learning-btn" class="sidebar-link w-full text-left px-4 py-3 rounded-lg flex items-center hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-book-reader w-6 text-center mr-3 text-green-400"></i> Learning Mode
+                </button>
+                <button id="sidebar-matching-btn" class="sidebar-link w-full text-left px-4 py-3 rounded-lg flex items-center hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-puzzle-piece w-6 text-center mr-3 text-pink-400"></i> Matching
+                </button>
+                <button id="sidebar-osce-btn" class="sidebar-link w-full text-left px-4 py-3 rounded-lg flex items-center hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-user-md w-6 text-center mr-3 text-sky-400"></i> OSCE Cases
+                </button>
+                 <button id="sidebar-theory-btn" class="sidebar-link w-full text-left px-4 py-3 rounded-lg flex items-center hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-book-medical w-6 text-center mr-3 text-yellow-400"></i> Theory Bank
+                </button>
+
+                <p class="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mt-6 mb-1">Tools</p>
+                <button id="sidebar-library-btn" class="sidebar-link w-full text-left px-4 py-3 rounded-lg flex items-center hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-book-bookmark w-6 text-center mr-3"></i> Library
+                </button>
+                <button id="sidebar-notes-btn" class="sidebar-link w-full text-left px-4 py-3 rounded-lg flex items-center hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-sticky-note w-6 text-center mr-3"></i> My Notes
+                </button>
+                <button id="sidebar-activity-btn" class="sidebar-link w-full text-left px-4 py-3 rounded-lg flex items-center hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-history w-6 text-center mr-3"></i> Activity Log
+                </button>
+                <button id="sidebar-radio-btn" class="sidebar-link w-full text-left px-4 py-3 rounded-lg flex items-center hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-broadcast-tower w-6 text-center mr-3"></i> Radio
+                </button>
             </nav>
-            
-            <div class="sidebar-footer">
-                <button id="sidebar-logout-btn" class="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors w-full">
-                    <i class="fas fa-sign-out-alt"></i> Logout
+
+            <div class="p-4 border-t border-slate-700 bg-slate-950">
+                 <button id="sidebar-profile-btn" class="flex items-center w-full p-2 rounded-lg hover:bg-slate-800 transition-colors">
+                    <img id="sidebar-user-avatar" src="https://api.dicebear.com/7.x/initials/svg?seed=Dr" class="w-10 h-10 rounded-full border border-slate-500">
+                    <div class="ml-3 text-left overflow-hidden">
+                        <p id="sidebar-user-name" class="text-sm font-bold text-white truncate">Dr. User</p>
+                        <p class="text-xs text-slate-400">View Profile</p>
+                    </div>
                 </button>
             </div>
         </aside>
 
-        <main class="main-content">
+        <div class="flex-1 flex flex-col h-screen overflow-hidden relative bg-slate-50 dark:bg-slate-900 transition-colors">
             
-            <header class="app-header">
-                <div class="flex items-center gap-3">
-                    <img src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-8 md:hidden">
-                    <h2 id="header-title" class="header-title">Dashboard</h2>
+            <header id="global-header" class="hidden h-16 bg-white dark:bg-slate-800 shadow-sm z-20 px-4 md:px-8 flex items-center justify-between transition-colors">
+                 <div class="md:hidden flex items-center">
+                    <img src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" class="h-8 invert dark:invert-0">
                 </div>
-                
-                <div class="flex items-center gap-3">
-                    <div id="streak-container" class="flex items-center bg-orange-100 text-orange-600 px-3 py-1 rounded-full font-bold text-sm border border-orange-200">
-                        <i class="fas fa-fire mr-1"></i> <span id="streak-count">0</span>
+
+                <div class="flex-1 max-w-xl mx-4 hidden sm:block">
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" class="w-full py-2 pl-10 pr-4 bg-slate-100 dark:bg-slate-700 border-none rounded-full text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-600 transition-all" placeholder="Search lectures, questions, or topics...">
                     </div>
-                    
-                    <button id="toggle-theme-btn" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300">
-                        <i class="fas fa-sun sun-icon hidden"></i>
-                        <i class="fas fa-moon moon-icon"></i>
+                </div>
+
+                <div class="flex items-center gap-3">
+                     <div id="streak-container" class="hidden md:flex items-center bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-3 py-1 rounded-full text-sm font-bold border border-orange-200 dark:border-orange-800">
+                        <i class="fas fa-fire mr-1.5"></i>
+                        <span id="streak-count">0</span>
+                    </div>
+
+                    <button id="announcements-btn" class="relative p-2 text-slate-500 hover:text-blue-600 dark:text-slate-300 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+                        <i class="fas fa-bell text-xl"></i>
+                        <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
                     </button>
                     
-                    <button id="user-profile-header-btn">
-                        <img id="header-user-avatar" src="https://api.dicebear.com/7.x/initials/svg?seed=User" class="w-9 h-9 rounded-full border border-slate-300">
+                    <button id="messenger-btn" class="relative p-2 text-slate-500 hover:text-blue-600 dark:text-slate-300 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+                        <i class="fas fa-comment-alt text-xl"></i>
+                    </button>
+
+                    <button id="mobile-profile-btn" class="md:hidden ml-1">
+                        <img id="header-user-avatar" src="https://api.dicebear.com/7.x/initials/svg?seed=User" class="w-8 h-8 rounded-full border border-slate-300">
                     </button>
                 </div>
             </header>
+            
+            <main id="main-content" class="flex-1 overflow-y-auto overflow-x-hidden p-0 relative scroll-smooth">
+                 <div id="watermark-overlay" class="hidden"></div>
 
-            <div class="content-scrollable" id="content-wrapper">
+                 <div id="login-container" class="w-full min-h-screen flex flex-col items-center justify-center p-4 bg-opacity-90 relative z-50">
+                     <div class="login-card p-8 rounded-2xl shadow-2xl max-w-sm w-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-white/20">
+                        <img id="login-logo" src="https://pub-fb0d46cb77cb4e22b5863540fe118da4.r2.dev/Plasticology%202025%20Logo%20white%20outline.png" alt="Logo" class="h-20 mx-auto mb-4 invert dark:invert-0">
+                        <div class="text-center mb-8">
+                            <h1 class="text-2xl font-bold text-slate-800 dark:text-white">Plasticology</h1>
+                            <p class="text-slate-500 dark:text-slate-400 mt-1 text-sm">Ultimate Edition v3.1</p>
+                        </div>
 
-                <div id="main-menu-container" class="w-full hidden fade-in">
+                        <div id="pwa-install-banner" class="hidden mb-6 p-3 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-xl text-center">
+                            <p class="text-xs text-indigo-700 dark:text-indigo-300 mb-2 font-semibold">Install App for best experience</p>
+                            <button id="pwa-install-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg text-xs">Install Now</button>
+                        </div>
+
+                        <div id="login-loader" class="loader hidden"></div>
+                        <p id="login-loading-text" class="text-center text-slate-500 text-sm hidden mb-4">Authenticating...</p>
+                        
+                        <form id="login-form" class="space-y-5">
+                            <div class="input-with-icon-container">
+                                <i class="fas fa-user input-icon z-10"></i>
+                                <input type="text" id="username" autocomplete="off" class="input-with-icon pl-10 shadow-sm appearance-none border rounded-lg w-full py-3 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="Username" required>
+                            </div>
+                            <div class="input-with-icon-container">
+                                <i class="fas fa-lock input-icon z-10"></i>
+                                <input type="password" id="password" autocomplete="off" class="input-with-icon pl-10 shadow-sm appearance-none border rounded-lg w-full py-3 px-3 text-slate-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="Password" required>
+                            </div>
+                            <p id="login-error" class="text-red-500 text-xs italic hidden text-center">Invalid username or password.</p>
+                            <button type="submit" id="login-submit-btn" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform active:scale-95 transition-all">
+                                Log In
+                            </button>
+                        </form>
+                        
+                        <div class="mt-6 text-center space-y-3">
+                             <a href="#" id="show-register-link" class="text-sm text-blue-600 hover:underline dark:text-blue-400">Create Account</a>
+                             <div class="grid grid-cols-2 gap-3 mt-4">
+                                <button type="button" id="free-test-btn" class="text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-semibold py-2 px-3 rounded-lg transition-colors">
+                                    <i class="fas fa-vial mr-1"></i> Free Test
+                                </button>
+                                <a href="https://www.youtube.com/playlist?list=PLVUDV5bqFz4jabLMYet03YmJknm8jA-wG" target="_blank" class="text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-semibold py-2 px-3 rounded-lg flex items-center justify-center">
+                                    <i class="fab fa-youtube mr-1 text-red-600"></i> Samples
+                                </a>
+                            </div>
+                        </div>
+                     </div>
+                 </div>
+
+                 <div id="main-menu-container" class="hidden p-4 md:p-8 max-w-6xl mx-auto space-y-6 pb-24 md:pb-8">
                     
-                    <div class="welcome-card">
+                    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                        <div class="absolute top-0 right-0 opacity-10 transform translate-x-10 -translate-y-10">
+                            <i class="fas fa-user-md text-9xl"></i>
+                        </div>
                         <div class="relative z-10">
-                            <h1 class="text-3xl font-bold mb-2">Welcome, <span id="user-name-display">Doctor</span></h1>
-                            <p class="opacity-90 mb-6">Ready to master Plastic Surgery today?</p>
-                            <div class="flex gap-3">
-                                <button id="dashboard-quick-quiz-btn" class="bg-white text-blue-700 font-bold py-2 px-5 rounded-lg shadow hover:bg-blue-50 transition">
-                                    <i class="fas fa-play mr-2"></i> Quick Quiz
-                                </button>
-                                <button id="announcements-btn" class="bg-blue-600 text-white border border-blue-400 font-bold py-2 px-5 rounded-lg hover:bg-blue-500 transition">
-                                    <i class="fas fa-bell mr-2"></i> Updates
-                                </button>
+                            <h2 class="text-2xl md:text-3xl font-bold mb-2">Good Morning, <span id="dashboard-user-name">Doctor</span>! 👋</h2>
+                            <p class="text-blue-100 mb-4 text-sm md:text-base">Ready to master Plastic Surgery today?</p>
+                            <div id="last-activity-container" class="flex flex-wrap gap-2 mt-2">
+                                <div id="last-lecture-ribbon" class="hidden bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium border border-white/30 hover:bg-white/30 cursor-pointer transition">
+                                    <i class="fas fa-play mr-1"></i> Resume Lecture
+                                </div>
+                                <div id="last-quiz-ribbon" class="hidden bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium border border-white/30 hover:bg-white/30 cursor-pointer transition">
+                                    <i class="fas fa-history mr-1"></i> Review Last Quiz
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="quick-actions">
-                         <div class="action-card" onclick="document.getElementById('leaderboard-btn').click()">
-                            <div class="action-icon bg-yellow-soft"><i class="fas fa-trophy"></i></div>
-                            <div><p class="text-xs text-slate-500 font-bold uppercase">Rank</p><p class="font-bold text-slate-800 dark:text-white">Leaderboard</p></div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                         <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
+                            <div class="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase mb-1">Daily Streak</div>
+                            <div class="flex items-center text-orange-500">
+                                <i class="fas fa-fire text-xl mr-2"></i>
+                                <span class="text-2xl font-bold text-slate-800 dark:text-white" id="dashboard-streak">0</span>
+                            </div>
                         </div>
-                        <div class="action-card" onclick="document.getElementById('radio-btn').click()">
-                            <div class="action-icon bg-purple-soft"><i class="fas fa-broadcast-tower"></i></div>
-                            <div><p class="text-xs text-slate-500 font-bold uppercase">Radio</p><p class="font-bold text-slate-800 dark:text-white">Plasticology FM</p></div>
+                         <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
+                            <div class="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase mb-1">Quiz Score</div>
+                            <div class="flex items-center text-blue-500">
+                                <i class="fas fa-star text-xl mr-2"></i>
+                                <span class="text-2xl font-bold text-slate-800 dark:text-white" id="dashboard-score">0</span>
+                            </div>
                         </div>
-                         <div class="action-card" onclick="document.getElementById('notes-btn').click()">
-                            <div class="action-icon bg-green-soft"><i class="fas fa-book"></i></div>
-                            <div><p class="text-xs text-slate-500 font-bold uppercase">Study</p><p class="font-bold text-slate-800 dark:text-white">My Notes</p></div>
+                        <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 col-span-2 md:col-span-2">
+                             <div class="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase mb-1">Next Exam</div>
+                             <div class="flex items-center justify-between">
+                                <div class="text-lg font-bold text-slate-800 dark:text-white truncate" id="dashboard-exam-date">Not Set</div>
+                                <div class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded font-bold" id="dashboard-days-left">-- Days</div>
+                             </div>
                         </div>
                     </div>
 
-                    <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-4 px-1">Study Modules</h3>
-                    
-                    <div class="modules-grid">
-                        <div id="lectures-btn" class="module-card group">
-                            <div class="module-icon-circle"><i class="fas fa-video"></i></div>
-                            <span class="module-title">Lectures</span>
-                            <span class="module-desc">Video Library</span>
-                        </div>
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white mt-4">Study Areas</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <button id="lectures-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center text-center group transition-all">
+                            <div class="w-14 h-14 bg-teal-100 dark:bg-teal-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-video text-2xl text-teal-600 dark:text-teal-400"></i>
+                            </div>
+                            <span class="font-bold text-slate-700 dark:text-slate-200">Lectures</span>
+                            <span class="text-xs text-slate-400 mt-1">Watch & Learn</span>
+                        </button>
 
-                        <div id="qbank-btn" class="module-card group">
-                            <div class="module-icon-circle"><i class="fas fa-graduation-cap"></i></div>
-                            <span class="module-title">QBank</span>
-                            <span class="module-desc">Exams & Sim</span>
-                        </div>
+                        <button id="qbank-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center text-center group transition-all">
+                            <div class="w-14 h-14 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-question-circle text-2xl text-indigo-600 dark:text-indigo-400"></i>
+                            </div>
+                            <span class="font-bold text-slate-700 dark:text-slate-200">Q-Bank</span>
+                            <span class="text-xs text-slate-400 mt-1">Exam Mode</span>
+                        </button>
 
-                        <div id="learning-mode-btn" class="module-card group">
-                            <div class="module-icon-circle"><i class="fas fa-book-reader"></i></div>
-                            <span class="module-title">Learning</span>
-                            <span class="module-desc">Q&A Study</span>
-                        </div>
+                         <button id="study-planner-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center text-center group transition-all">
+                            <div class="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-calendar-alt text-2xl text-purple-600 dark:text-purple-400"></i>
+                            </div>
+                            <span class="font-bold text-slate-700 dark:text-slate-200">Study Plan</span>
+                            <span class="text-xs text-slate-400 mt-1">Stay Organized</span>
+                        </button>
 
-                        <div id="osce-btn" class="module-card group">
-                            <div class="module-icon-circle"><i class="fas fa-user-md"></i></div>
-                            <span class="module-title">OSCE</span>
-                            <span class="module-desc">Clinical Cases</span>
-                        </div>
+                         <button id="matching-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center text-center group transition-all">
+                            <div class="w-14 h-14 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-puzzle-piece text-2xl text-pink-600 dark:text-pink-400"></i>
+                            </div>
+                            <span class="font-bold text-slate-700 dark:text-slate-200">Matching</span>
+                            <span class="text-xs text-slate-400 mt-1">Connect Concepts</span>
+                        </button>
 
-                        <div id="theory-btn" class="module-card group">
-                            <div class="module-icon-circle"><i class="fas fa-feather-alt"></i></div>
-                            <span class="module-title">Theory</span>
-                            <span class="module-desc">Essay Bank</span>
-                        </div>
+                        <button id="osce-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center text-center group transition-all">
+                            <div class="w-14 h-14 bg-sky-100 dark:bg-sky-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-user-md text-2xl text-sky-600 dark:text-sky-400"></i>
+                            </div>
+                            <span class="font-bold text-slate-700 dark:text-slate-200">OSCE</span>
+                            <span class="text-xs text-slate-400 mt-1">Clinical Cases</span>
+                        </button>
 
-                        <div id="matching-btn" class="module-card group">
-                            <div class="module-icon-circle"><i class="fas fa-puzzle-piece"></i></div>
-                            <span class="module-title">Matching</span>
-                            <span class="module-desc">Connect Terms</span>
-                        </div>
+                        <button id="learning-mode-btn" class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center text-center group transition-all">
+                            <div class="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-book-reader text-2xl text-green-600 dark:text-green-400"></i>
+                            </div>
+                            <span class="font-bold text-slate-700 dark:text-slate-200">Learning</span>
+                            <span class="text-xs text-slate-400 mt-1">Study Qs</span>
+                        </button>
                         
-                        <div id="study-planner-btn" class="module-card group">
-                            <div class="module-icon-circle"><i class="fas fa-calendar-check"></i></div>
-                            <span class="module-title">Planner</span>
-                            <span class="module-desc">Schedule</span>
-                        </div>
-
-                         <div id="library-btn" class="module-card group">
-                            <div class="module-icon-circle"><i class="fas fa-book-open"></i></div>
-                            <span class="module-title">Library</span>
-                            <span class="module-desc">References</span>
-                        </div>
-
-                        <button id="leaderboard-btn" class="hidden"></button>
-                        <button id="radio-btn" class="hidden"></button>
-                        <button id="notes-btn" class="hidden"></button>
-                        <button id="activity-log-btn" class="hidden"></button>
-                        <button id="messenger-btn" class="hidden"></button>
-                        <button id="logout-btn" class="hidden"></button>
-                        <button id="global-home-btn" class="hidden"></button>
-                        <div id="last-lecture-ribbon" class="hidden"></div>
-                        <div id="last-quiz-ribbon" class="hidden"></div>
-                    </div>
-                    
-                    <div id="radio-banner-container" class="mt-6 hidden rounded-lg overflow-hidden bg-slate-100 transition-all">
-                        <div class="p-2 bg-slate-800 text-white flex justify-between items-center">
-                            <span class="font-bold text-sm ml-2">Plasticology Radio</span>
-                            <button id="radio-close-btn" class="text-white hover:text-gray-300 px-2">&times;</button>
-                        </div>
-                        <iframe src="https://plasticologyradio.surgerymastersacademy.com/" class="w-full h-48 border-0"></iframe>
-                    </div>
-                </div>
-
-                <div id="qbank-container" class="w-full hidden">
-                    <div class="back-nav">
-                        <button id="qbank-back-btn" class="back-btn-circle"><i class="fas fa-arrow-left"></i></button>
-                        <h2 class="text-2xl font-bold">Question Bank</h2>
-                    </div>
-                    
-                    <div id="qbank-main-content">
-                         <div class="mb-6 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                            <div class="flex gap-2">
-                                <input type="text" id="qbank-search-input" class="flex-1 border-none bg-slate-50 dark:bg-slate-700 rounded-lg px-4 py-3" placeholder="Search topics...">
-                                <button id="qbank-search-btn" class="bg-blue-600 text-white px-6 rounded-lg hover:bg-blue-700"><i class="fas fa-search"></i></button>
+                        <button id="leaderboard-btn" class="md:flex hidden bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 flex-col items-center justify-center text-center group transition-all">
+                            <div class="w-14 h-14 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-trophy text-2xl text-rose-600 dark:text-rose-400"></i>
                             </div>
+                            <span class="font-bold text-slate-700 dark:text-slate-200">Leaderboard</span>
+                        </button>
+
+                        <button id="library-btn" class="md:flex hidden bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 flex-col items-center justify-center text-center group transition-all">
+                            <div class="w-14 h-14 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-book-bookmark text-2xl text-amber-600 dark:text-amber-400"></i>
+                            </div>
+                            <span class="font-bold text-slate-700 dark:text-slate-200">Library</span>
+                        </button>
+                        
+                        <button id="theory-btn" class="hidden"></button> 
+                    </div>
+                 </div>
+
+                 <div id="lectures-container" class="w-full hidden pb-20">
+                    <div class="sticky top-0 z-10 p-4 bg-white dark:bg-slate-800 border-b dark:border-slate-700 flex justify-between items-center shadow-sm">
+                        <button id="lectures-back-btn" class="text-slate-600 dark:text-slate-300 hover:text-blue-600 transition-colors"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                        <h2 class="text-xl font-bold text-slate-800 dark:text-white">Lectures</h2>
+                        <div class="w-16"></div>
+                    </div>
+                    <div class="p-4 md:p-6 max-w-5xl mx-auto">
+                        <div class="relative mb-6">
+                            <input type="text" id="lecture-search-input" placeholder="Search chapters..." class="w-full p-3 pl-10 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-teal-500">
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        </div>
+                        <div id="lectures-loader" class="loader"></div>
+                        <div id="lectures-list" class="space-y-4"></div>
+                    </div>
+                 </div>
+
+                 <div id="qbank-container" class="w-full hidden pb-20">
+                    <div class="sticky top-0 z-10 p-4 bg-white dark:bg-slate-800 border-b dark:border-slate-700 flex justify-between items-center shadow-sm">
+                         <button id="qbank-back-btn" class="text-slate-600 dark:text-slate-300 hover:text-blue-600"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                         <h2 class="text-xl font-bold text-slate-800 dark:text-white">Exam Mode</h2>
+                         <div class="w-16"></div>
+                    </div>
+                    <div class="p-4 md:p-8 max-w-5xl mx-auto">
+                        <div class="mb-6">
+                             <div class="flex gap-2">
+                                <input type="text" id="qbank-search-input" class="w-full p-3 border rounded-xl dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="Search topic (e.g. Flaps)">
+                                <button id="qbank-search-btn" class="bg-indigo-600 text-white px-6 rounded-xl font-bold">Search</button>
+                             </div>
                              <p id="qbank-search-error" class="text-red-500 text-xs mt-2 hidden"></p>
-                        </div>
-
-                        <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-                            <button id="qbank-tab-create" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-full font-bold whitespace-nowrap active-tab">Create Exam</button>
-                            <button id="qbank-tab-practice" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-full font-medium whitespace-nowrap hover:bg-slate-200">Practice</button>
-                            <button id="qbank-tab-browse" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-full font-medium whitespace-nowrap hover:bg-slate-200">Browse</button>
-                        </div>
-
-                        <div id="qbank-panel-create" class="space-y-6">
-                            <div class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                                <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><i class="fas fa-stopwatch text-emerald-500"></i> Quick Mock Exam</h3>
-                                <div class="grid grid-cols-2 gap-4 mb-4">
-                                    <input type="number" id="mock-q-count" class="border rounded-lg p-3 dark:bg-slate-700" placeholder="Questions (10)">
-                                    <input type="number" id="custom-timer-input" class="border rounded-lg p-3 dark:bg-slate-700" placeholder="Time/Q (sec)">
+                             <div id="qbank-search-results-container" class="hidden mt-4 p-4 bg-white dark:bg-slate-800 rounded-xl shadow">
+                                <p id="qbank-search-results-info" class="mb-2 dark:text-white"></p>
+                                <div class="flex gap-2">
+                                    <input type="number" id="qbank-search-q-count" class="border rounded-lg p-2 w-24" placeholder="Count">
+                                    <button id="qbank-start-search-quiz-btn" class="bg-emerald-600 text-white px-4 py-2 rounded-lg">Start</button>
                                 </div>
-                                <button id="toggle-custom-options-btn" class="text-sm text-blue-600 font-medium mb-4 flex items-center gap-1">
-                                    <i class="fas fa-filter"></i> Filter by Source/Chapter
-                                </button>
-                                <div id="custom-exam-options" class="custom-exam-options hidden mb-4">
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div id="source-select-mock" class="max-h-40 overflow-y-auto border p-2 rounded"></div>
-                                        <div id="chapter-select-mock" class="max-h-40 overflow-y-auto border p-2 rounded"></div>
+                             </div>
+                        </div>
+
+                        <div class="flex border-b border-slate-200 dark:border-slate-700 mb-4">
+                            <button id="qbank-tab-create" class="tab-btn active px-4 py-2 font-bold text-indigo-600 border-b-2 border-indigo-600">Create Exam</button>
+                            <button id="qbank-tab-practice" class="tab-btn px-4 py-2 text-slate-500">Practice</button>
+                            <button id="qbank-tab-browse" class="tab-btn px-4 py-2 text-slate-500">Browse</button>
+                        </div>
+
+                        <div id="qbank-panel-create" class="qbank-panel space-y-4">
+                            <details class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden group">
+                                <summary class="p-4 cursor-pointer flex justify-between items-center font-bold text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700">
+                                    <div class="flex items-center"><i class="fas fa-tasks text-emerald-500 mr-3"></i> Quick Mock Exam</div>
+                                    <i class="fas fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="p-4 border-t dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                                    <div id="loader" class="loader hidden"></div>
+                                    <div class="grid grid-cols-2 gap-4 mb-4">
+                                        <input type="number" id="mock-q-count" class="p-3 rounded-lg border dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="# Questions">
+                                        <input type="number" id="custom-timer-input" class="p-3 rounded-lg border dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="Sec/Question">
                                     </div>
-                                </div>
-                                <button id="start-mock-btn" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 shadow-lg">Start Mock Exam</button>
-                                <p id="mock-error" class="text-red-500 text-xs mt-2 hidden"></p>
-                            </div>
-
-                            <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-6 rounded-xl shadow-lg">
-                                <div>
-                                    <h3 class="text-lg font-bold mb-1 flex items-center gap-2"><i class="fas fa-flag-checkered text-red-400"></i> Exam Simulation</h3>
-                                    <p class="text-slate-400 text-sm mb-4">100 Questions • 120 Minutes • Real Exam Feel</p>
-                                </div>
-                                
-                                <button id="toggle-simulation-options-btn" class="text-sm text-blue-300 font-medium mb-4 flex items-center gap-1 hover:text-white">
-                                    <i class="fas fa-sliders-h"></i> Customize Sources
-                                </button>
-
-                                <div id="simulation-custom-options" class="hidden mb-4 bg-slate-800/50 p-3 rounded border border-slate-700">
-                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-slate-300">
-                                        <div>
-                                            <p class="text-xs uppercase font-bold mb-2 text-slate-500">Sources</p>
-                                            <div id="source-select-sim" class="max-h-32 overflow-y-auto"></div>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs uppercase font-bold mb-2 text-slate-500">Chapters</p>
-                                            <div id="chapter-select-sim" class="max-h-32 overflow-y-auto"></div>
+                                    
+                                    <button id="toggle-custom-options-btn" class="text-sm text-blue-600 font-bold mb-3">Customize Sources & Chapters <i class="fas fa-chevron-down"></i></button>
+                                    <div id="custom-exam-options" class="custom-exam-options hidden mb-4">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                             <div class="bg-white dark:bg-slate-700 p-3 rounded-lg h-40 overflow-y-auto border">
+                                                 <p class="text-xs font-bold text-slate-500 mb-2">Sources</p>
+                                                 <div id="source-select-mock">Loading...</div>
+                                             </div>
+                                             <div class="bg-white dark:bg-slate-700 p-3 rounded-lg h-40 overflow-y-auto border">
+                                                 <p class="text-xs font-bold text-slate-500 mb-2">Chapters</p>
+                                                 <div id="chapter-select-mock">Loading...</div>
+                                             </div>
                                         </div>
                                     </div>
+                                    
+                                    <button id="start-mock-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg shadow-md transition-transform active:scale-95">Start Exam</button>
+                                    <p id="mock-error" class="text-red-500 text-xs mt-2 hidden"></p>
                                 </div>
+                            </details>
 
-                                <button id="start-simulation-btn" class="w-full bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-500 shadow-lg">Enter Simulation Mode</button>
-                                <p id="simulation-error" class="text-red-300 text-xs mt-2 hidden"></p>
-                            </div>
-                        </div>
+                            <details class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden group">
+                                <summary class="p-4 cursor-pointer flex justify-between items-center font-bold text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700">
+                                    <div class="flex items-center"><i class="fas fa-flag-checkered text-rose-500 mr-3"></i> Full Simulation Mode</div>
+                                    <i class="fas fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="p-4 border-t dark:border-slate-700 bg-rose-50 dark:bg-rose-900/10">
+                                    <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">Real exam experience: 100 Questions in 120 Minutes. No feedback until the end.</p>
+                                    <button id="toggle-simulation-options-btn" class="text-sm text-blue-600 font-bold mb-3">Filter Scope (Optional)</button>
+                                    
+                                    <div id="simulation-custom-options" class="hidden mb-4">
+                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                             <div class="bg-white dark:bg-slate-700 p-3 rounded-lg h-40 overflow-y-auto border">
+                                                 <div id="source-select-sim">Loading...</div>
+                                             </div>
+                                             <div class="bg-white dark:bg-slate-700 p-3 rounded-lg h-40 overflow-y-auto border">
+                                                 <div id="chapter-select-sim">Loading...</div>
+                                             </div>
+                                        </div>
+                                    </div>
 
-                        <div id="qbank-panel-practice" class="hidden">
-                             <div class="grid grid-cols-1 gap-4">
-                                <button id="practice-mistakes-btn" class="p-6 rounded-xl bg-orange-50 border border-orange-100 text-orange-800 font-bold text-left hover:bg-orange-100 transition">
-                                    <i class="fas fa-history mr-2"></i> Practice My Mistakes
-                                </button>
-                                <button id="practice-bookmarked-btn" class="p-6 rounded-xl bg-blue-50 border border-blue-100 text-blue-800 font-bold text-left hover:bg-blue-100 transition">
-                                    <i class="fas fa-bookmark mr-2"></i> Practice Bookmarked
-                                </button>
-                            </div>
+                                    <button id="start-simulation-btn" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-lg shadow-md">Start Simulation</button>
+                                    <p id="simulation-error" class="text-red-500 text-xs mt-2 hidden"></p>
+                                </div>
+                             </details>
                         </div>
                         
-                        <div id="qbank-panel-browse" class="hidden">
-                             <div class="grid grid-cols-1 gap-4">
-                                <button id="browse-by-chapter-btn" class="p-4 bg-white border rounded-lg font-bold text-slate-700">Browse by Chapter</button>
-                                <button id="browse-by-source-btn" class="p-4 bg-white border rounded-lg font-bold text-slate-700">Browse by Source</button>
+                        <div id="qbank-panel-practice" class="qbank-panel hidden space-y-4">
+                             <button id="practice-mistakes-btn" class="w-full bg-orange-100 text-orange-800 font-bold py-4 rounded-xl hover:bg-orange-200">Practice Mistakes</button>
+                             <button id="practice-bookmarked-btn" class="w-full bg-blue-100 text-blue-800 font-bold py-4 rounded-xl hover:bg-blue-200">Practice Bookmarked</button>
+                        </div>
+                        <div id="qbank-panel-browse" class="qbank-panel hidden space-y-4">
+                            <button id="browse-by-chapter-btn" class="w-full bg-slate-100 text-slate-800 font-bold py-4 rounded-xl">Browse by Chapter</button>
+                            <button id="browse-by-source-btn" class="w-full bg-slate-100 text-slate-800 font-bold py-4 rounded-xl">Browse by Source</button>
+                        </div>
+                    </div>
+                 </div>
+
+                 <div id="quiz-container" class="w-full hidden flex flex-col h-full bg-white dark:bg-slate-900 z-50 absolute inset-0">
+                    <div class="p-4 bg-slate-100 dark:bg-slate-800 border-b dark:border-slate-700 flex justify-between items-center shadow-sm">
+                        <button id="end-quiz-btn" class="text-red-500 hover:text-red-700 text-lg"><i class="fas fa-stop-circle mr-1"></i> End</button>
+                        <div id="timer" class="font-mono font-bold text-slate-800 dark:text-white bg-slate-200 dark:bg-slate-700 px-3 py-1 rounded">00:00</div>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-4 md:p-8 pb-24">
+                        <div class="mb-4">
+                            <div class="flex justify-between text-xs font-bold text-slate-500 mb-1">
+                                <span>Progress</span> <span id="score-progress-text">0/0</span>
                             </div>
-                        </div>
-                        
-                        <div id="qbank-search-results-container" class="hidden bg-white p-4 rounded-lg mt-4">
-                             <button id="qbank-clear-search-btn" class="text-sm text-blue-500 mb-2">Clear Search</button>
-                             <p id="qbank-search-results-info" class="font-bold mb-2"></p>
-                             <button id="qbank-start-search-quiz-btn" class="bg-green-600 text-white px-4 py-2 rounded">Start Search Quiz</button>
-                        </div>
+                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                                <div class="flex h-full">
+                                    <div id="score-bar-correct" class="bg-emerald-500 w-0 transition-all"></div>
+                                    <div id="score-bar-incorrect" class="bg-red-500 w-0 transition-all"></div>
+                                </div>
+                            </div>
+                         </div>
+                         
+                         <div id="question-container" class="max-w-3xl mx-auto">
+                             <p id="source-text" class="text-xs text-slate-400 mb-2 text-center"></p>
+                             <div id="question-image-container" class="mb-4 flex justify-center"></div>
+                             <h2 id="question-text" class="text-lg md:text-xl font-bold text-slate-800 dark:text-white mb-6 leading-relaxed">Loading...</h2>
+                             <div id="answer-buttons-quiz" class="grid grid-cols-1 gap-3"></div>
+                             <div id="hint-text" class="hidden mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 text-sm rounded"></div>
+                         </div>
+
+                         <div id="results-container" class="hidden text-center py-10">
+                             <i class="fas fa-trophy text-6xl text-yellow-400 mb-4"></i>
+                             <h2 id="results-title" class="text-3xl font-bold text-slate-800 dark:text-white mb-2">Quiz Complete!</h2>
+                             <p class="text-xl text-slate-600 dark:text-slate-300 mb-8">Score: <span id="score-text" class="font-bold"></span> / <span id="total-questions"></span></p>
+                             <div class="flex flex-col gap-3 max-w-xs mx-auto">
+                                 <button id="results-home-btn" class="bg-slate-600 text-white py-3 rounded-lg font-bold">Dashboard</button>
+                                 <button id="restart-btn" class="bg-blue-600 text-white py-3 rounded-lg font-bold">Restart</button>
+                                 <button id="review-incorrect-btn" class="bg-red-100 text-red-600 py-3 rounded-lg font-bold hidden">Review Mistakes</button>
+                             </div>
+                         </div>
+                    </div>
+                    <div id="controls-container" class="p-4 bg-white dark:bg-slate-800 border-t dark:border-slate-700 flex justify-between items-center absolute bottom-0 w-full">
+                         <button id="previous-btn" class="p-3 text-slate-500 hover:bg-slate-100 rounded-full"><i class="fas fa-chevron-left"></i></button>
+                         <div class="flex gap-4 text-xl text-slate-400">
+                             <button id="bookmark-btn"><i class="far fa-bookmark"></i></button>
+                             <button id="flag-btn"><i class="far fa-flag"></i></button>
+                             <button id="quiz-note-btn"><i class="fas fa-sticky-note"></i></button>
+                             <button id="hint-btn"><i class="fas fa-lightbulb"></i></button>
+                         </div>
+                         <button id="next-skip-btn" class="bg-blue-600 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-blue-700">Next</button>
+                    </div>
+                 </div>
+
+                 <div id="matching-container" class="w-full hidden pb-20">
+                     <div class="p-4 border-b flex justify-between bg-white dark:bg-slate-800 dark:border-slate-700">
+                         <button id="matching-back-btn"><i class="fas fa-arrow-left"></i> Back</button>
+                         <h2 class="font-bold">Matching</h2>
+                         <div></div>
                      </div>
-                </div>
-
-                <div id="lectures-container" class="w-full hidden">
-                    <div class="back-nav">
-                        <button id="lectures-back-btn" class="back-btn-circle"><i class="fas fa-arrow-left"></i></button>
-                        <h2 class="text-2xl font-bold">Video Lectures</h2>
-                    </div>
-                    <div class="relative mb-6">
-                        <input type="text" id="lecture-search-input" placeholder="Find a topic..." class="w-full p-4 pl-12 bg-white border-none rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500">
-                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    </div>
-                    <div id="lectures-loader" class="loader"></div>
-                    <div id="lectures-list" class="space-y-4"></div>
-                </div>
-
-                <div id="quiz-container" class="w-full hidden h-full flex flex-col">
-                    <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm">
-                        <button id="end-quiz-btn" class="text-red-500 hover:bg-red-50 p-2 rounded"><i class="fas fa-times"></i> End</button>
-                        <h2 id="quiz-title" class="font-bold text-sm truncate max-w-[150px]">Quiz</h2>
-                        <div id="timer" class="font-mono font-bold text-lg bg-slate-100 px-3 py-1 rounded">00:00</div>
-                    </div>
-                    
-                    <div class="mb-2">
-                        <div class="flex justify-between text-xs text-slate-500 mb-1">
-                            <span id="progress-text">Q 1</span>
-                            <span id="score-progress-text">0/0</span>
-                        </div>
-                        <div id="progress-bar-container" class="h-2 bg-slate-200 rounded-full overflow-hidden flex">
-                             <div id="score-bar-correct" class="bg-green-500 h-full" style="width:0%"></div>
-                             <div id="score-bar-incorrect" class="bg-red-500 h-full" style="width:0%"></div>
-                             <div id="score-bar-answered" class="bg-blue-500 h-full hidden" style="width:0%"></div>
-                        </div>
-                    </div>
-                    
-                    <div id="question-container" class="flex-1 overflow-y-auto bg-white p-5 rounded-xl shadow-sm relative">
-                         <p id="source-text" class="text-xs text-slate-400 text-right mb-2"></p>
-                         <div id="question-image-container" class="mb-4 text-center"></div>
-                         <h2 id="question-text" class="text-xl font-bold text-slate-800 mb-6 leading-relaxed"></h2>
-                         <div id="answer-buttons-quiz" class="space-y-3"></div>
-                         <div id="hint-text" class="hidden mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 text-sm"></div>
-                    </div>
-
-                    <div id="controls-container" class="mt-4 flex justify-between items-center bg-white p-3 rounded-xl shadow-sm">
-                        <button id="previous-btn" class="px-4 py-2 text-slate-500 font-bold">Prev</button>
-                        <div class="flex gap-3 text-xl text-slate-400">
-                            <button id="navigator-btn"><i class="fas fa-th"></i></button>
-                            <button id="bookmark-btn" class="bookmark-btn"><i class="far fa-bookmark"></i></button>
-                            <button id="flag-btn" class="flag-btn"><i class="far fa-flag"></i></button>
-                            <button id="hint-btn"><i class="fas fa-lightbulb"></i></button>
-                            <button id="quiz-note-btn" class="note-icon"><i class="fas fa-sticky-note"></i></button>
-                        </div>
-                        <button id="next-skip-btn" class="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg shadow hover:bg-blue-700">Next</button>
-                    </div>
-                    
-                    <div id="results-container" class="hidden text-center pt-10">
-                         <i class="fas fa-trophy text-6xl text-yellow-400 mb-4"></i>
-                         <h2 id="results-title" class="text-2xl font-bold">Complete!</h2>
-                         <p class="text-xl my-4">Score: <span id="score-text" class="font-bold"></span> / <span id="total-questions"></span></p>
-                         <div class="flex flex-col gap-3 max-w-xs mx-auto">
-                             <button id="results-home-btn" class="p-3 bg-gray-600 text-white rounded font-bold">Home</button>
-                             <button id="restart-btn" class="p-3 bg-blue-600 text-white rounded font-bold">Restart</button>
-                             <button id="review-incorrect-btn" class="hidden p-3 bg-red-500 text-white rounded font-bold">Review Incorrect</button>
-                             <button id="review-simulation-btn" class="hidden p-3 bg-purple-600 text-white rounded font-bold">Review All</button>
-                         </div>
-                    </div>
-                </div>
-
-                <div id="matching-container" class="w-full hidden">
-                    <div id="matching-menu-container">
-                         <div class="back-nav">
-                            <button id="matching-back-btn" class="back-btn-circle"><i class="fas fa-arrow-left"></i></button>
-                            <h2 class="text-2xl font-bold">Matching Game</h2>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl shadow-sm">
-                            <input id="matching-set-count" type="number" placeholder="Sets (10)" class="border p-2 rounded w-full mb-4">
-                            <input id="matching-timer-input" type="number" placeholder="Sec/Set (60)" class="border p-2 rounded w-full mb-4">
-                             <div id="chapter-select-matching" class="hidden"></div>
-                             <div id="source-select-matching" class="hidden"></div>
-                            <button id="start-matching-btn" class="w-full bg-pink-600 text-white font-bold py-3 rounded-lg">Start Game</button>
-                            <p id="matching-error" class="hidden text-red-500 mt-2"></p>
-                        </div>
-                    </div>
-                     <div id="matching-game-container" class="hidden h-full flex flex-col">
-                         <div class="flex justify-between mb-2 p-2 bg-white rounded shadow-sm">
-                             <button id="end-matching-btn" class="text-red-500"><i class="fas fa-stop"></i></button>
-                             <span id="matching-progress" class="font-bold"></span>
-                             <span id="matching-timer" class="font-mono bg-slate-100 px-2 rounded">00:00</span>
-                             <span id="matching-score" class="text-blue-600 font-bold"></span>
-                         </div>
-                         <div class="matching-container-grid flex-1 overflow-y-auto pb-20">
-                             <div id="matching-premises-area"></div>
-                             <div id="matching-answers-area"></div>
-                         </div>
-                         <div class="mt-2 flex gap-2 fixed bottom-16 left-4 right-4 md:static md:bottom-auto">
-                             <button id="matching-submit-btn" class="flex-1 bg-green-600 text-white p-3 rounded shadow-lg font-bold">Check</button>
-                             <button id="matching-next-btn" class="hidden flex-1 bg-blue-600 text-white p-3 rounded shadow-lg font-bold">Next</button>
+                     <div id="matching-menu-container" class="p-4">
+                         <div class="max-w-md mx-auto bg-white dark:bg-slate-800 p-6 rounded-xl shadow">
+                             <label class="block text-sm font-bold mb-2">Number of Sets</label>
+                             <input type="number" id="matching-set-count" class="w-full p-2 border rounded mb-4" placeholder="10">
+                             <button id="start-matching-btn" class="w-full bg-pink-600 text-white py-3 rounded-lg font-bold">Start Game</button>
                          </div>
                      </div>
-                </div>
+                     <div id="matching-game-container" class="hidden h-full flex flex-col p-4">
+                          <div class="flex justify-between items-center mb-4">
+                              <div id="matching-score" class="font-bold text-blue-600">Score: 0</div>
+                              <div id="matching-timer" class="font-mono bg-slate-200 px-2 rounded">00:00</div>
+                              <button id="end-matching-btn" class="text-red-500"><i class="fas fa-stop"></i></button>
+                          </div>
+                          <div class="matching-container-grid flex-1 overflow-y-auto">
+                              <div id="matching-premises-area"></div>
+                              <div id="matching-answers-area"></div>
+                          </div>
+                          <button id="matching-submit-btn" class="w-full bg-green-600 text-white py-3 mt-2 rounded-lg font-bold">Check</button>
+                          <button id="matching-next-btn" class="hidden w-full bg-blue-600 text-white py-3 mt-2 rounded-lg font-bold">Next Set</button>
+                     </div>
+                 </div>
 
-                <div id="learning-mode-container" class="w-full hidden">
-                    <div id="learning-mode-controls">
-                        <div class="back-nav">
-                            <button id="learning-mode-back-btn" class="back-btn-circle"><i class="fas fa-arrow-left"></i></button>
-                            <h2 class="text-2xl font-bold">Learning Mode</h2>
-                        </div>
-                         <div class="p-4 bg-white rounded-xl shadow-sm">
-                             <input type="text" id="learning-search-input" class="w-full border rounded p-2 mb-4" placeholder="Search...">
-                             <button id="learning-search-btn" class="hidden"></button>
-                             <div class="grid gap-3">
-                                 <button id="learning-browse-by-chapter-btn" class="p-3 bg-slate-100 rounded font-bold">Browse Chapters</button>
-                                 <button id="learning-browse-by-source-btn" class="p-3 bg-slate-100 rounded font-bold">Browse Sources</button>
-                                 <button id="learning-mistakes-btn" class="p-3 bg-orange-100 text-orange-800 rounded font-bold">My Mistakes</button>
-                                 <button id="learning-bookmarked-btn" class="p-3 bg-blue-100 text-blue-800 rounded font-bold">Bookmarked</button>
+                 <div id="osce-container" class="w-full hidden pb-20">
+                    <div class="p-4 border-b flex justify-between bg-white dark:bg-slate-800 dark:border-slate-700">
+                        <button id="osce-back-btn"><i class="fas fa-arrow-left"></i> Back</button>
+                        <h2 class="font-bold">OSCE</h2>
+                        <div></div>
+                    </div>
+                    <div id="osce-controls" class="p-6 max-w-2xl mx-auto space-y-4">
+                         <button id="start-osce-slayer-btn" class="w-full bg-rose-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg">Start OSCE Slayer ⚔️</button>
+                         <div class="text-center text-slate-400 font-bold">- OR -</div>
+                         <div class="flex gap-2">
+                             <input type="number" id="osce-case-count" class="flex-1 p-3 border rounded-lg" placeholder="# Cases">
+                             <button id="start-custom-osce-btn" class="flex-1 bg-sky-600 text-white font-bold rounded-lg">Custom Session</button>
+                         </div>
+                    </div>
+                    <div id="osce-quiz-container" class="hidden h-full flex flex-col">
+                         <div class="p-2 bg-slate-100 flex justify-between">
+                             <button id="end-osce-quiz-btn" class="text-red-500">Exit</button>
+                             <div id="osce-timer">00:00</div>
+                         </div>
+                         <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 p-4 overflow-y-auto">
+                             <div class="bg-slate-50 p-4 rounded">
+                                 <h3 id="osce-case-title" class="font-bold">Case Title</h3>
+                                 <div id="osce-case-image-container"></div>
+                                 <p id="osce-case-description" class="text-sm mt-2"></p>
                              </div>
-                             <p id="learning-search-error" class="hidden text-red-500"></p>
-                         </div>
-                    </div>
-                    <div id="learning-mode-viewer" class="hidden h-full flex flex-col">
-                         <div class="flex justify-between items-center mb-4">
-                            <button id="end-learning-btn" class="text-red-500 font-bold">Exit</button>
-                            <h3 id="learning-title" class="font-bold truncate">Topic</h3>
-                        </div>
-                        <div class="flex-1 overflow-y-auto bg-white p-4 rounded-xl shadow-sm">
-                            <p id="learning-progress-text" class="text-center text-sm text-gray-500 mb-2">Loading...</p>
-                            <p id="learning-source-text" class="text-center text-xs text-gray-400"></p>
-                            <div id="learning-image-container" class="my-2 text-center"></div>
-                            <h2 id="learning-question-text" class="text-lg font-bold mb-4"></h2>
-                            <div id="learning-answer-buttons" class="space-y-3"></div>
-                        </div>
-                        <div class="mt-4 flex justify-between">
-                            <button id="learning-previous-btn" class="px-4 py-2 bg-gray-200 rounded">Prev</button>
-                            <button id="learning-next-btn" class="px-4 py-2 bg-blue-600 text-white rounded">Next</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="osce-container" class="w-full hidden">
-                     <div class="back-nav">
-                        <button id="osce-back-btn" class="back-btn-circle"><i class="fas fa-arrow-left"></i></button>
-                        <h2 class="text-2xl font-bold">OSCE</h2>
-                    </div>
-                    <div id="osce-controls" class="p-4 bg-white rounded-xl shadow-sm">
-                        <button id="start-osce-slayer-btn" class="w-full bg-red-600 text-white p-4 rounded-lg font-bold mb-6">Start OSCE Slayer</button>
-                        <h3 class="font-bold mb-2">Custom OSCE</h3>
-                        <div class="flex gap-2 mb-2">
-                            <input id="osce-case-count" type="number" placeholder="# Cases" class="border p-2 rounded w-1/2">
-                            <input id="osce-time-per-q" type="number" placeholder="Mins/Q" class="border p-2 rounded w-1/2">
-                        </div>
-                         <button id="toggle-osce-options-btn" class="text-sm text-blue-600 mb-2">Filter</button>
-                         <div id="custom-osce-options" class="hidden mb-2">
-                             <div id="chapter-select-osce"></div>
-                             <div id="source-select-osce"></div>
-                         </div>
-                        <button id="start-custom-osce-btn" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold">Start Custom</button>
-                         <p id="osce-error" class="text-red-500 hidden"></p>
-                    </div>
-                </div>
-                <div id="osce-quiz-container" class="hidden w-full h-full flex flex-col">
-                     <div class="flex justify-between p-2 bg-slate-100">
-                        <button id="end-osce-quiz-btn" class="text-red-500"><i class="fas fa-stop"></i></button>
-                        <span id="osce-quiz-title"></span>
-                        <span id="osce-score"></span>
-                        <span id="osce-timer">00:00</span>
-                    </div>
-                    <div class="flex-1 overflow-y-auto p-2">
-                        <p id="osce-progress-text" class="text-center text-xs text-gray-500"></p>
-                        <div class="bg-white p-2 rounded border mb-2">
-                            <h3 id="osce-case-title" class="font-bold"></h3>
-                            <div id="osce-case-image-container"></div>
-                            <p id="osce-case-description" class="text-sm"></p>
-                        </div>
-                        <div class="bg-white p-2 rounded border">
-                            <div id="osce-question-image-container"></div>
-                            <h3 id="osce-question-text" class="font-bold"></h3>
-                            <div id="osce-answer-area"></div>
-                            <div id="osce-model-answer-area" class="hidden"></div>
-                            <div id="osce-self-correction-area" class="hidden"></div>
-                        </div>
-                    </div>
-                     <div id="osce-controls-container" class="mt-auto flex justify-between pt-2 bg-white p-2">
-                        <button id="osce-previous-btn" class="p-2 bg-gray-200 rounded">Prev</button>
-                        <button id="osce-navigator-btn"><i class="fas fa-list"></i></button>
-                        <button id="osce-next-btn" class="p-2 bg-blue-600 text-white rounded">Next</button>
-                    </div>
-                </div>
-
-                <div id="theory-container" class="w-full hidden">
-                    <div class="back-nav">
-                         <button id="theory-back-btn" class="back-btn-circle"><i class="fas fa-arrow-left"></i></button>
-                         <h2 class="text-2xl font-bold">Theory</h2>
-                    </div>
-                    <div id="theory-controls">
-                        <input type="text" id="theory-search-input" class="w-full border p-2 rounded mb-4" placeholder="Search...">
-                        <button id="theory-search-btn" class="hidden"></button>
-                        <div class="grid gap-2 mb-4">
-                            <button id="theory-flashcard-mode-btn" class="p-3 bg-yellow-100 text-yellow-800 rounded font-bold">Flashcards</button>
-                            <button id="theory-exam-mode-btn" class="p-3 bg-orange-100 text-orange-800 rounded font-bold">Exam Mode</button>
-                        </div>
-                        <button id="theory-browse-by-chapter-btn" class="w-full p-2 bg-slate-100 rounded mb-2">Chapters</button>
-                        <button id="theory-browse-by-source-btn" class="w-full p-2 bg-slate-100 rounded">Sources</button>
-                    </div>
-                     <div id="theory-viewer" class="hidden h-full flex flex-col">
-                        <div class="flex justify-between mb-2">
-                             <button id="theory-end-btn" class="text-red-500">End</button>
-                             <h2 id="theory-title"></h2>
-                             <span id="theory-timer"></span>
-                        </div>
-                        <div class="bg-white p-4 rounded shadow-sm flex-1 overflow-y-auto">
-                             <p id="theory-progress-text" class="text-center text-sm text-gray-400 mb-2"></p>
-                             <p id="theory-source-text" class="text-xs text-gray-300"></p>
-                             <div id="theory-img-container"></div>
-                             <h3 id="theory-question-text" class="text-xl font-bold mb-4"></h3>
-                             <div id="theory-answer-container" class="hidden bg-green-50 p-3 rounded border-l-4 border-green-500">
-                                 <p id="theory-answer-text"></p>
+                             <div>
+                                 <h3 id="osce-question-text" class="font-bold mb-4">Question...</h3>
+                                 <div id="osce-answer-area"></div>
+                                 <div id="osce-controls-container" class="flex justify-between mt-4">
+                                     <button id="osce-previous-btn" class="bg-gray-300 px-4 py-2 rounded">Prev</button>
+                                     <button id="osce-next-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Next</button>
+                                 </div>
                              </div>
-                             <button id="theory-show-answer-btn" class="mt-4 w-full bg-blue-100 text-blue-700 p-2 rounded">Show Answer</button>
-                        </div>
-                         <div class="mt-2 flex justify-between items-center">
-                            <button id="theory-prev-btn" class="p-2 bg-gray-200 rounded">Prev</button>
-                            <div class="flex gap-2">
-                                <button id="theory-note-btn" class="note-icon text-xl text-gray-400"><i class="fas fa-sticky-note"></i></button>
-                                <button id="theory-status-btn" class="text-xl text-gray-400"><i class="far fa-check-circle"></i></button>
-                            </div>
-                            <button id="theory-next-btn" class="p-2 bg-blue-600 text-white rounded">Next</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="study-planner-container" class="w-full hidden">
-                     <div class="back-nav">
-                        <button id="study-planner-back-btn" class="back-btn-circle"><i class="fas fa-arrow-left"></i></button>
-                         <h2 class="text-2xl font-bold">Planner</h2>
-                    </div>
-                    <div id="planner-dashboard">
-                         <button id="show-create-plan-modal-btn" class="w-full bg-green-600 text-white p-3 rounded mb-4">New Plan</button>
-                         <div id="study-plans-list"></div>
-                         <div id="performance-insights-container" class="hidden"><ul id="strengths-list"></ul><ul id="weaknesses-list"></ul></div>
-                    </div>
-                    <div id="active-plan-view" class="hidden">
-                        <button id="back-to-plans-dashboard-btn" class="text-blue-500 mb-2">Back</button>
-                        <h3 id="active-plan-name" class="font-bold text-xl"></h3>
-                         <div id="study-plan-summary" class="bg-white p-4 rounded shadow mb-4">
-                             <p>Remaining: <span id="plan-days-remaining"></span></p>
-                             <p>Tasks: <span id="plan-tasks-today"></span></p>
-                             <div class="bg-gray-200 h-2 rounded mt-2"><div id="plan-progress-bar" class="bg-green-500 h-full" style="width:0%"></div></div>
                          </div>
-                         <div id="study-plan-days-container"></div>
                     </div>
-                    <div id="study-planner-loader" class="loader hidden"></div>
-                </div>
+                 </div>
 
-                <div id="leaderboard-container" class="w-full hidden">
-                     <div class="back-nav">
-                        <button id="leaderboard-back-btn" class="back-btn-circle"><i class="fas fa-arrow-left"></i></button>
-                        <h2 class="text-2xl font-bold">Leaderboard</h2>
-                    </div>
-                    <div id="leaderboard-loader" class="loader hidden"></div>
-                    <div id="current-user-rank"></div>
-                    <div id="leaderboard-list" class="space-y-2"></div>
-                </div>
+                 <div id="study-planner-container" class="w-full hidden pb-20">
+                     <div class="p-4 border-b bg-white dark:bg-slate-800 flex justify-between">
+                        <button id="study-planner-back-btn"><i class="fas fa-arrow-left"></i></button>
+                        <h2 class="font-bold">Planner</h2>
+                        <button id="show-create-plan-modal-btn"><i class="fas fa-plus"></i></button>
+                     </div>
+                     <div class="p-4">
+                         <div id="planner-dashboard">
+                             <div id="study-plans-list" class="space-y-3"></div>
+                         </div>
+                         <div id="active-plan-view" class="hidden">
+                             <button id="back-to-plans-dashboard-btn" class="text-xs text-blue-500 mb-2">Back</button>
+                             <h3 id="active-plan-name" class="text-xl font-bold mb-4">My Plan</h3>
+                             <div id="study-plan-days-container" class="space-y-3"></div>
+                         </div>
+                     </div>
+                 </div>
 
-                <div id="notes-container" class="w-full hidden">
-                     <div class="back-nav">
-                        <button id="notes-back-btn" class="back-btn-circle"><i class="fas fa-arrow-left"></i></button>
-                        <h2 class="text-2xl font-bold">My Notes</h2>
-                    </div>
-                    <div class="flex gap-2 mb-4">
-                        <button id="notes-filter-quizzes" class="flex-1 bg-slate-200 p-2 rounded">Quiz</button>
-                        <button id="notes-filter-lectures" class="flex-1 bg-slate-200 p-2 rounded">Lecture</button>
-                        <button id="notes-filter-theory" class="flex-1 bg-slate-200 p-2 rounded">Theory</button>
-                    </div>
-                    <div id="notes-list"></div>
-                </div>
+                 <div id="learning-mode-container" class="w-full hidden pb-20">
+                     <div class="p-4 border-b bg-white dark:bg-slate-800 flex justify-between">
+                         <button id="learning-mode-back-btn"><i class="fas fa-arrow-left"></i></button>
+                         <h2 class="font-bold">Learning</h2>
+                         <div></div>
+                     </div>
+                     <div id="learning-mode-controls" class="p-6 max-w-xl mx-auto space-y-4">
+                         <input type="text" id="learning-search-input" class="w-full p-3 border rounded" placeholder="Search Topic...">
+                         <button id="learning-search-btn" class="w-full bg-blue-600 text-white py-3 rounded font-bold">Search</button>
+                         <button id="learning-browse-by-chapter-btn" class="w-full bg-slate-100 text-slate-800 py-3 rounded font-bold">Browse Chapters</button>
+                     </div>
+                     <div id="learning-mode-viewer" class="hidden h-full flex flex-col p-4">
+                         <div class="flex justify-end"><button id="end-learning-btn" class="text-red-500">Exit</button></div>
+                         <div class="flex-1 overflow-y-auto">
+                             <h2 id="learning-question-text" class="text-lg font-bold mb-4">Question...</h2>
+                             <div id="learning-image-container"></div>
+                             <div id="learning-answer-buttons" class="space-y-3"></div>
+                         </div>
+                         <div class="flex justify-between pt-4 border-t">
+                             <button id="learning-previous-btn" class="bg-gray-300 px-4 py-2 rounded">Prev</button>
+                             <button id="learning-next-btn" class="bg-blue-600 text-white px-6 py-2 rounded">Next</button>
+                         </div>
+                     </div>
+                 </div>
 
-                <div id="activity-log-container" class="w-full hidden">
-                     <div class="back-nav">
-                        <button id="activity-back-btn" class="back-btn-circle"><i class="fas fa-arrow-left"></i></button>
-                        <h2 class="text-2xl font-bold">History</h2>
-                         <button id="clear-log-btn" class="text-red-500 text-sm ml-auto">Clear</button>
-                    </div>
-                     <div class="flex gap-2 mb-4">
-                        <button id="log-filter-all" class="flex-1 bg-slate-200 p-2 rounded">All</button>
-                        <button id="log-filter-quizzes" class="flex-1 bg-slate-200 p-2 rounded">Quiz</button>
-                        <button id="log-filter-lectures" class="flex-1 bg-slate-200 p-2 rounded">Video</button>
-                    </div>
-                    <div id="all-summary" class="hidden"><span id="all-lectures-progress"></span><span id="all-questions-progress"></span></div>
-                    <div id="quiz-summary" class="hidden"><span id="total-correct-answers"></span><span id="total-incorrect-answers"></span><span id="overall-accuracy"></span></div>
-                    <div id="lecture-summary" class="hidden"><span id="lectures-viewed-count"></span><span id="chapters-started-count"></span></div>
-                    <canvas id="activity-chart" class="mb-4"></canvas>
-                    <div id="activity-log-list" class="space-y-2"></div>
-                </div>
+                 <div id="activity-log-container" class="w-full hidden pb-20">
+                     <div class="p-4 border-b flex justify-between">
+                         <button id="activity-back-btn"><i class="fas fa-arrow-left"></i></button>
+                         <h2>Activity</h2>
+                         <button id="clear-log-btn" class="text-red-500 text-xs">Clear</button>
+                     </div>
+                     <div class="p-4">
+                         <canvas id="activity-chart" class="mb-4"></canvas>
+                         <div id="activity-log-list" class="space-y-2"></div>
+                     </div>
+                 </div>
 
-                <div id="library-container" class="w-full hidden">
-                     <div class="back-nav">
-                        <button id="library-back-btn" class="back-btn-circle"><i class="fas fa-arrow-left"></i></button>
-                        <h2 class="text-2xl font-bold">Library</h2>
-                    </div>
-                    <div id="library-loader" class="loader hidden"></div>
-                    <div id="library-list"></div>
-                </div>
-                
-                <div id="list-container" class="w-full hidden">
-                    <div class="back-nav">
-                         <button id="list-back-btn" class="back-btn-circle"><i class="fas fa-arrow-left"></i></button>
-                         <h2 id="list-title" class="text-2xl font-bold">List</h2>
-                    </div>
-                    <div id="list-items" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
-                </div>
+                 <div id="notes-container" class="w-full hidden pb-20">
+                     <div class="p-4 border-b flex justify-between">
+                         <button id="notes-back-btn"><i class="fas fa-arrow-left"></i></button>
+                         <h2>Notes</h2>
+                         <div></div>
+                     </div>
+                     <div class="p-4" id="notes-list"></div>
+                     <button id="notes-filter-quizzes" class="hidden"></button>
+                     <button id="notes-filter-lectures" class="hidden"></button>
+                     <button id="notes-filter-theory" class="hidden"></button>
+                 </div>
 
-            </div>
+                 <div id="library-container" class="w-full hidden pb-20">
+                      <div class="p-4 border-b flex justify-between">
+                         <button id="library-back-btn"><i class="fas fa-arrow-left"></i></button>
+                         <h2>Library</h2>
+                         <div></div>
+                     </div>
+                     <div id="library-list" class="p-4 grid grid-cols-2 gap-4"></div>
+                 </div>
 
-            <nav class="bottom-nav md:hidden">
-                <button class="bottom-item active" data-target="home"><i class="fas fa-home"></i> <span>Home</span></button>
-                <button class="bottom-item" data-target="lectures"><i class="fas fa-play-circle"></i> <span>Lectures</span></button>
-                <button class="bottom-item" data-target="exams"><i class="fas fa-question-circle"></i> <span>Exams</span></button>
-                <button class="bottom-item" data-target="notes"><i class="fas fa-sticky-note"></i> <span>Notes</span></button>
+                 <div id="leaderboard-container" class="w-full hidden pb-20">
+                      <div class="p-4 border-b flex justify-between">
+                         <button id="leaderboard-back-btn"><i class="fas fa-arrow-left"></i></button>
+                         <h2>Leaderboard</h2>
+                         <div></div>
+                     </div>
+                     <div class="p-4">
+                         <div id="current-user-rank" class="mb-4 p-3 bg-blue-50 rounded border border-blue-100"></div>
+                         <div id="leaderboard-list" class="space-y-2"></div>
+                     </div>
+                 </div>
+
+                 <div id="theory-container" class="w-full hidden pb-20">
+                     <div id="theory-controls">
+                         <button id="theory-back-btn">Back</button>
+                         <input id="theory-search-input"> <button id="theory-search-btn">Search</button>
+                         <button id="theory-flashcard-mode-btn">Flashcard</button>
+                         <button id="theory-exam-mode-btn">Exam</button>
+                         <button id="theory-browse-by-chapter-btn">Chapter</button>
+                         <button id="theory-browse-by-source-btn">Source</button>
+                     </div>
+                     <div id="theory-viewer" class="hidden">
+                         <button id="theory-end-btn">End</button>
+                         <div id="theory-question-text"></div>
+                         <button id="theory-show-answer-btn">Show</button>
+                         <div id="theory-answer-container"> <p id="theory-answer-text"></p> </div>
+                         <button id="theory-prev-btn">Prev</button> <button id="theory-next-btn">Next</button>
+                         <button id="theory-note-btn">Note</button> <button id="theory-status-btn">Check</button>
+                     </div>
+                 </div>
+
+                 <div id="list-container" class="w-full hidden pb-20">
+                     <div class="p-4 border-b flex justify-between">
+                         <button id="list-back-btn"><i class="fas fa-arrow-left"></i></button>
+                         <h2 id="list-title">List</h2>
+                         <div></div>
+                     </div>
+                     <div id="list-items" class="p-4 grid grid-cols-1 gap-2"></div>
+                 </div>
+
+            </main>
+
+            <nav id="mobile-bottom-nav" class="md:hidden fixed bottom-0 w-full bg-white dark:bg-slate-900 border-t dark:border-slate-700 shadow-lg z-40 flex justify-around items-center pb-safe pt-2 h-16">
+                <button id="nav-home-btn" class="nav-item active flex flex-col items-center justify-center w-full h-full text-blue-600">
+                    <i class="fas fa-home text-xl mb-1"></i>
+                    <span class="text-[10px] font-medium">Home</span>
+                </button>
+                <button id="nav-lectures-btn" class="nav-item flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <i class="fas fa-video text-xl mb-1"></i>
+                    <span class="text-[10px] font-medium">Lectures</span>
+                </button>
+                <button id="nav-qbank-btn" class="nav-item flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg transform -translate-y-4 border-4 border-white dark:border-slate-900">
+                        <i class="fas fa-plus text-lg"></i>
+                    </div>
+                </button>
+                <button id="nav-planner-btn" class="nav-item flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <i class="fas fa-calendar-alt text-xl mb-1"></i>
+                    <span class="text-[10px] font-medium">Planner</span>
+                </button>
+                <button id="nav-menu-btn" class="nav-item flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <i class="fas fa-bars text-xl mb-1"></i>
+                    <span class="text-[10px] font-medium">More</span>
+                </button>
             </nav>
 
-        </main>
+            <div id="mobile-menu-drawer" class="fixed inset-0 bg-black/50 z-50 hidden flex justify-end">
+                 <div class="w-64 bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col p-4 animate-slideLeft">
+                     <div class="flex justify-between items-center mb-6 border-b pb-4 dark:border-slate-700">
+                         <h2 class="font-bold text-lg dark:text-white">Menu</h2>
+                         <button id="close-menu-btn" class="text-slate-500 text-2xl">&times;</button>
+                     </div>
+                     <div class="space-y-4 flex-1 overflow-y-auto">
+                         <button id="drawer-learning-btn" class="w-full text-left p-2 rounded hover:bg-slate-100 dark:text-slate-300"><i class="fas fa-book-reader mr-3 w-6"></i> Learning Mode</button>
+                         <button id="drawer-matching-btn" class="w-full text-left p-2 rounded hover:bg-slate-100 dark:text-slate-300"><i class="fas fa-puzzle-piece mr-3 w-6"></i> Matching</button>
+                         <button id="drawer-osce-btn" class="w-full text-left p-2 rounded hover:bg-slate-100 dark:text-slate-300"><i class="fas fa-user-md mr-3 w-6"></i> OSCE</button>
+                         <button id="drawer-library-btn" class="w-full text-left p-2 rounded hover:bg-slate-100 dark:text-slate-300"><i class="fas fa-book-bookmark mr-3 w-6"></i> Library</button>
+                         <button id="drawer-notes-btn" class="w-full text-left p-2 rounded hover:bg-slate-100 dark:text-slate-300"><i class="fas fa-sticky-note mr-3 w-6"></i> My Notes</button>
+                         <button id="drawer-activity-btn" class="w-full text-left p-2 rounded hover:bg-slate-100 dark:text-slate-300"><i class="fas fa-history mr-3 w-6"></i> Activity Log</button>
+                         <button id="drawer-leaderboard-btn" class="w-full text-left p-2 rounded hover:bg-slate-100 dark:text-slate-300"><i class="fas fa-trophy mr-3 w-6"></i> Leaderboard</button>
+                         <button id="drawer-radio-btn" class="w-full text-left p-2 rounded hover:bg-slate-100 dark:text-slate-300"><i class="fas fa-broadcast-tower mr-3 w-6"></i> Radio</button>
+                     </div>
+                     <div class="border-t pt-4 dark:border-slate-700">
+                         <button id="logout-btn" class="w-full text-left p-2 text-red-500 font-bold"><i class="fas fa-sign-out-alt mr-3 w-6"></i> Log Out</button>
+                     </div>
+                 </div>
+            </div>
+
+        </div>
     </div>
 
-    <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        
-        <div id="user-card-modal" class="bg-white rounded-xl p-6 w-full max-w-sm hidden relative">
-            <button id="user-card-close-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+    <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-[100]">
+        <div id="user-card-modal" class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl max-w-md w-full hidden relative">
+            <button id="user-card-close-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">&times;</button>
             <div class="text-center">
-                <img id="user-avatar" src="" class="w-20 h-20 rounded-full mx-auto mb-3 border-4 border-blue-100">
-                <h3 id="card-user-name" class="font-bold text-xl"></h3>
-                <p id="card-user-nickname" class="text-gray-500 text-sm"></p>
-                <button id="edit-profile-btn" class="text-blue-500 text-sm mt-2">Edit Profile</button>
+                <img id="user-avatar" src="" class="w-24 h-24 rounded-full mx-auto border-4 border-blue-500 mb-3 shadow-lg">
+                <h3 id="card-user-name" class="text-xl font-bold text-slate-800 dark:text-white">Dr. Name</h3>
+                <p id="card-user-nickname" class="text-slate-500 italic">The Surgeon</p>
             </div>
-            <div id="profile-details-view" class="mt-6 border-t pt-4 space-y-3">
-                <div class="flex justify-between"><span>Score</span><span id="card-quiz-score" class="font-bold text-blue-600"></span></div>
-                <div class="flex justify-between"><span>Plan</span><span id="card-subscription-status" class="font-bold"></span></div>
-                <div class="flex justify-between"><span>Expires</span><span id="card-subscription-expiry" class="text-xs"></span></div>
-                <div class="flex justify-between"><span>Exam Date</span><span id="card-exam-date"></span></div>
-                <div class="flex justify-between"><span>Time</span><span id="card-days-left" class="font-bold text-red-500"></span></div>
+            <div id="profile-details-view" class="mt-6 space-y-3 bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl">
+                <div class="flex justify-between"><span class="text-slate-500">Exam Date</span> <span id="card-exam-date" class="font-bold dark:text-white">--</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Score</span> <span id="card-quiz-score" class="font-bold text-blue-600">0</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Subscription</span> <span id="card-subscription-expiry" class="font-bold text-green-600">Active</span></div>
             </div>
-            <div id="profile-edit-view" class="hidden mt-4">
-                <input id="edit-nickname" type="text" class="w-full p-2 border rounded mb-2" placeholder="Nickname">
-                <input id="edit-exam-date" type="date" class="w-full p-2 border rounded mb-2">
-                <div id="avatar-selection-grid" class="grid grid-cols-5 gap-2 mb-4"></div>
-                <div class="flex gap-2">
-                    <button id="cancel-edit-profile-btn" class="flex-1 bg-gray-200 p-2 rounded">Cancel</button>
-                    <button id="save-profile-btn" class="flex-1 bg-blue-600 text-white p-2 rounded">Save</button>
-                </div>
-                <p id="profile-edit-error" class="text-red-500 text-xs hidden"></p>
+            <button id="edit-profile-btn" class="w-full mt-4 border border-blue-500 text-blue-500 py-2 rounded-lg hover:bg-blue-50">Edit Profile</button>
+             <div id="profile-edit-view" class="hidden">
+                <input id="edit-nickname"><input id="edit-exam-date"><div id="avatar-selection-grid"></div>
+                <button id="save-profile-btn">Save</button> <button id="cancel-edit-profile-btn">Cancel</button>
             </div>
         </div>
 
-        <div id="registration-modal" class="hidden bg-white p-6 rounded max-w-md w-full">
-            <h3 class="text-xl font-bold mb-4">Create Account</h3>
-            <form id="registration-form" class="space-y-3">
-                <input id="register-name" type="text" placeholder="Name" required class="w-full border p-2 rounded">
-                <input id="register-username" type="text" placeholder="Username" required class="w-full border p-2 rounded">
-                <input id="register-email" type="email" placeholder="Email" required class="w-full border p-2 rounded">
-                <input id="register-mobile" type="text" placeholder="Mobile" required class="w-full border p-2 rounded">
-                <input id="register-password" type="password" placeholder="Password" required class="w-full border p-2 rounded">
-                <input id="register-confirm-password" type="password" placeholder="Confirm" required class="w-full border p-2 rounded">
-                <input id="register-country" type="text" placeholder="Country" required class="w-full border p-2 rounded">
-                <input id="register-study-type" type="text" placeholder="Study Type" class="w-full border p-2 rounded">
-                <input id="register-exam-date" type="date" class="w-full border p-2 rounded">
-                <p id="registration-error" class="text-red-500 hidden"></p>
-                <p id="registration-success" class="text-green-500 hidden"></p>
-                <div class="flex justify-end gap-2 mt-4">
-                    <button id="register-cancel-btn" type="button" class="px-4 py-2 bg-gray-200 rounded">Cancel</button>
-                    <button id="register-submit-btn" type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Register</button>
-                </div>
-            </form>
-        </div>
-
-        <div id="confirmation-modal" class="hidden bg-white p-6 rounded max-w-sm">
-            <h3 id="modal-title" class="font-bold mb-2"></h3>
-            <p id="modal-text" class="mb-4"></p>
-            <div class="flex justify-end gap-2">
-                <button id="modal-cancel-btn" class="px-4 py-2 bg-gray-200 rounded">No</button>
-                <button id="modal-confirm-btn" class="px-4 py-2 bg-red-600 text-white rounded">Yes</button>
+        <div id="messenger-modal" class="bg-white dark:bg-slate-800 rounded-xl p-4 w-full max-w-md h-[500px] flex flex-col hidden relative">
+            <div class="flex justify-between items-center border-b pb-2 mb-2">
+                <h3 class="font-bold dark:text-white">Messenger</h3>
+                <button id="messenger-close-btn">&times;</button>
+            </div>
+            <div id="messages-list" class="flex-1 overflow-y-auto p-2 space-y-2 bg-slate-50 dark:bg-slate-900 rounded"></div>
+            <div class="mt-2 flex gap-2">
+                <input id="message-input" class="flex-1 border rounded p-2 dark:bg-slate-700 dark:text-white" placeholder="Ask admin...">
+                <button id="send-message-btn" class="bg-blue-600 text-white px-4 rounded"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
 
-        <div id="note-modal" class="hidden bg-white p-6 rounded w-full max-w-md">
-            <h3 id="note-modal-title" class="font-bold mb-2">Note</h3>
-            <textarea id="note-textarea" class="w-full h-32 border p-2 rounded"></textarea>
-            <div class="flex justify-end gap-2 mt-2">
-                <button id="note-cancel-btn" class="px-4 py-2 bg-gray-200 rounded">Cancel</button>
-                <button id="note-save-btn" class="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
-            </div>
-        </div>
-
-        <div id="create-plan-modal" class="hidden bg-white p-6 rounded max-w-md">
-            <input id="new-plan-name" type="text" placeholder="Plan Name" class="w-full border p-2 rounded mb-2">
-            <input id="new-plan-start-date" type="date" class="w-full border p-2 rounded mb-2">
-            <input id="new-plan-end-date" type="date" class="w-full border p-2 rounded mb-2">
-            <p id="create-plan-error" class="text-red-500 hidden"></p>
-            <div class="flex justify-end gap-2 mt-2">
-                <button id="cancel-create-plan-btn" class="px-4 py-2 bg-gray-200 rounded">Cancel</button>
-                <button id="confirm-create-plan-btn" class="px-4 py-2 bg-green-600 text-white rounded">Create</button>
-            </div>
+        <div id="image-viewer-modal" class="hidden fixed inset-0 bg-black z-[200] flex items-center justify-center">
+            <button id="image-viewer-close-btn" class="absolute top-4 right-4 text-white text-4xl">&times;</button>
+            <img id="modal-image" class="max-h-screen max-w-full object-contain">
         </div>
         
-        <div id="messenger-modal" class="hidden bg-white p-6 rounded max-w-md relative">
-             <button id="messenger-close-btn" class="absolute top-2 right-2 text-xl">&times;</button>
-             <div id="messages-list" class="h-64 overflow-y-auto bg-slate-50 p-2 rounded mb-2"></div>
-             <div class="flex gap-2">
-                 <input id="message-input" type="text" class="flex-1 border p-2 rounded">
-                 <button id="send-message-btn" class="bg-blue-600 text-white px-4 rounded"><i class="fas fa-paper-plane"></i></button>
-             </div>
-             <p id="messenger-error" class="text-red-500 hidden"></p>
+        <div id="note-modal" class="hidden bg-white p-6 rounded-lg w-96">
+            <h3 id="note-modal-title" class="font-bold mb-2">Note</h3>
+            <textarea id="note-textarea" class="w-full border p-2 h-32"></textarea>
+            <button id="note-save-btn" class="bg-blue-600 text-white px-4 py-2 mt-2 rounded">Save</button>
+            <button id="note-cancel-btn" class="text-gray-500 ml-2">Cancel</button>
         </div>
 
-        <div id="announcements-modal" class="hidden bg-white p-6 rounded max-w-md">
-             <div id="announcements-list"></div>
-             <button id="announcements-close-btn" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded w-full">Close</button>
-        </div>
-
-        <div id="clear-log-modal" class="hidden bg-white p-6 rounded max-w-sm">
-             <button id="clear-quiz-logs-btn" class="w-full bg-yellow-100 text-yellow-800 p-2 rounded mb-2">Clear Quiz Logs</button>
-             <button id="clear-lecture-logs-btn" class="w-full bg-teal-100 text-teal-800 p-2 rounded mb-2">Clear Lecture Logs</button>
-             <button id="clear-all-logs-btn" class="w-full bg-red-100 text-red-800 p-2 rounded mb-2">Clear All</button>
-             <button id="clear-log-cancel-btn" class="w-full bg-gray-200 p-2 rounded">Cancel</button>
-        </div>
-
-        <div id="question-navigator-modal" class="hidden bg-white p-6 rounded max-w-lg">
-             <div id="navigator-grid" class="grid grid-cols-5 gap-2 max-h-64 overflow-y-auto"></div>
-             <button id="navigator-close-btn" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded w-full">Close</button>
-        </div>
-
-         <div id="osce-navigator-modal" class="hidden bg-white p-6 rounded max-w-lg">
-             <div id="osce-navigator-content"></div>
-             <button id="osce-navigator-close-btn" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded w-full">Close</button>
-         </div>
-
-         <div id="image-viewer-modal" class="hidden bg-white p-2 rounded shadow-xl relative max-w-4xl">
-             <button id="image-viewer-close-btn" class="absolute top-0 right-0 text-3xl p-2">&times;</button>
-             <img id="modal-image" class="max-w-full max-h-[80vh]">
-         </div>
-         
-         <div id="onboarding-modal" class="hidden bg-white p-6 rounded max-w-sm text-center">
-             <h2 class="text-xl font-bold mb-2">What's New</h2>
-             <button id="start-tour-btn" class="bg-blue-600 text-white px-4 py-2 rounded w-full mb-2">Start Tour</button>
-             <button id="skip-tour-btn" class="text-gray-500">Skip</button>
-         </div>
-         <div id="tour-tooltip" class="hidden absolute bg-white p-4 rounded shadow-lg z-50 w-64">
-             <h3 id="tour-title" class="font-bold"></h3>
-             <p id="tour-text" class="text-sm mb-2"></p>
-             <div class="flex justify-between">
-                 <span id="tour-step-count" class="text-xs text-gray-400"></span>
-                 <div>
-                     <button id="tour-end-btn" class="text-xs mr-2">End</button>
-                     <button id="tour-next-btn" class="text-xs bg-blue-600 text-white px-2 py-1 rounded">Next</button>
-                 </div>
-             </div>
-         </div>
-          <div id="ios-install-modal" class="hidden bg-white p-6 rounded max-w-sm relative text-center">
-             <button id="ios-install-close-btn" class="absolute top-2 right-2">&times;</button>
-             <i class="fab fa-apple text-4xl mb-2"></i>
-             <p>Tap Share -> Add to Home Screen</p>
-         </div>
-
+        <div id="onboarding-modal" class="hidden"> <button id="start-tour-btn"></button> <button id="skip-tour-btn"></button> </div>
+        <div id="registration-modal" class="hidden"> <form id="registration-form"></form> </div>
+        <div id="create-plan-modal" class="hidden"> <button id="confirm-create-plan-btn"></button> <button id="cancel-create-plan-btn"></button> </div>
+        <div id="confirmation-modal" class="hidden"> <button id="modal-confirm-btn"></button> <button id="modal-cancel-btn"></button> </div>
+        <div id="clear-log-modal" class="hidden"> <button id="clear-quiz-logs-btn"></button> <button id="clear-lecture-logs-btn"></button> <button id="clear-all-logs-btn"></button> </div>
+        <div id="announcements-modal" class="hidden"> <div id="announcements-list"></div> <button id="announcements-close-btn"></button> </div>
+        <div id="question-navigator-modal" class="hidden"> <div id="navigator-grid"></div> <button id="navigator-close-btn"></button> </div>
+        <div id="osce-navigator-modal" class="hidden"> <div id="osce-navigator-content"></div> <button id="osce-navigator-close-btn"></button> </div>
+        <div id="ios-install-modal" class="hidden"> <button id="ios-install-close-btn"></button> </div>
+        <div id="radio-banner-container" class="hidden"> <iframe src=""></iframe> <button id="radio-close-btn"></button> </div>
+        <button id="radio-btn" class="hidden"></button> <div id="tour-tooltip" class="hidden"> <button id="tour-next-btn"></button> <button id="tour-end-btn"></button> </div>
     </div>
 
     <script>
+        // Mobile Menu Logic
+        document.getElementById('nav-menu-btn').addEventListener('click', () => {
+            document.getElementById('mobile-menu-drawer').classList.remove('hidden');
+        });
+        document.getElementById('close-menu-btn').addEventListener('click', () => {
+            document.getElementById('mobile-menu-drawer').classList.add('hidden');
+        });
+        document.getElementById('mobile-menu-drawer').addEventListener('click', (e) => {
+            if(e.target === document.getElementById('mobile-menu-drawer')) {
+                document.getElementById('mobile-menu-drawer').classList.add('hidden');
+            }
+        });
+        
+        // Sidebar Navigation Logic (Connects Sidebar buttons to original Main Menu logic)
+        const mapSidebarToMain = {
+            'sidebar-lectures-btn': 'lectures-btn',
+            'sidebar-qbank-btn': 'qbank-btn',
+            'sidebar-planner-btn': 'study-planner-btn',
+            'sidebar-learning-btn': 'learning-mode-btn',
+            'sidebar-matching-btn': 'matching-btn',
+            'sidebar-osce-btn': 'osce-btn',
+            'sidebar-theory-btn': 'theory-btn',
+            'sidebar-library-btn': 'library-btn',
+            'sidebar-notes-btn': 'notes-btn',
+            'sidebar-activity-btn': 'activity-log-btn',
+            'sidebar-radio-btn': 'radio-btn',
+            'sidebar-profile-btn': 'user-profile-header-btn', // Maps to profile
+            'mobile-profile-btn': 'user-profile-header-btn',
+            'nav-home-btn': 'global-home-btn',
+            'sidebar-home-btn': 'global-home-btn',
+            'nav-lectures-btn': 'lectures-btn',
+            'nav-qbank-btn': 'qbank-btn',
+            'nav-planner-btn': 'study-planner-btn',
+            // Mobile Drawer Map
+            'drawer-learning-btn': 'learning-mode-btn',
+            'drawer-matching-btn': 'matching-btn',
+            'drawer-osce-btn': 'osce-btn',
+            'drawer-library-btn': 'library-btn',
+            'drawer-notes-btn': 'notes-btn',
+            'drawer-activity-btn': 'activity-log-btn',
+            'drawer-leaderboard-btn': 'leaderboard-btn',
+            'drawer-radio-btn': 'radio-btn'
+        };
+
+        // Attach clicks dynamically
+        Object.keys(mapSidebarToMain).forEach(sidebarId => {
+            const sidebarEl = document.getElementById(sidebarId);
+            if(sidebarEl) {
+                sidebarEl.addEventListener('click', () => {
+                    const targetId = mapSidebarToMain[sidebarId];
+                    // If mapped to an existing button, trigger it.
+                    // If mapped to 'global-home-btn' (which we removed from header), handle manually
+                    if (targetId === 'global-home-btn') {
+                        // Custom logic to go home:
+                        document.querySelectorAll('[id$="-container"]').forEach(el => el.classList.add('hidden'));
+                        document.getElementById('main-menu-container').classList.remove('hidden');
+                        document.getElementById('global-header').classList.remove('hidden');
+                        // Close mobile drawer
+                        document.getElementById('mobile-menu-drawer').classList.add('hidden');
+                    } else {
+                        const targetEl = document.getElementById(targetId);
+                        if(targetEl) targetEl.click();
+                    }
+                });
+            }
+        });
+
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed', err));
+                navigator.serviceWorker.register('./sw.js');
             });
         }
     </script>
 
     <script type="module" src="js/main.js"></script>
     <script src="js/login-animation.js"></script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            
-            // Helper to trigger clicks on hidden original buttons
-            const trigger = (id) => { const el = document.getElementById(id); if(el) el.click(); };
-
-            // 1. Navigation Logic (Sidebar + Bottom Nav)
-            const navItems = document.querySelectorAll('.nav-item, .bottom-item');
-            navItems.forEach(item => {
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const target = item.getAttribute('data-target');
-
-                    // Update UI Active State
-                    navItems.forEach(el => el.classList.remove('active'));
-                    document.querySelectorAll(`[data-target="${target}"]`).forEach(el => el.classList.add('active'));
-
-                    // Trigger Logic
-                    if(target === 'home') trigger('global-home-btn');
-                    if(target === 'lectures') trigger('lectures-btn');
-                    if(target === 'exams') trigger('qbank-btn');
-                    if(target === 'osce') trigger('osce-btn');
-                    if(target === 'planner') trigger('study-planner-btn');
-                    if(target === 'notes') trigger('notes-btn');
-                    if(target === 'activity') trigger('activity-log-btn');
-                });
-            });
-
-            // 2. Sidebar Logout
-            const logoutBtn = document.getElementById('sidebar-logout-btn');
-            if(logoutBtn) logoutBtn.addEventListener('click', () => trigger('logout-btn'));
-
-            // 3. Quick Actions
-            const quickQuiz = document.getElementById('dashboard-quick-quiz-btn');
-            if(quickQuiz) {
-                quickQuiz.addEventListener('click', () => {
-                    trigger('qbank-btn');
-                    setTimeout(() => trigger('qbank-tab-practice'), 50);
-                });
-            }
-
-            // 4. Login View Toggle (Observing main container visibility)
-            const observer = new MutationObserver((mutations) => {
-                const mainMenu = document.getElementById('main-menu-container');
-                const loginWrapper = document.getElementById('login-container-wrapper');
-                const appShell = document.getElementById('app-shell');
-
-                // If main menu is visible (user logged in)
-                if (!mainMenu.classList.contains('hidden')) {
-                    loginWrapper.classList.add('hidden');
-                    appShell.classList.remove('hidden');
-                } else {
-                    // If logged out
-                    loginWrapper.classList.remove('hidden');
-                    appShell.classList.add('hidden');
-                }
-            });
-
-            const targetNode = document.getElementById('main-menu-container');
-            if (targetNode) {
-                observer.observe(targetNode, { attributes: true, attributeFilter: ['class'] });
-            }
-        });
-    </script>
 </body>
 </html>
