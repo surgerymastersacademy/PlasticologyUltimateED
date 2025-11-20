@@ -1,4 +1,4 @@
-// js/features/lectures.js (FINAL VERSION v3.1)
+// js/features/lectures.js (FINAL ROBUST VERSION v3.1)
 
 import { createJsonRequest, sendPostRequest, fetchContentData } from '../api.js';
 import { showLoader, hideLoader, showToast } from '../ui.js';
@@ -13,17 +13,13 @@ export async function initLectures() {
     if (!container) return;
 
     showLoader('lectures-loader');
-    container.innerHTML = ''; // Clear previous content
+    container.innerHTML = '';
 
     try {
-        // 1. Get Content (Smart Cache)
         const data = await fetchContentData();
         
         if (data && data.lectures) {
             allLectures = data.lectures;
-            
-            // 2. Get User Progress (Optional: to show what's watched)
-            // We could fetch logs here, but for speed, we'll render first
             renderLectures(allLectures);
         } else {
             container.innerHTML = '<p class="text-center text-gray-500">No lectures found.</p>';
@@ -35,13 +31,12 @@ export async function initLectures() {
         hideLoader('lectures-loader');
     }
 
-    // Search Listener
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
             const filtered = allLectures.filter(l => 
-                (l.Topic && l.Topic.toLowerCase().includes(term)) || 
-                (l.Chapter && l.Chapter.toLowerCase().includes(term))
+                (l.Topic && String(l.Topic).toLowerCase().includes(term)) || 
+                (l.Chapter && String(l.Chapter).toLowerCase().includes(term))
             );
             renderLectures(filtered);
         });
@@ -60,18 +55,19 @@ function renderLectures(lectures) {
     // Group by Chapter
     const grouped = {};
     lectures.forEach(lecture => {
+        // Skip invalid entries
+        if (!lecture.Topic) return; 
+        
         const chapter = lecture.Chapter || 'General';
         if (!grouped[chapter]) grouped[chapter] = [];
         grouped[chapter].push(lecture);
     });
 
     // Render Groups
-    Object.keys(grouped).forEach(chapter => {
-        // Create Chapter Header (Accordion Style)
+    Object.keys(grouped).sort().forEach(chapter => {
         const chapterDiv = document.createElement('details');
         chapterDiv.className = 'bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden group mb-4';
-        chapterDiv.open = false; // Collapsed by default
-
+        
         const summary = document.createElement('summary');
         summary.className = 'p-4 cursor-pointer flex justify-between items-center font-bold text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors select-none';
         summary.innerHTML = `
@@ -89,8 +85,9 @@ function renderLectures(lectures) {
             const item = document.createElement('div');
             item.className = 'flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-md transition-all cursor-pointer group/item';
             
-            // Determine Icon (Video or Link)
-            const iconClass = lec.Link.includes('youtu') ? 'fa-youtube text-red-600' : 'fa-play-circle text-teal-600';
+            // --- SAFE LINK CHECK (The Fix) ---
+            const link = lec.Link ? String(lec.Link) : ''; // Ensure it's a string
+            const iconClass = link.includes('youtu') ? 'fa-youtube text-red-600' : 'fa-play-circle text-teal-600';
             
             item.innerHTML = `
                 <div class="flex items-center gap-3 overflow-hidden">
@@ -121,28 +118,23 @@ async function openLecture(lecture) {
         return;
     }
 
-    // 1. Open Link
     window.open(lecture.Link, '_blank');
 
-    // 2. Log View (Silently)
     const user = getCurrentUser();
     if (user) {
         try {
-            // Update "Last Activity" in UI immediately (Optimistic UI)
             const ribbon = document.getElementById('last-lecture-ribbon');
             if (ribbon) {
-                ribbon.innerHTML = `<i class="fas fa-play mr-1"></i> Resume: ${lecture.Topic.substring(0, 15)}...`;
+                ribbon.innerHTML = `<i class="fas fa-play mr-1"></i> Resume: ${String(lecture.Topic).substring(0, 15)}...`;
                 ribbon.classList.remove('hidden');
             }
 
-            // Send to Backend
             await sendPostRequest({
                 eventType: 'ViewLecture',
                 userId: user.UniqueID,
                 userName: user.Name,
                 lectureName: lecture.Topic
             });
-            console.log("Lecture view logged");
         } catch (e) {
             console.warn("Failed to log lecture view", e);
         }
