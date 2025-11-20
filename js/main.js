@@ -1,8 +1,8 @@
-// js/main.js (FINAL MASTER VERSION v3.1)
+// js/main.js (FINAL FIXED VERSION v3.1)
 
 // 1. Core Imports
 import { isAuthenticated, getCurrentUser } from './state.js';
-import { showScreen, showLoader, hideLoader, initSettings } from './ui.js'; // initSettings added
+import { showScreen, showLoader, hideLoader, initSettings } from './ui.js'; 
 import { setupUserProfileEvents, updateUserUI, handleLogin } from './features/userProfile.js';
 
 // 2. Feature Imports
@@ -18,7 +18,7 @@ import { initActivityLog } from './features/activityLog.js';
 import { initLeaderboard } from './features/leaderboard.js';
 import { initRegistration } from './features/registration.js';
 import { initOnboarding } from './features/onboarding.js';
-import { initLibrary } from './features/library.js'; // المكتبة الجديدة
+import { initLibrary } from './features/library.js'; 
 
 // 3. Start Application
 document.addEventListener('DOMContentLoaded', initializeApp);
@@ -32,11 +32,14 @@ async function initializeApp() {
     // B. Setup Global Event Listeners (Login, Register, Logout)
     setupGlobalEvents();
 
-    // C. Initialize Public Features
-    initRegistration(); // Setup Register Form Logic
-    setupUserProfileEvents(); // Setup Profile Modal & Login Events
+    // C. Setup Navigation (THIS WAS MISSING) 👈
+    setupNavigation();
+
+    // D. Initialize Public Features
+    initRegistration(); 
+    setupUserProfileEvents(); 
     
-    // D. Check Authentication State
+    // E. Check Authentication State
     if (isAuthenticated()) {
         const user = getCurrentUser();
         console.log("✅ User logged in:", user.Name);
@@ -55,6 +58,42 @@ async function initializeApp() {
         
         // Show Onboarding Tour for new visitors
         initOnboarding();
+    }
+}
+
+// --- NEW FUNCTION: Navigation Wiring ---
+function setupNavigation() {
+    // Map Button IDs to Container IDs
+    const navMap = {
+        'lectures-btn': 'lectures-container',
+        'qbank-btn': 'qbank-container',
+        'study-planner-btn': 'study-planner-container',
+        'matching-btn': 'matching-container',
+        'osce-btn': 'osce-container',
+        'learning-mode-btn': 'learning-mode-container',
+        'theory-btn': 'theory-container',
+        'library-btn': 'library-container',
+        'notes-btn': 'notes-container',
+        'activity-log-btn': 'activity-log-container',
+        'leaderboard-btn': 'leaderboard-container'
+    };
+
+    // Attach Click Events
+    Object.keys(navMap).forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.addEventListener('click', () => {
+                showScreen(navMap[btnId]);
+            });
+        }
+    });
+
+    // Handle "Home" Button separately (Logic to show Dashboard)
+    const homeBtn = document.getElementById('global-home-btn');
+    if (homeBtn) {
+        homeBtn.addEventListener('click', () => {
+            showScreen('main-menu-container');
+        });
     }
 }
 
@@ -99,7 +138,6 @@ function handleLogout() {
 // Initialize all features that require a logged-in user
 function initializeProtectedFeatures() {
     // Safety check: ensure functions exist before calling to prevent crash
-    // This block guarantees that the app runs even if one module fails
     try { initLectures(); } catch(e) { console.error("Init Lectures Failed", e); }
     try { initQuiz(); } catch(e) { console.error("Init Quiz Failed", e); }
     try { initPlanner(); } catch(e) { console.error("Init Planner Failed", e); }
