@@ -1,4 +1,4 @@
-// js/main.js (FINAL VERSION - v4 LAYOUT & NAVIGATION)
+// js/main.js (FINAL VERSION - UPDATED FOR SIMULATION FILTERS)
 
 import { appState } from './state.js';
 import * as dom from './dom.js';
@@ -30,15 +30,10 @@ function safeListen(element, event, handler) {
 }
 
 export function showMainMenuScreen() {
-    // In v4, Main Menu is the Dashboard
     ui.showScreen(dom.mainMenuContainer);
     appState.navigationHistory = [showMainMenuScreen];
-    
-    // Update Dashboard Widgets
     ui.displayAnnouncement();
     fetchAndShowLastActivity();
-    calculateDailyStreak();
-    updateUserProfileHeader();
     
     setTimeout(() => {
         checkAndTriggerOnboarding();
@@ -65,7 +60,7 @@ export function openNoteModal(type, itemId, itemTitle) {
 }
 
 function populateAllFilters() {
-    // QBank Filters
+    // 1. QBank Mock Filters (Existing)
     const allSources = [...new Set(appState.allQuestions.map(q => q.source || 'Uncategorized'))].sort();
     const sourceCounts = appState.allQuestions.reduce((acc, q) => {
         const source = q.source || 'Uncategorized';
@@ -75,8 +70,11 @@ function populateAllFilters() {
     ui.populateFilterOptions(dom.sourceSelectMock, allSources, 'mock-source', sourceCounts);
     updateChapterFilter();
 
-    // Simulation Filters
+    // 2. Simulation Filters (NEW)
+    // Populate Sources
     ui.populateFilterOptions(dom.sourceSelectSim, allSources, 'sim-source', sourceCounts);
+    
+    // Populate Chapters (All chapters initially)
     const allChapters = [...new Set(appState.allQuestions.map(q => q.chapter || 'Uncategorized'))].sort();
     const chapterCounts = appState.allQuestions.reduce((acc, q) => {
         const chapter = q.chapter || 'Uncategorized';
@@ -84,10 +82,13 @@ function populateAllFilters() {
         return acc;
     }, {});
     ui.populateFilterOptions(dom.chapterSelectSim, allChapters, 'sim-chapter', chapterCounts);
+
+    // Check all boxes by default for Simulation Mode
     if(dom.sourceSelectSim) dom.sourceSelectSim.querySelectorAll('input').forEach(i => i.checked = true);
     if(dom.chapterSelectSim) dom.chapterSelectSim.querySelectorAll('input').forEach(i => i.checked = true);
 
-    // OSCE Filters
+
+    // 3. OSCE Filters (Existing)
     const osceChapters = [...new Set(appState.allOsceCases.map(c => c.Chapter || 'Uncategorized'))].sort();
     const osceSources = [...new Set(appState.allOsceCases.map(c => c.Source || 'Uncategorized'))].sort();
     const osceChapterCounts = appState.allOsceCases.reduce((acc, c) => {
@@ -198,6 +199,10 @@ function calculateDailyStreak() {
         localStorage.setItem('dailyStreak', streak);
     }
     dom.streakCount.textContent = streak;
+    if (streak > 0) {
+        dom.streakContainer.classList.remove('hidden');
+        dom.streakContainer.classList.add('flex');
+    }
 }
 
 // --- APP INITIALIZATION ---
@@ -288,58 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initializeSettings();
 
-    // --- 1. NAVIGATION EVENT LISTENERS (NEW LAYOUT) ---
-    
-    // Desktop Sidebar
-    safeListen(dom.navHomeBtn, 'click', showMainMenuScreen);
-    safeListen(dom.navLecturesBtn, 'click', () => { if(checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); } });
-    safeListen(dom.navQbankBtn, 'click', () => { if(checkPermission('MCQBank')) ui.showScreen(dom.qbankContainer); });
-    safeListen(dom.navLearningBtn, 'click', () => { if(checkPermission('LerningMode')) showLearningModeBrowseScreen(); });
-    safeListen(dom.navMatchingBtn, 'click', () => showMatchingMenu());
-    safeListen(dom.navTheoryBtn, 'click', () => { if(checkPermission('TheoryBank')) showTheoryMenuScreen(); });
-    safeListen(dom.navOsceBtn, 'click', () => { if(checkPermission('OSCEBank')) ui.showScreen(dom.osceContainer); });
-    safeListen(dom.navLibraryBtn, 'click', () => { if(checkPermission('Library')) { ui.renderBooks(); ui.showScreen(dom.libraryContainer); } });
-    safeListen(dom.navPlannerBtn, 'click', () => { if(checkPermission('StudyPlanner')) showStudyPlannerScreen(); });
-    safeListen(dom.navNotesBtn, 'click', showNotesScreen);
-    safeListen(dom.navStatsBtn, 'click', showActivityLog);
-    safeListen(dom.navLeaderboardBtn, 'click', () => checkPermission('LeadersBoard') && showLeaderboardScreen());
-    safeListen(dom.navLogoutBtn, 'click', handleLogout);
-
-    // Mobile Bottom Nav
-    safeListen(dom.mobileHomeBtn, 'click', showMainMenuScreen);
-    safeListen(dom.mobileQbankBtn, 'click', () => { if(checkPermission('MCQBank')) ui.showScreen(dom.qbankContainer); });
-    safeListen(dom.mobileNotesBtn, 'click', showNotesScreen);
-    safeListen(dom.mobileProfileBtn, 'click', () => showUserCardModal(false));
-    
-    // Dashboard Quick Actions
-    safeListen(dom.quickLecturesBtn, 'click', () => { if(checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); } });
-    safeListen(dom.quickQbankBtn, 'click', () => { if(checkPermission('MCQBank')) ui.showScreen(dom.qbankContainer); });
-    safeListen(dom.quickMatchingBtn, 'click', () => showMatchingMenu());
-    safeListen(dom.quickLibraryBtn, 'click', () => { if(checkPermission('Library')) { ui.renderBooks(); ui.showScreen(dom.libraryContainer); } });
-    safeListen(dom.quickOsceBtn, 'click', () => { if(checkPermission('OSCEBank')) ui.showScreen(dom.osceContainer); });
-    safeListen(dom.quickTheoryBtn, 'click', () => { if(checkPermission('TheoryBank')) showTheoryMenuScreen(); });
-    
-    // Mobile Menu Modal Actions
-    const mobileNavItems = document.querySelectorAll('.mobile-nav-item');
-    mobileNavItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            const target = e.currentTarget.dataset.target;
-            dom.mobileMenuModal.classList.add('hidden'); // Hide modal first
-            dom.modalBackdrop.classList.add('hidden');
-            
-            if (target === 'lectures' && checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); }
-            else if (target === 'matching') showMatchingMenu();
-            else if (target === 'osce' && checkPermission('OSCEBank')) ui.showScreen(dom.osceContainer);
-            else if (target === 'planner' && checkPermission('StudyPlanner')) showStudyPlannerScreen();
-            else if (target === 'leaderboard' && checkPermission('LeadersBoard')) showLeaderboardScreen();
-            else if (target === 'theory' && checkPermission('TheoryBank')) showTheoryMenuScreen();
-            else if (target === 'learning' && checkPermission('LerningMode')) showLearningModeBrowseScreen();
-            else if (target === 'library' && checkPermission('Library')) { ui.renderBooks(); ui.showScreen(dom.libraryContainer); }
-        });
-    });
-
-    // --- 2. EXISTING EVENT LISTENERS (Maintained) ---
-    
+    // --- EVENT LISTENERS ---
     safeListen(dom.helpBtn, 'click', startTour);
     safeListen(dom.startTourBtn, 'click', startTour);
     safeListen(dom.skipTourBtn, 'click', endTour);
@@ -351,6 +305,11 @@ document.addEventListener('DOMContentLoaded', () => {
     safeListen(dom.registrationForm, 'submit', handleRegistrationSubmit);
     safeListen(dom.registerCancelBtn, 'click', hideRegistrationModal);
 
+    safeListen(dom.logoutBtn, 'click', handleLogout);
+    safeListen(dom.globalHomeBtn, 'click', () => {
+        if (appState.currentUser?.Role === 'Guest') { ui.showScreen(dom.loginContainer); appState.currentUser = null; } 
+        else { showMainMenuScreen(); }
+    });
     safeListen(dom.freeTestBtn, 'click', startFreeTest);
     
     // Back Buttons
@@ -358,19 +317,31 @@ document.addEventListener('DOMContentLoaded', () => {
         safeListen(btn, 'click', () => { if (window.history.length > 1) window.history.back(); else showMainMenuScreen(); });
     });
 
-    // Features & Headers
+    // Menu Buttons
+    safeListen(dom.lecturesBtn, 'click', () => { if (checkPermission('Lectures')) { renderLectures(); ui.showScreen(dom.lecturesContainer); } });
+    safeListen(dom.qbankBtn, 'click', () => { if (checkPermission('MCQBank')) { ui.showScreen(dom.qbankContainer); } });
+    safeListen(dom.learningModeBtn, 'click', () => { if (checkPermission('LerningMode')) showLearningModeBrowseScreen(); });
+    safeListen(dom.theoryBtn, 'click', () => { if (checkPermission('TheoryBank')) showTheoryMenuScreen(); });
+    safeListen(dom.osceBtn, 'click', () => { if (checkPermission('OSCEBank')) { ui.showScreen(dom.osceContainer); } });
+    safeListen(dom.libraryBtn, 'click', () => { if (checkPermission('Library')) { ui.renderBooks(); ui.showScreen(dom.libraryContainer); } });
+    safeListen(dom.studyPlannerBtn, 'click', () => { if (checkPermission('StudyPlanner')) showStudyPlannerScreen(); });
+    safeListen(dom.leaderboardBtn, 'click', () => checkPermission('LeadersBoard') && showLeaderboardScreen());
+    safeListen(dom.matchingBtn, 'click', () => showMatchingMenu());
+    
+    // Features
     safeListen(dom.userProfileHeaderBtn, 'click', () => showUserCardModal(false));
     safeListen(dom.editProfileBtn, 'click', () => toggleProfileEditMode(true));
     safeListen(dom.cancelEditProfileBtn, 'click', () => toggleProfileEditMode(false));
     safeListen(dom.saveProfileBtn, 'click', handleSaveProfile);
-    safeListen(dom.radioBtn, 'click', () => dom.radioBannerContainer.classList.toggle('max-h-0')); // Fix toggle
-    safeListen(dom.radioCloseBtn, 'click', () => dom.radioBannerContainer.classList.add('max-h-0'));
+    safeListen(dom.radioBtn, 'click', () => dom.radioBannerContainer.classList.toggle('open'));
+    safeListen(dom.radioCloseBtn, 'click', () => dom.radioBannerContainer.classList.remove('open'));
     safeListen(dom.announcementsBtn, 'click', ui.showAnnouncementsModal);
     safeListen(dom.messengerBtn, 'click', showMessengerModal);
     safeListen(dom.sendMessageBtn, 'click', handleSendMessageBtn);
     safeListen(dom.lectureSearchInput, 'keyup', (e) => renderLectures(e.target.value));
     
-    // Log Filters
+    safeListen(dom.notesBtn, 'click', showNotesScreen);
+    safeListen(dom.activityLogBtn, 'click', showActivityLog);
     safeListen(dom.logFilterAll, 'click', () => renderFilteredLog('all'));
     safeListen(dom.logFilterQuizzes, 'click', () => renderFilteredLog('quizzes'));
     safeListen(dom.logFilterLectures, 'click', () => renderFilteredLog('lectures'));
@@ -390,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // QBank Listeners
     safeListen(dom.startMockBtn, 'click', handleMockExamStart);
-    safeListen(dom.startSimulationBtn, 'click', handleStartSimulation); 
+    safeListen(dom.startSimulationBtn, 'click', handleStartSimulation); // Uses new filtered logic
     safeListen(dom.qbankSearchBtn, 'click', handleQBankSearch);
     safeListen(dom.qbankStartSearchQuizBtn, 'click', startSearchedQuiz);
     safeListen(dom.qbankClearSearchBtn, 'click', () => {
@@ -398,8 +369,9 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.qbankMainContent.classList.remove('hidden');
         dom.qbankSearchInput.value = '';
     });
-    safeListen(dom.toggleCustomOptionsBtn, 'click', () => dom.customExamOptions.classList.toggle('hidden')); // Fix toggle class
+    safeListen(dom.toggleCustomOptionsBtn, 'click', () => dom.customExamOptions.classList.toggle('visible'));
     
+    // Mock Filters
     safeListen(dom.sourceSelectMock, 'change', updateChapterFilter);
     if(dom.selectAllSourcesMock) safeListen(dom.selectAllSourcesMock, 'change', (e) => {
         dom.sourceSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
@@ -409,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.chapterSelectMock.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
     });
 
-    // Simulation Filters Listeners
+    // NEW: Simulation Filters Listeners
     safeListen(dom.toggleSimulationOptionsBtn, 'click', () => dom.simulationCustomOptions.classList.toggle('hidden'));
     if(dom.selectAllSourcesSim) safeListen(dom.selectAllSourcesSim, 'change', (e) => {
         dom.sourceSelectSim.querySelectorAll('input[type="checkbox"]').forEach(checkbox => { checkbox.checked = e.target.checked; });
@@ -427,10 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
     qbankTabs.forEach((tab, index) => { 
         safeListen(tab, 'click', () => {
             const panels = [dom.qbankPanelCreate, dom.qbankPanelPractice, dom.qbankPanelBrowse];
-            qbankTabs.forEach((t, i) => {
-                t && t.classList.toggle('border-indigo-600', i === index); // Tailwind styling
-                t && t.classList.toggle('text-indigo-600', i === index);
-            });
+            qbankTabs.forEach((t, i) => t && t.classList.toggle('active', i === index));
             panels.forEach((p, i) => p && p.classList.toggle('hidden', i !== index));
             if(dom.qbankMainContent) dom.qbankMainContent.classList.remove('hidden');
             if(dom.qbankSearchResultsContainer) dom.qbankSearchResultsContainer.classList.add('hidden');
@@ -460,7 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     safeListen(dom.startOsceSlayerBtn, 'click', startOsceSlayer);
     safeListen(dom.startCustomOsceBtn, 'click', startCustomOsce);
-    safeListen(dom.toggleOsceOptionsBtn, 'click', () => dom.customOsceOptions.classList.toggle('hidden')); // Fix
+    safeListen(dom.toggleOsceOptionsBtn, 'click', () => dom.customOsceOptions.classList.toggle('visible'));
     safeListen(dom.endOsceQuizBtn, 'click', () => endOsceQuiz(false));
     safeListen(dom.osceNextBtn, 'click', handleOsceNext);
     safeListen(dom.oscePreviousBtn, 'click', handleOscePrevious);
