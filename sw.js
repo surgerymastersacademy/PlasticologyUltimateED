@@ -1,7 +1,7 @@
 // sw.js (FINAL FIXED VERSION v4)
 
 // Increased version to force update and fix Tailwind CORS error
-const CACHE_NAME = 'plasticology-app-v15.4'; 
+const CACHE_NAME = 'plasticology-app-v13'; 
 
 const ASSETS_TO_CACHE = [
   './',

@@ -1,106 +1,75 @@
-// js/features/performance.js (FINAL VERSION v3.1)
+// js/features/performance.js
 
-import { createJsonRequest } from '../api.js';
-import { getCurrentUser } from '../state.js';
-
-/**
- * Fetches user logs and calculates performance insights (Strengths & Weaknesses).
- * Called by Planner or Dashboard.
- */
-export async function updatePerformanceInsights() {
-    const user = getCurrentUser();
-    if (!user) return;
-
-    const strengthsList = document.getElementById('strengths-list');
-    const weaknessesList = document.getElementById('weaknesses-list');
-    const container = document.getElementById('performance-insights-container');
-
-    // If UI elements don't exist, skip
-    if (!strengthsList || !weaknessesList) return;
-
-    try {
-        // Fetch logs to analyze performance
-        const response = await createJsonRequest({ request: 'userData', userId: user.UniqueID });
-
-        if (response && response.logs) {
-            const stats = calculateStats(response.logs);
-            renderInsights(stats, strengthsList, weaknessesList);
-            
-            // Show the container if it was hidden
-            if (container) container.classList.remove('hidden');
-        }
-    } catch (e) {
-        console.warn("Failed to update performance insights:", e);
-    }
-}
+import { appState } from '../state.js';
 
 /**
- * Analyzes logs to determine accuracy per topic/chapter.
+ * Analyzes user's quiz history to find strengths and weaknesses by chapter.
+ * @returns {object|null} An object with strengths and weaknesses arrays, or null if not enough data.
  */
-function calculateStats(logs) {
-    const topicStats = {};
+export function analyzePerformanceByChapter() {
+    const quizLogs = appState.fullActivityLog.filter(log => log.eventType === 'FinishQuiz' && log.Details && log.Details.length > 2);
+    if (quizLogs.length < 3) return null; // Not enough quiz data to analyze
 
-    // 1. Aggregate Scores
-    logs.forEach(log => {
-        // We need logs that have detailed scores (Quiz logs)
-        // Assuming 'title' or 'details' contains Topic/Chapter info
-        // This logic depends on how your Quiz Logs are structured.
-        // For now, we'll try to parse the Title as "Source - Chapter" or just use Title.
-        
-        if (log.total && log.total > 0) {
-            let topic = "General";
-            // Try to extract topic from Title "Quiz: ChapterName"
-            if (log.title && log.title.includes(':')) {
-                topic = log.title.split(':')[1].trim();
-            } else {
-                topic = log.title || "General";
-            }
-
-            if (!topicStats[topic]) {
-                topicStats[topic] = { correct: 0, total: 0 };
-            }
-
-            topicStats[topic].correct += parseInt(log.score || 0);
-            topicStats[topic].total += parseInt(log.total || 0);
-        }
-    });
-
-    // 2. Calculate Percentage
-    const results = [];
-    Object.keys(topicStats).forEach(topic => {
-        const data = topicStats[topic];
-        if (data.total >= 5) { // Only count if attempted at least 5 questions
-            results.push({
-                topic: topic,
-                accuracy: (data.correct / data.total) * 100
+    // Create a map for quick lookup of question details (chapter and correct answer)
+    const questionDetailsMap = new Map();
+    appState.allQuestions.forEach(q => {
+        const correctAnswer = q.answerOptions.find(opt => opt.isCorrect);
+        if (correctAnswer) {
+            questionDetailsMap.set(q.UniqueID, { 
+                chapter: q.chapter, 
+                correctAnswer: correctAnswer.text 
             });
         }
     });
 
-    return results.sort((a, b) => b.accuracy - a.accuracy);
-}
+    const chapterStats = {};
 
-function renderInsights(stats, sList, wList) {
-    sList.innerHTML = '';
-    wList.innerHTML = '';
+    // Iterate through quiz logs to gather stats
+    quizLogs.forEach(log => {
+        try {
+            const details = JSON.parse(log.Details);
+            details.forEach(item => {
+                const questionData = questionDetailsMap.get(item.qID);
+                if (questionData) {
+                    const chapter = questionData.chapter;
+                    // Initialize stats for the chapter if it's the first time we see it
+                    if (!chapterStats[chapter]) {
+                        chapterStats[chapter] = { correct: 0, total: 0 };
+                    }
+                    chapterStats[chapter].total++;
+                    if (item.ans === questionData.correctAnswer) {
+                        chapterStats[chapter].correct++;
+                    }
+                }
+            });
+        } catch (e) {
+            console.error("Could not parse quiz log details:", log.Details, e);
+        }
+    });
 
-    if (stats.length === 0) {
-        sList.innerHTML = '<li class="text-sm text-gray-500">Take more quizzes to see insights.</li>';
-        wList.innerHTML = '<li class="text-sm text-gray-500">Data will appear here.</li>';
-        return;
+    const performanceArray = [];
+    // Calculate accuracy for each chapter
+    for (const chapter in chapterStats) {
+        const stats = chapterStats[chapter];
+        // Only consider chapters with a meaningful number of attempts (e.g., 5 or more)
+        if (stats.total >= 5) {
+            performanceArray.push({
+                chapter: chapter,
+                accuracy: (stats.correct / stats.total) * 100
+            });
+        }
     }
 
-    // Top 3 Strengths
-    const strengths = stats.filter(s => s.accuracy >= 70).slice(0, 3);
-    strengths.forEach(s => {
-        sList.innerHTML += `<li class="text-sm text-green-700 mb-1"><i class="fas fa-check-circle mr-2"></i>${s.topic} (${Math.round(s.accuracy)}%)</li>`;
-    });
-    if (strengths.length === 0) sList.innerHTML = '<li class="text-sm text-gray-500">Keep practicing to build strengths!</li>';
+    if (performanceArray.length < 2) return null; // Not enough data for a meaningful comparison
 
-    // Bottom 3 Weaknesses
-    const weaknesses = stats.slice().reverse().filter(s => s.accuracy < 70).slice(0, 3);
-    weaknesses.forEach(w => {
-        wList.innerHTML += `<li class="text-sm text-red-700 mb-1"><i class="fas fa-exclamation-circle mr-2"></i>${w.topic} (${Math.round(w.accuracy)}%)</li>`;
-    });
-    if (weaknesses.length === 0 && stats.length > 0) wList.innerHTML = '<li class="text-sm text-gray-500">Great job! No major weaknesses found.</li>';
+    // Sort chapters from highest accuracy to lowest
+    performanceArray.sort((a, b) => b.accuracy - a.accuracy);
+
+    // Identify strengths (e.g., accuracy >= 80%) and weaknesses (e.g., accuracy < 60%)
+    const strengths = performanceArray.filter(p => p.accuracy >= 80).slice(0, 2).map(p => p.chapter);
+    const weaknesses = performanceArray.filter(p => p.accuracy < 60).slice(0, -3).map(p => p.chapter); // Get the bottom 2
+
+    if (strengths.length === 0 && weaknesses.length === 0) return null;
+
+    return { strengths, weaknesses };
 }

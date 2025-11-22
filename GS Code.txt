@@ -5,6 +5,7 @@ var USERS_SHEET_NAME = "Users";
 var QUESTIONS_SHEET_NAME = "MCQ Bank";
 var LECTURES_SHEET_NAME = "Lectures Topics";
 var QUIZ_LOG_SHEET_NAME = "QuizLogs";
+var MATCHING_LOG_SHEET_NAME = "MatchingLogs";
 var LECTURE_LOG_SHEET_NAME = "LectureLogs";
 var QUIZ_NOTES_SHEET_NAME = "UserQuizNotes";
 var LECTURE_NOTES_SHEET_NAME = "UserLectureNotes";
@@ -23,6 +24,7 @@ var ANSWERED_QUESTIONS_LOG_SHEET_NAME = "AnsweredQuestionsLog";
 var THEORY_QUESTIONS_SHEET_NAME = "Theory_Questions";
 var THEORY_LOG_SHEET_NAME = "Theory_Questions_Log";
 var USERS_FINANCE_SHEET_NAME = "UsersFinance";
+var SETTINGS_SHEET_NAME = "Settings"; // --- NEW ---
 var TRIAL_PERIOD_HOURS = 24;
 
 // ===============================================================
@@ -36,7 +38,7 @@ function doGet(e) {
     var logId = e.parameter.logId;
     var adminUsername = e.parameter.username;
     var adminPassword = e.parameter.password;
-    
+
     if (requestType === 'getUserRole') {
         if (!e.parameter.username) return createErrorResponse("Username parameter is required.");
         return handleGetUserRole(e.parameter.username);
@@ -67,7 +69,7 @@ function doGet(e) {
     else { return HtmlService.createHtmlOutputFromFile('Index').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
     }
   } catch (error) { Logger.log("doGet Error: " + error.toString() + "\nStack: " + error.stack);
-  return createErrorResponse("An unexpected error occurred in doGet: " + error.toString());
+    return createErrorResponse("An unexpected error occurred in doGet: " + error.toString());
   }
 }
 
@@ -124,6 +126,10 @@ function doPost(e) {
       if (newRows.length > 0) { answeredSheet.getRange(answeredSheet.getLastRow() + 1, 1, newRows.length, 2).setValues(newRows);
       }
     }
+    else if (eventType === 'FinishMatchingQuiz') {
+        var matchingLogSheet = getOrCreateSheet(ss, MATCHING_LOG_SHEET_NAME, ["Timestamp", "UserID", "UserName", "EventType", "TotalScore", "TotalSets", "Details"]);
+        matchingLogSheet.appendRow([new Date(), data.userId, data.userName, eventType, data.score, data.totalSets, data.details]);
+    }
     else if (eventType === 'login') { if (!data.username || !data.password) { return createJsonResponse({ success: false, message: "Username and password are required." });
     } return handleLogin(data.username, data.password); }
     else if (eventType === 'updateUserCardData') { if (!data.userId) return createErrorResponse("User ID is required to update card data.");
@@ -147,8 +153,8 @@ function doPost(e) {
     } else if (eventType === 'saveTheoryLog') { var theoryLogSheet = getOrCreateSheet(ss, THEORY_LOG_SHEET_NAME, ["Log_UniqueID", "User_ID", "Question_ID", "Status", "Notes", "Essay_Time_Stamp"]); upsertTheoryLog(theoryLogSheet, data);
     }
     else if (eventType === 'deleteQuizNote' || eventType === 'deleteLectureNote') { var noteSheetName = eventType === 'deleteQuizNote' ?
-    QUIZ_NOTES_SHEET_NAME : LECTURE_NOTES_SHEET_NAME; var sheet = ss.getSheetByName(noteSheetName); if (sheet) { deleteNote(sheet, data.uniqueId);
-    }
+      QUIZ_NOTES_SHEET_NAME : LECTURE_NOTES_SHEET_NAME; var sheet = ss.getSheetByName(noteSheetName); if (sheet) { deleteNote(sheet, data.uniqueId);
+      }
     } else if (eventType === 'clearQuizLogs' || eventType === 'clearLectureLogs' || eventType === 'clearAllLogs') {
         if (!data.userId) return createErrorResponse("User ID is required to clear logs.");
         if (eventType === 'clearQuizLogs' || eventType === 'clearAllLogs') clearUserLogs(ss, QUIZ_LOG_SHEET_NAME, data.userId);
@@ -161,7 +167,7 @@ function doPost(e) {
     }
     return createJsonResponse({ success: true, message: "Action completed successfully." });
   } catch (error) { Logger.log("doPost Error: " + error.toString() + "\nStack: " + error.stack);
-  return createErrorResponse("An unexpected error occurred in doPost: " + error.toString());
+    return createErrorResponse("An unexpected error occurred in doPost: " + error.toString());
   }
 }
 
@@ -178,7 +184,8 @@ function verifyAdmin(username, password) {
     var usernameCol = headers.indexOf("Username");
     var passwordCol = headers.indexOf("Password");
     var roleCol = headers.indexOf("Role");
-    if (usernameCol === -1 || passwordCol === -1 || roleCol === -1) return { success: false, message: "System Error: Columns misconfigured." };
+    if (usernameCol === -1 || passwordCol === -1 || roleCol === -1) return { success: false, message: "System Error: Columns misconfigured."
+    };
     if (!username) return { success: false, message: "Username was not provided." };
     var userRow = null;
     for (var i = 0; i < data.length; i++) {
@@ -200,10 +207,6 @@ function verifyAdmin(username, password) {
   }
 }
 
-// ===============================================================
-// ================ HANDLER FUNCTIONS (وظائف المعالجة) ===========
-// ===============================================================
-
 function handleExtendSubscription(ss, data) {
     try {
         var { UniqueID, extendValue, extendUnit, Payment, PaymentMethod, PaymentNotes } = data;
@@ -213,7 +216,6 @@ function handleExtendSubscription(ss, data) {
 
         var usersSheet = ss.getSheetByName(USERS_SHEET_NAME);
         if (!usersSheet) return createErrorResponse("Users sheet not found.");
-
         var range = usersSheet.getDataRange();
         var values = range.getValues();
         var headers = values[0];
@@ -240,7 +242,6 @@ function handleExtendSubscription(ss, data) {
         if (extendUnit === 'days') newEndDate.setDate(newEndDate.getDate() + numValue);
         else if (extendUnit === 'weeks') newEndDate.setDate(newEndDate.getDate() + (numValue * 7));
         else if (extendUnit === 'months') newEndDate.setMonth(newEndDate.getMonth() + numValue);
-        
         usersSheet.getRange(userRowIndex + 1, endDateCol + 1).setValue(newEndDate);
 
         if (Payment && parseFloat(Payment) > 0) {
@@ -249,11 +250,11 @@ function handleExtendSubscription(ss, data) {
                 Payment: Payment,
                 PaymentMethod: PaymentMethod,
                 PaymentNotes: PaymentNotes || "Subscription Extension"
+    
             });
         }
         
         return createJsonResponse({ success: true, message: `Subscription extended successfully.` });
-
     } catch(e) {
         Logger.log("Error in handleExtendSubscription: " + e.toString());
         return createErrorResponse("An error occurred during extension.");
@@ -345,7 +346,6 @@ function handleAdminAddPayment(ss, paymentData) {
     financeSheet.appendRow([UniqueID, username, new Date(), PaymentNotes || "", "", Payment, PaymentMethod]);
     return createJsonResponse({ success: true, message: `Payment of ${Payment} for ${username} recorded.` });
 }
-
 
 function handleGetUserRole(username) {
   try {
@@ -513,6 +513,7 @@ function handleRegistration(ss, data) {
             case "Username": return data.Username;
             case "Password": return data.Password;
             case "E-Mail": return data.Email;
+          
             case "MobileNumber": return data.MobileNumber;
             case "Country": return data.Country;
             case "StudyType": return data.StudyType || "";
@@ -520,6 +521,7 @@ function handleRegistration(ss, data) {
             case "Role": return "Trial";
             case "AccessGranted": return true;
             case "AdditionTimeStamp": return now;
+ 
             case "SubscriptionEndDate": return expiryDate;
             default: return "";
         }
@@ -597,7 +599,7 @@ function handleGetAllUserPlans(userId) {
     userPlans.forEach(function(plan) { try { plan.Study_Plan = JSON.parse(plan.Study_Plan_JSON || '[]'); } catch (e) { plan.Study_Plan = []; } });
     return createJsonResponse({ success: true, plans: userPlans });
   } catch (error) { Logger.log("handleGetAllUserPlans Error: " + error.toString());
-  return createErrorResponse("Failed to retrieve study plans: " + error.toString()); }
+    return createErrorResponse("Failed to retrieve study plans: " + error.toString()); }
 }
 
 function handleCreateStudyPlan(ss, data) {
@@ -641,9 +643,26 @@ function handleLogin(username, password) {
     }
 }
 
+// --- UPDATED FUNCTION: Fetch Data + Version ---
 function handleContentDataRequest() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // Fetch Version from Settings Sheet
+  var settingsSheet = ss.getSheetByName(SETTINGS_SHEET_NAME);
+  var version = "1.0"; // Default fallback
+  if (settingsSheet) {
+     // Assumes A: Key, B: Value structure
+     var data = settingsSheet.getRange("A:B").getValues();
+     for (var i = 0; i < data.length; i++) {
+         if (data[i][0] === "ContentVersion") {
+             version = String(data[i][1]);
+             break;
+         }
+     }
+  }
+
   var data = {
+    version: version, // Send version to frontend
     questions: sheetToJSON(ss.getSheetByName(QUESTIONS_SHEET_NAME)),
     lectures: sheetToJSON(ss.getSheetByName(LECTURES_SHEET_NAME)),
     books: sheetToJSON(ss.getSheetByName(BOOKS_SHEET_NAME)),
@@ -988,7 +1007,7 @@ function sheetToJSON(sheet) {
     var headers = data.shift();
     return data.map(function(row) { return objectifyRow(row, headers); });
   } catch(e) { Logger.log("Error in sheetToJSON for sheet: " + (sheet ? sheet.getName() : 'N/A') + " - " + e.toString());
-  return []; }
+    return []; }
 }
 
 function objectifyRow(row, headers) {
@@ -1012,4 +1031,52 @@ function createJsonResponse(data) {
 
 function createErrorResponse(message) {
   return ContentService.createTextOutput(JSON.stringify({ error: message })).setMimeType(ContentService.MimeType.JSON);
+}
+// ==========================================
+// AUTO-UPDATE VERSION ON APPSHEET EDIT
+// ==========================================
+
+function onAnnouncementChange(e) {
+  var sheet = e.source.getActiveSheet();
+  
+  // تأكد أن التغيير حصل في شيت الإعلانات فقط
+  if (sheet.getName() !== "Announcements") return;
+  
+  // تأكد أن التغيير هو إضافة صف جديد (INSERT_ROW) أو تعديل قيمة
+  // AppSheet عادة بيعمل INSERT_ROW لما تضيف داتا جديدة
+  if (e.changeType === 'INSERT_ROW' || e.changeType === 'EDIT') {
+    
+    updateAppVersion(); // استدعاء دالة التحديث
+  }
+}
+
+function updateAppVersion() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var settingsSheet = ss.getSheetByName("Settings");
+    
+    if (settingsSheet) {
+      var range = settingsSheet.getDataRange();
+      var values = range.getValues();
+      
+      for (var i = 0; i < values.length; i++) {
+        // البحث عن مفتاح ContentVersion
+        if (values[i][0] === "ContentVersion") {
+          var currentVersion = parseFloat(values[i][1]);
+          if (isNaN(currentVersion)) currentVersion = 1.0;
+          
+          // تزويد الإصدار بـ 0.1
+          var newVersion = (currentVersion + 0.1).toFixed(1);
+          
+          // حفظ القيمة الجديدة
+          settingsSheet.getRange(i + 1, 2).setValue(newVersion);
+          
+          Logger.log("Version updated to: " + newVersion);
+          break; 
+        }
+      }
+    }
+  } catch (error) {
+    Logger.log("Error updating version: " + error.toString());
+  }
 }
