@@ -1,4 +1,4 @@
-// js/features/planner.js (FINAL - CORS FIXED & LINKED TO API)
+// js/features/planner.js (FINAL UPDATED VERSION - With Chapter Selection)
 
 import { appState } from '../state.js';
 import * as dom from '../dom.js';
@@ -7,7 +7,6 @@ import { calculateDaysLeft } from '../utils.js';
 import { launchQuiz } from './quiz.js';
 import { analyzePerformanceByChapter } from './performance.js';
 import { launchTheorySession } from './theory.js';
-// استيراد دوال الاتصال بالسيرفر المصححة
 import { 
     createStudyPlanAPI, 
     updateStudyPlanAPI, 
@@ -16,360 +15,381 @@ import {
     getAllUserPlansAPI 
 } from '../api.js';
 
+// --- 1. Initialization & Screen Logic ---
+
 export async function showStudyPlannerScreen() {
     ui.showScreen(dom.studyPlannerContainer);
     appState.navigationHistory.push(showStudyPlannerScreen);
     
-    // Safety check
+    // Reset UI
     if (dom.studyPlannerLoader) dom.studyPlannerLoader.classList.remove('hidden');
     if (dom.plannerDashboard) dom.plannerDashboard.classList.add('hidden');
     if (dom.activePlanView) dom.activePlanView.classList.add('hidden');
     if (dom.performanceInsightsContainer) dom.performanceInsightsContainer.classList.add('hidden');
 
     try {
-        // استخدام دالة API المركزية بدلاً من fetch المباشر
+        // Fetch plans from API
         const data = await getAllUserPlansAPI();
         
         if (data && data.success) {
             appState.studyPlans = data.plans || [];
-            appState.activeStudyPlan = appState.studyPlans.find(p => String(p.Plan_Status).toUpperCase() === 'TRUE') || null;
             
-            renderPerformanceInsights();
-            renderPlannerDashboard();
-
-            if (appState.activeStudyPlan) {
-                renderActivePlanView();
-                dom.plannerDashboard.classList.add('hidden');
-                dom.activePlanView.classList.remove('hidden');
+            // Check for active plan
+            const activePlan = appState.studyPlans.find(p => p.Plan_Status === 'Active');
+            
+            if (activePlan) {
+                appState.activeStudyPlan = activePlan;
+                renderActivePlan(activePlan);
             } else {
-                dom.plannerDashboard.classList.remove('hidden');
-                dom.activePlanView.classList.add('hidden');
+                appState.activeStudyPlan = null;
+                showCreatePlanDashboard();
             }
         } else {
-            throw new Error("Failed to load plans");
+            // Fallback if API fails or no plans
+             appState.studyPlans = [];
+             showCreatePlanDashboard();
         }
 
     } catch (error) {
-        console.error("Error loading study plans:", error);
-        if (dom.studyPlansList) dom.studyPlansList.innerHTML = `<p class="text-center text-red-500">Failed to load plans. Please check connection.</p>`;
+        console.error("Error fetching study plans:", error);
+        dom.studyPlannerLoader.innerHTML = `<p class="text-red-500 text-center">Failed to load plans. Please check connection.</p>`;
     } finally {
         if (dom.studyPlannerLoader) dom.studyPlannerLoader.classList.add('hidden');
     }
 }
 
-function renderPerformanceInsights() {
+function showCreatePlanDashboard() {
+    if (dom.plannerDashboard) dom.plannerDashboard.classList.remove('hidden');
+    if (dom.activePlanView) dom.activePlanView.classList.add('hidden');
+    
+    // Performance Insights (Optional)
     const performance = analyzePerformanceByChapter();
-    if (dom.performanceInsightsContainer && performance && (performance.strengths.length > 0 || performance.weaknesses.length > 0)) {
-        dom.strengthsList.innerHTML = performance.strengths.length > 0 
-            ? performance.strengths.map(s => `<li>${s}</li>`).join('') 
-            : '<li>Keep practicing to build your strengths!</li>';
-        
-        dom.weaknessesList.innerHTML = performance.weaknesses.length > 0 
-            ? performance.weaknesses.map(w => `<li>${w}</li>`).join('')
-            : '<li>No specific weaknesses found. Great job!</li>';
-
+    if (performance && dom.performanceInsightsContainer) {
         dom.performanceInsightsContainer.classList.remove('hidden');
-    } else if (dom.performanceInsightsContainer) {
-        dom.performanceInsightsContainer.classList.add('hidden');
+        dom.weakAreasList.innerHTML = performance.weaknesses.map(w => `<li class="text-red-600"><i class="fas fa-exclamation-circle mr-2"></i>${w}</li>`).join('');
+        dom.strongAreasList.innerHTML = performance.strengths.map(s => `<li class="text-green-600"><i class="fas fa-check-circle mr-2"></i>${s}</li>`).join('');
     }
 }
 
-function renderPlannerDashboard() {
-    const plansList = dom.studyPlansList;
-    if (!plansList) return;
+// --- 2. NEW: Chapter Selection Logic ---
+
+/**
+ * Fills the chapter selection list in the Modal.
+ * Called when opening the Create Plan Modal.
+ */
+export function renderPlannerChapterSelection() {
+    const listContainer = document.getElementById('planner-chapters-list');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = '';
     
-    plansList.innerHTML = '';
-    if (!appState.studyPlans || appState.studyPlans.length === 0) {
-        plansList.innerHTML = `<p class="text-center text-slate-500 p-4 bg-slate-50 rounded-lg">You haven't created any study plans yet. Click "Create New Plan" to get started!</p>`;
+    // Ensure we have chapters
+    const chapters = appState.allChaptersNames || []; 
+
+    if (chapters.length === 0) {
+        listContainer.innerHTML = '<p class="text-center text-gray-500">No chapters found.</p>';
+        return;
+    }
+
+    // Create Checkboxes
+    chapters.forEach((chapter, index) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center hover:bg-white p-1 rounded transition';
+        div.innerHTML = `
+            <input type="checkbox" id="plan-chap-${index}" name="plan-selected-chapters" value="${chapter}" checked 
+                   class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
+            <label for="plan-chap-${index}" class="ml-2 text-sm text-gray-700 cursor-pointer select-none w-full">${chapter}</label>
+        `;
+        listContainer.appendChild(div);
+    });
+
+    // Helper Buttons Logic
+    const selectAllBtn = document.getElementById('select-all-chapters-btn');
+    const clearAllBtn = document.getElementById('clear-all-chapters-btn');
+
+    if (selectAllBtn) {
+        selectAllBtn.onclick = () => {
+            document.querySelectorAll('input[name="plan-selected-chapters"]').forEach(el => el.checked = true);
+        };
+    }
+    if (clearAllBtn) {
+        clearAllBtn.onclick = () => {
+            document.querySelectorAll('input[name="plan-selected-chapters"]').forEach(el => el.checked = false);
+        };
+    }
+}
+
+// --- 3. Plan Generation Logic ---
+
+export async function handleCreatePlan(e) {
+    e.preventDefault();
+    
+    const nameInput = document.getElementById('plan-name');
+    const startDateInput = document.getElementById('plan-start-date');
+    const examDateInput = document.getElementById('plan-exam-date');
+    const errorMsg = document.getElementById('chapter-selection-error');
+
+    // Basic Validation
+    if (!nameInput.value || !startDateInput.value || !examDateInput.value) {
+        alert("Please fill in all fields.");
+        return;
+    }
+
+    // NEW: Get Selected Chapters
+    const selectedCheckboxes = document.querySelectorAll('input[name="plan-selected-chapters"]:checked');
+    const selectedChapters = Array.from(selectedCheckboxes).map(cb => cb.value);
+
+    // Validation: Must select at least one
+    if (selectedChapters.length === 0) {
+        if (errorMsg) errorMsg.classList.remove('hidden');
+        return;
     } else {
-        appState.studyPlans.forEach(plan => {
-            const isActive = String(plan.Plan_Status).toUpperCase() === 'TRUE';
-            const planCard = document.createElement('div');
-            planCard.className = `p-4 rounded-lg border-2 flex justify-between items-center ${isActive ? 'bg-blue-50 border-blue-400' : 'bg-white border-slate-200'}`;
-            
-            let planName = plan.Plan_Name;
-            // حماية من البيانات التالفة
-            if (typeof planName === 'string' && planName.startsWith('[{')) {
-                planName = "Recovered Plan";
-            }
-
-            let dateDisplay = '';
-            try {
-                dateDisplay = `${new Date(plan.Plan_StartDate).toLocaleDateString('en-GB')} - ${new Date(plan.Plan_EndDate).toLocaleDateString('en-GB')}`;
-            } catch (e) { dateDisplay = 'Invalid Date'; }
-
-            planCard.innerHTML = `
-                <div>
-                    <h4 class="font-bold text-lg text-slate-800">${planName}</h4>
-                    <p class="text-sm text-slate-500">
-                        ${dateDisplay}
-                        ${isActive ? '<span class="ml-2 text-xs font-bold text-white bg-blue-500 px-2 py-1 rounded-full">ACTIVE</span>' : ''}
-                    </p>
-                </div>
-                <div class="flex gap-2">
-                    ${!isActive ? `<button class="activate-plan-btn action-btn bg-green-500 hover:bg-green-600 text-white text-sm font-bold py-1 px-3 rounded" data-plan-id="${plan.Plan_ID}">Activate</button>` : ''}
-                    <button class="view-plan-btn action-btn bg-slate-500 hover:bg-slate-600 text-white text-sm font-bold py-1 px-3 rounded" data-plan-id="${plan.Plan_ID}">View</button>
-                    <button class="delete-plan-btn action-btn bg-red-500 hover:bg-red-600 text-white text-sm font-bold py-1 px-3 rounded" data-plan-id="${plan.Plan_ID}" title="Delete Plan"><i class="fas fa-trash"></i></button>
-                </div>
-            `;
-            plansList.appendChild(planCard);
-        });
-    }
-    addDashboardEventListeners();
-}
-
-function renderActivePlanView() {
-    const plan = appState.activeStudyPlan;
-    if (!plan) return;
-
-    dom.activePlanName.textContent = plan.Plan_Name;
-    const endDate = new Date(plan.Plan_EndDate);
-    const daysRemaining = calculateDaysLeft(endDate);
-    dom.planDaysRemaining.textContent = daysRemaining >= 0 ? daysRemaining : 'Ended';
-
-    let totalTasks = 0, completedTasks = 0;
-    if (plan.Study_Plan) {
-        plan.Study_Plan.forEach(day => {
-            day.tasks.forEach(task => {
-                totalTasks++;
-                if (task.completed) completedTasks++;
-            });
-        });
+        if (errorMsg) errorMsg.classList.add('hidden');
     }
 
-    const progress = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(0) : 0;
-    dom.planProgressBar.style.width = `${progress}%`;
-    dom.planProgressBar.textContent = `${progress}%`;
+    // Generate Plan with SELECTED chapters only
+    const studyPlan = generateStudyPlan(
+        nameInput.value,
+        new Date(startDateInput.value),
+        new Date(examDateInput.value),
+        selectedChapters // Pass selection
+    );
 
-    const todayString = new Date().toISOString().split('T')[0];
-    const todayPlan = plan.Study_Plan ? plan.Study_Plan.find(day => day.date === todayString) : null;
-    dom.planTasksToday.textContent = todayPlan ? todayPlan.tasks.filter(t => !t.completed).length : 0;
+    if (!studyPlan) return; // Date error handling inside generate function
 
-    dom.studyPlanDaysContainer.innerHTML = '';
-    if (plan.Study_Plan) {
-        plan.Study_Plan.forEach((day, dayIndex) => {
-            const dayDiv = document.createElement('div');
-            dayDiv.className = 'bg-white rounded-lg shadow-sm p-4';
-            const date = new Date(day.date);
-            const isToday = date.toISOString().split('T')[0] === todayString;
-            let dateDisplay = date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-            if (isToday) dateDisplay += ' (Today)';
-
-            let tasksHtml = day.tasks.map((task, taskIndex) => {
-                let taskContentHtml = '';
-                if (task.type === 'lecture' && task.link) {
-                    taskContentHtml = `<a href="${task.link}" target="_blank" class="text-blue-600 hover:underline">${task.name}</a>`;
-                } else {
-                    taskContentHtml = `<span>${task.name}</span>`;
-                }
-                
-                const keywordsData = JSON.stringify(task.keywords || []).replace(/"/g, '&quot;');
-
-                let actionButtonHtml = '';
-                if (task.type === 'quiz' && !task.completed) {
-                    actionButtonHtml = `<button class="start-planner-quiz-btn text-xs bg-blue-500 text-white py-1 px-2 rounded hover:bg-blue-600" data-keywords="${keywordsData}" data-is-comprehensive="${task.isComprehensive || false}">Start Quiz</button>`;
-                } else if (task.type === 'theory' && !task.completed) {
-                    actionButtonHtml = `<button class="start-planner-theory-btn text-xs bg-yellow-500 text-white py-1 px-2 rounded hover:bg-yellow-600" data-keywords="${keywordsData}">Start Study</button>`;
-                }
-
-                return `
-                <li class="flex items-center justify-between p-2 rounded-md ${task.completed ? 'bg-green-100 text-slate-500 line-through' : 'bg-slate-50'}">
-                    <div class="flex items-center">
-                        <input type="checkbox" class="task-checkbox h-4 w-4 mr-3" data-day-index="${dayIndex}" data-task-index="${taskIndex}" ${task.completed ? 'checked' : ''}>
-                        ${taskContentHtml}
-                    </div>
-                    ${actionButtonHtml}
-                </li>
-            `}).join('');
-
-            dayDiv.innerHTML = `<h4 class="font-bold text-lg mb-2 ${isToday ? 'text-blue-600': ''}">${dateDisplay}</h4><ul class="space-y-2">${tasksHtml}</ul>`;
-            dom.studyPlanDaysContainer.appendChild(dayDiv);
-        });
-    }
-
-    addActivePlanEventListeners();
-}
-
-function generatePlanContent(startDateStr, endDateStr) {
-    const startDate = new Date(startDateStr);
-    const endDate = new Date(endDateStr);
-    const CUMULATIVE_QUIZ_INTERVAL = 3; 
-    const allLectures = Object.values(appState.groupedLectures).flatMap(chapter => chapter.topics);
+    // UI Feedback
+    dom.createPlanBtn.disabled = true;
+    dom.createPlanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
     
-    const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-    const daysForComprehensive = 2;
-    const daysForLectures = totalDays - daysForComprehensive;
-
-    if (daysForLectures <= 0) return null;
-
-    const plan = [];
-    const lecturesPerDay = Math.ceil(allLectures.length / daysForLectures);
-    let cumulativeKeywords = new Set();
-
-    for (let i = 0; i < daysForLectures; i++) {
-        const currentDate = new Date(startDate);
-        currentDate.setDate(startDate.getDate() + i);
-        const dayPlan = { date: currentDate.toISOString().split('T')[0], tasks: [] };
+    try {
+        const result = await createStudyPlanAPI(studyPlan);
         
-        const assignedLectures = allLectures.splice(0, lecturesPerDay);
-        if (assignedLectures.length > 0) {
-            assignedLectures.forEach(lec => {
-                dayPlan.tasks.push({ type: 'lecture', name: lec.name, link: lec.link, completed: false });
-            });
+        if (result.success) {
+            dom.createPlanModal.classList.add('hidden');
+            dom.modalBackdrop.classList.add('hidden');
+            dom.createPlanForm.reset();
+            alert('Study Plan Created Successfully! 🚀');
+            showStudyPlannerScreen(); // Refresh
+        } else {
+            throw new Error(result.message || "Failed to create plan");
+        }
+    } catch (error) {
+        alert(error.message);
+    } finally {
+        dom.createPlanBtn.disabled = false;
+        dom.createPlanBtn.innerHTML = 'Create Plan';
+    }
+}
 
-            const todaysKeywords = new Set(assignedLectures.flatMap(lec => (lec.Keywords || '').split(',').map(k => k.trim().toLowerCase()).filter(Boolean)));
+function generateStudyPlan(planName, startDate, examDate, chaptersToStudy) {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    startDate.setHours(0,0,0,0);
+    examDate.setHours(0,0,0,0);
+
+    if (examDate <= startDate) {
+        alert("Exam date must be after start date.");
+        return null;
+    }
+
+    const totalDays = Math.ceil((examDate - startDate) / (1000 * 60 * 60 * 24));
+    if (totalDays < 1) {
+        alert("Duration is too short.");
+        return null;
+    }
+
+    // Use provided chapters or fallback to all
+    const chapters = (chaptersToStudy && chaptersToStudy.length > 0) 
+                     ? chaptersToStudy 
+                     : appState.allChaptersNames;
+
+    const daysPerChapter = Math.max(1, Math.floor((totalDays - 7) / chapters.length)); // Reserve 7 days for revision
+    
+    let planDays = [];
+    let currentDay = new Date(startDate);
+    let chapterIndex = 0;
+
+    // 1. Study Phase
+    while (chapterIndex < chapters.length && currentDay < examDate) {
+        const chapter = chapters[chapterIndex];
+        
+        for (let i = 0; i < daysPerChapter && currentDay < examDate; i++) {
+            planDays.push({
+                date: new Date(currentDay).toISOString(),
+                phase: 'Study',
+                tasks: [
+                    { type: 'lecture', title: `Watch: ${chapter}`, completed: false },
+                    { type: 'theory', title: `Read: ${chapter}`, completed: false, keywords: JSON.stringify([chapter]) },
+                    { type: 'quiz', title: `Quiz: ${chapter}`, completed: false, keywords: JSON.stringify([chapter]) }
+                ]
+            });
+            currentDay.setDate(currentDay.getDate() + 1);
+        }
+        chapterIndex++;
+    }
+
+    // 2. Revision Phase (Remaining Days)
+    let revisionDayCount = 1;
+    while (currentDay < examDate) {
+        planDays.push({
+            date: new Date(currentDay).toISOString(),
+            phase: 'Revision',
+            tasks: [
+                { type: 'mixed-quiz', title: `Full Mock Exam ${revisionDayCount}`, completed: false },
+                { type: 'review-mistakes', title: `Review Mistakes`, completed: false }
+            ]
+        });
+        revisionDayCount++;
+        currentDay.setDate(currentDay.getDate() + 1);
+    }
+
+    return {
+        User_ID: appState.currentUser.UniqueID,
+        Plan_Name: planName,
+        Plan_StartDate: startDate.toISOString(),
+        Plan_EndDate: examDate.toISOString(),
+        Study_Plan_JSON: JSON.stringify({ days: planDays }),
+        Plan_Status: 'Active'
+    };
+}
+
+// --- 4. Rendering & Interaction ---
+
+function renderActivePlan(plan) {
+    if (!plan) return;
+    
+    dom.plannerDashboard.classList.add('hidden');
+    dom.activePlanView.classList.remove('hidden');
+    dom.activePlanTitle.textContent = plan.Plan_Name;
+
+    const planData = JSON.parse(plan.Study_Plan_JSON);
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // Progress Calculation
+    let totalTasks = 0;
+    let completedTasks = 0;
+    
+    // Render Days
+    dom.planDaysContainer.innerHTML = '';
+    
+    planData.days.forEach((day, index) => {
+        const dayDate = new Date(day.date);
+        const dayDateStr = dayDate.toISOString().split('T')[0];
+        const isToday = dayDateStr === todayStr;
+        const isPast = dayDate < today;
+
+        day.tasks.forEach(t => {
+            totalTasks++;
+            if (t.completed) completedTasks++;
+        });
+
+        const dayCard = document.createElement('div');
+        dayCard.className = `p-4 rounded-lg border ${isToday ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-200' : 'bg-white border-gray-200'} ${isPast ? 'opacity-75' : ''}`;
+        
+        // Header
+        let statusBadge = '';
+        if (isToday) statusBadge = '<span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-0.5 rounded">Today</span>';
+        else if (isPast) statusBadge = '<span class="bg-gray-100 text-gray-800 text-xs font-semibold px-2 py-0.5 rounded">Past</span>';
+        
+        dayCard.innerHTML = `
+            <div class="flex justify-between items-center mb-3">
+                <h4 class="font-bold text-gray-700 ${isToday ? 'text-blue-700' : ''}">Day ${index + 1} <span class="text-xs font-normal text-gray-500">(${dayDate.toLocaleDateString()})</span></h4>
+                ${statusBadge}
+            </div>
+            <ul class="space-y-2" id="tasks-day-${index}">
+            </ul>
+        `;
+        
+        const taskList = dayCard.querySelector('ul');
+        
+        day.tasks.forEach((task, taskIdx) => {
+            const li = document.createElement('li');
+            li.className = 'flex items-center text-sm';
+            const taskId = `task-${index}-${taskIdx}`;
             
-            if (todaysKeywords.size > 0) {
-                dayPlan.tasks.push({ 
-                    type: 'quiz', 
-                    name: `Daily MCQ Quiz (Day ${i + 1})`, 
-                    keywords: [...todaysKeywords],
-                    isComprehensive: false,
-                    completed: false 
-                });
-                dayPlan.tasks.push({
-                    type: 'theory',
-                    name: `Daily Theory Study (Day ${i + 1})`,
-                    keywords: [...todaysKeywords],
-                    completed: false
-                });
+            // Action Button (Go to Lecture/Quiz)
+            let actionBtn = '';
+            if (task.type === 'quiz') {
+                actionBtn = `<button class="ml-auto text-xs bg-indigo-100 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-200 start-planner-quiz-btn" data-keywords='${task.keywords || "[]"}'>Start</button>`;
+            } else if (task.type === 'lecture') {
+                actionBtn = `<button class="ml-auto text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded hover:bg-purple-200">View</button>`;
+            } else if (task.type === 'theory') {
+                 actionBtn = `<button class="ml-auto text-xs bg-amber-100 text-amber-600 px-2 py-1 rounded hover:bg-amber-200 start-planner-theory-btn" data-keywords='${task.keywords || "[]"}'>Study</button>`;
             }
 
-            todaysKeywords.forEach(k => cumulativeKeywords.add(k));
+            li.innerHTML = `
+                <input type="checkbox" id="${taskId}" ${task.completed ? 'checked' : ''} class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out">
+                <label for="${taskId}" class="ml-2 text-gray-700 ${task.completed ? 'line-through text-gray-400' : ''} flex-1 cursor-pointer select-none">${task.title}</label>
+                ${!task.completed ? actionBtn : ''}
+            `;
+            
+            // Checkbox Logic
+            const checkbox = li.querySelector('input');
+            checkbox.addEventListener('change', async () => {
+                task.completed = checkbox.checked;
+                // Visual update
+                const label = li.querySelector('label');
+                if (checkbox.checked) label.classList.add('line-through', 'text-gray-400');
+                else label.classList.remove('line-through', 'text-gray-400');
+                
+                // Save progress
+                plan.Study_Plan_JSON = JSON.stringify(planData);
+                await updateStudyPlanAPI(plan);
+                renderProgress(totalTasks, completedTasks + (checkbox.checked ? 1 : -1)); // Optimistic update
+            });
 
-            if ((i + 1) % CUMULATIVE_QUIZ_INTERVAL === 0 || i === daysForLectures - 1) {
-                 dayPlan.tasks.push({ 
-                    type: 'quiz', 
-                    name: `Cumulative MCQ Review`, 
-                    keywords: [...cumulativeKeywords],
-                    isComprehensive: false,
-                    completed: false 
-                });
+            taskList.appendChild(li);
+        });
+
+        dom.planDaysContainer.appendChild(dayCard);
+    });
+
+    // Scroll to today
+    setTimeout(() => {
+        const todayCard = dom.planDaysContainer.querySelector('.ring-2');
+        if (todayCard) todayCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 500);
+
+    renderProgress(totalTasks, completedTasks);
+    attachQuickActionListeners();
+
+    // Delete Plan Button
+    dom.deletePlanBtn.onclick = async () => {
+        if (confirm("Are you sure you want to delete this plan? This cannot be undone.")) {
+            const res = await deleteStudyPlanAPI(plan.Plan_ID);
+            if (res.success) {
+                appState.activeStudyPlan = null;
+                showStudyPlannerScreen();
+            } else {
+                alert(res.message);
             }
         }
-        if (dayPlan.tasks.length > 0) plan.push(dayPlan);
-    }
-    return plan.sort((a, b) => new Date(a.date) - new Date(b.date));
-}
-
-export async function handleCreatePlan() {
-    const planName = dom.newPlanName.value.trim();
-    const startDate = dom.newPlanStartDate.value;
-    const endDate = dom.newPlanEndDate.value;
-    const errorEl = dom.createPlanError;
-
-    if (!planName || !startDate || !endDate) {
-        errorEl.textContent = 'All fields are required.';
-        errorEl.classList.remove('hidden');
-        return;
-    }
-    if (new Date(startDate) >= new Date(endDate)) {
-        errorEl.textContent = 'End date must be after the start date.';
-        errorEl.classList.remove('hidden');
-        return;
-    }
-    errorEl.classList.add('hidden');
-
-    const generatedPlan = generatePlanContent(startDate, endDate);
-    if (!generatedPlan) {
-        errorEl.textContent = 'Could not generate a plan. The date range is too short for the content.';
-        errorEl.classList.remove('hidden');
-        return;
-    }
-
-    const planData = {
-        planName: planName,
-        startDate: startDate,
-        endDate: endDate,
-        studyPlan: generatedPlan
     };
-
-    try {
-        // استخدام API المصححة
-        await createStudyPlanAPI(planData);
-        dom.modalBackdrop.classList.add('hidden');
-        dom.createPlanModal.classList.add('hidden');
-        showStudyPlannerScreen();
-    } catch (error) {
-        console.error("Error creating plan:", error);
-        errorEl.textContent = 'An error occurred while saving the plan.';
-        errorEl.classList.remove('hidden');
-    }
 }
 
-function addDashboardEventListeners() {
-    document.querySelectorAll('.view-plan-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const planId = e.currentTarget.dataset.planId;
-            appState.activeStudyPlan = appState.studyPlans.find(p => p.Plan_ID === planId);
-            renderActivePlanView();
-            dom.plannerDashboard.classList.add('hidden');
-            dom.activePlanView.classList.remove('hidden');
-        });
-    });
-
-    document.querySelectorAll('.activate-plan-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const planId = e.currentTarget.dataset.planId;
-            try {
-                await activateStudyPlanAPI(planId);
-                showStudyPlannerScreen();
-            } catch (error) { console.error("Error activating plan:", error); }
-        });
-    });
-
-    document.querySelectorAll('.delete-plan-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const planId = e.currentTarget.dataset.planId;
-            ui.showConfirmationModal(
-                'Delete Plan?',
-                'Are you sure you want to delete this plan?',
-                async () => {
-                    try {
-                        await deleteStudyPlanAPI(planId);
-                        if (appState.activeStudyPlan && appState.activeStudyPlan.Plan_ID === planId) {
-                            appState.activeStudyPlan = null;
-                        }
-                        showStudyPlannerScreen();
-                    } catch (error) { console.error("Error deleting plan:", error); }
-                }
-            );
-        });
-    });
+function renderProgress(total, completed) {
+    const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+    dom.planProgressBar.style.width = `${percentage}%`;
+    dom.planProgressText.textContent = `${percentage}% Completed`;
 }
 
-function addActivePlanEventListeners() {
-    document.querySelectorAll('.task-checkbox').forEach(box => {
-        box.addEventListener('change', async (e) => {
-            const dayIndex = parseInt(e.currentTarget.dataset.dayIndex);
-            const taskIndex = parseInt(e.currentTarget.dataset.taskIndex);
-            appState.activeStudyPlan.Study_Plan[dayIndex].tasks[taskIndex].completed = e.currentTarget.checked;
-            
-            // تحديث حالة الخطة في السيرفر
-            await updateStudyPlanAPI(appState.activeStudyPlan.Plan_ID, appState.activeStudyPlan.Study_Plan);
-            renderActivePlanView();
-        });
-    });
-
+function attachQuickActionListeners() {
     document.querySelectorAll('.start-planner-quiz-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const keywordsString = e.currentTarget.dataset.keywords.replace(/&quot;/g, '"');
             const keywords = JSON.parse(keywordsString);
-            const isComprehensive = e.currentTarget.dataset.isComprehensive === 'true';
-            let questions = [];
+            const lowerCaseKeywords = keywords.map(k => k.toLowerCase());
 
-            if (isComprehensive) {
-                questions = [...appState.allQuestions].sort(() => 0.5 - Math.random()).slice(0, 100);
-            } else {
-                const lowerCaseKeywords = keywords.map(k => k.toLowerCase());
-                questions = appState.allQuestions.filter(q => {
-                    const questionKeywords = (q.Keywords || '').toLowerCase();
-                    return lowerCaseKeywords.some(keyword => questionKeywords.includes(keyword));
-                });
-            }
+            const questions = appState.allQuestions.filter(q => {
+                const questionKeywords = (q.Keywords || '').toLowerCase();
+                return lowerCaseKeywords.some(keyword => questionKeywords.includes(keyword));
+            });
 
             if (questions.length > 0) {
-                const quizTitle = e.target.closest('li').querySelector('span, a').textContent;
+                const quizTitle = e.target.closest('li').querySelector('span, a, label').textContent;
                 launchQuiz(questions, quizTitle);
             } else {
                 alert('No MCQ questions found for the topics in this task.');
@@ -389,7 +409,7 @@ function addActivePlanEventListeners() {
             });
 
             if (questions.length > 0) {
-                const studyTitle = e.target.closest('li').querySelector('span, a').textContent;
+                const studyTitle = e.target.closest('li').querySelector('span, a, label').textContent;
                 launchTheorySession(studyTitle, questions, false);
             } else {
                 alert('No Theory questions found for the topics in this task.');
