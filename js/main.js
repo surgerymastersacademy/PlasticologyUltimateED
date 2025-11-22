@@ -447,6 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
     safeListen(document.getElementById('learning-bookmarked-btn'), 'click', startLearningBookmarked);
 
     safeListen(dom.showCreatePlanModalBtn, 'click', () => { dom.createPlanModal.classList.remove('hidden'); dom.modalBackdrop.classList.remove('hidden'); });
+    import('./features/planner.js').then(module => module.renderPlannerChapterSelection()); });
     safeListen(dom.cancelCreatePlanBtn, 'click', () => { dom.createPlanModal.classList.add('hidden'); dom.modalBackdrop.classList.add('hidden'); });
     safeListen(dom.confirmCreatePlanBtn, 'click', handleCreatePlan);
     safeListen(dom.backToPlansDashboardBtn, 'click', () => { dom.activePlanView.classList.add('hidden'); dom.plannerDashboard.classList.remove('hidden'); });
@@ -464,3 +465,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initializeApp();
 });
+
