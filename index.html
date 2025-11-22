@@ -862,6 +862,24 @@
                     <div id="planner-dashboard">
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="text-2xl font-bold text-slate-800">Your Study Plans</h3>
+                            <div class="mb-4">
+    <label class="block text-gray-700 text-sm font-bold mb-2">
+        Select Chapters to Study (نطاق المذاكرة)
+    </label>
+    
+    <div class="flex gap-2 mb-2">
+        <button type="button" id="select-all-chapters-btn" class="text-xs bg-blue-100 text-blue-600 px-3 py-1 rounded hover:bg-blue-200 transition">Select All</button>
+        <button type="button" id="clear-all-chapters-btn" class="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded hover:bg-gray-200 transition">Clear</button>
+    </div>
+
+    <div id="planner-chapters-list" class="h-48 overflow-y-auto border border-gray-300 rounded-lg p-3 bg-gray-50 grid grid-cols-1 gap-2">
+        <p class="text-center text-gray-400 text-sm">Loading chapters...</p>
+    </div>
+    
+    <p id="chapter-selection-error" class="text-red-500 text-xs mt-1 hidden">
+        <i class="fas fa-exclamation-circle"></i> Please select at least one chapter.
+    </p>
+</div>
                             <button id="show-create-plan-modal-btn" class="action-btn bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2">
                                 <i class="fas fa-plus-circle"></i> Create New Plan
                             </button>
@@ -1141,3 +1159,4 @@
     <script src="js/login-animation.js"></script>
 </body>
 </html>
+
